@@ -382,18 +382,16 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
 
   // Reset / Initialize Race Grid
   useEffect(() => {
-    const startSample = samples[0];
-    const startHeading = Math.atan2(startSample.tangent.x, startSample.tangent.z);
-
     const newCars: CarRuntime[] = [];
     for (let i = 0; i < TOTAL_CARS; i++) {
-      const row = Math.floor(i / 2);
+      const row = Math.floor(i / 2); // 0, 1, 2
       const col = i % 2 === 0 ? -1 : 1;
-      const backSampleIdx = (TRACK_SAMPLES - row * 4) % TRACK_SAMPLES;
-      const sample = samples[backSampleIdx];
+      const spawnSampleIdx = (8 - row * 3 + TRACK_SAMPLES) % TRACK_SAMPLES;
+      const sample = samples[spawnSampleIdx];
+      const sampleHeading = Math.atan2(sample.tangent.x, sample.tangent.z);
       const spawnPos = sample.pos
         .clone()
-        .addScaledVector(sample.right, col * 4.2);
+        .addScaledVector(sample.right, col * 3.8);
       spawnPos.y = 0.55;
 
       newCars.push({
@@ -401,8 +399,8 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         isHuman: i === 0,
         pos: spawnPos,
         vel: new THREE.Vector3(),
-        heading: startHeading,
-        speed: 0,
+        heading: sampleHeading,
+        speed: 18,
         lateralVel: 0,
         driftFactor: 0,
         driftCharge: 0,
@@ -413,9 +411,9 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         shuntHitTimer: 0,
         verticalY: 0,
         verticalVel: 0,
-        trackIndex: backSampleIdx,
+        trackIndex: spawnSampleIdx,
         lap: 1,
-        totalProgress: -row * 0.01,
+        totalProgress: 1 + spawnSampleIdx / TRACK_SAMPLES,
         rank: i + 1,
         finished: false,
         finishTime: 0,
@@ -423,7 +421,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         activeSlotIndex: 0,
         prevB: false,
         prevR1: false,
-        aiTargetOffset: (i - 2.5) * 2.4,
+        aiTargetOffset: col * 3.2,
         aiFireCooldown: 2.5 + i * 0.6,
       });
     }
@@ -562,17 +560,19 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
     const rs = raceStateRef.current;
     rs.raceTimeSec += dt;
 
-    // Determine human active slots
+    // Determine human active slots (only slots with an active phone or recent keyboard input)
     const connState = useConsoleConnectionStore.getState();
     const humanSlots: number[] = [];
     for (let s = 0; s < MAX_PLAYERS; s++) {
       const inp = GameEngineBridge.playersInput[s];
-      const hasRecentInput =
+      const hasRecentKeyboardOrPad =
+        inp && inp.sequence > 0 && performance.now() - inp.timestamp < 3500;
+      const isSlotHuman =
         connState.connectedSlots[s] ||
-        (s === 0 && connState.connectedCount === 0) ||
-        (inp && performance.now() - inp.timestamp < 10000 && inp.sequence > 0);
+        hasRecentKeyboardOrPad ||
+        (s === 0 && connState.connectedCount === 0);
 
-      if (hasRecentInput) {
+      if (isSlotHuman) {
         humanSlots.push(s);
       }
     }
@@ -601,9 +601,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
     const cars = carsRef.current;
     for (let i = 0; i < cars.length; i++) {
       const car = cars[i];
-      car.isHuman =
-        i < MAX_PLAYERS &&
-        (humanSlots.includes(i) || activeViewportSlots.includes(i));
+      car.isHuman = i < MAX_PLAYERS && humanSlots.includes(i);
 
       if (car.shieldTimer > 0) car.shieldTimer = Math.max(0, car.shieldTimer - dt);
       if (car.nitroTimer > 0) car.nitroTimer = Math.max(0, car.nitroTimer - dt);
@@ -612,7 +610,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       if (car.shuntHitTimer > 0) {
         car.shuntHitTimer = Math.max(0, car.shuntHitTimer - dt);
         car.heading += 9.5 * dt;
-        car.speed *= 0.94;
+        car.speed *= 1 - 1.5 * dt;
       }
 
       if (car.verticalY > 0 || car.verticalVel !== 0) {
@@ -624,15 +622,24 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         }
       }
 
-      // Find nearest track sample around current car.trackIndex
+      // Find nearest track sample around current car.trackIndex (wide window + full-track fallback)
       let bestSampleIdx = car.trackIndex;
       let bestDistSq = Infinity;
-      for (let offset = -12; offset <= 16; offset++) {
+      for (let offset = -28; offset <= 36; offset++) {
         const candidateIdx = (car.trackIndex + offset + TRACK_SAMPLES) % TRACK_SAMPLES;
         const dSq = samples[candidateIdx].pos.distanceToSquared(car.pos);
         if (dSq < bestDistSq) {
           bestDistSq = dSq;
           bestSampleIdx = candidateIdx;
+        }
+      }
+      if (bestDistSq > 900) {
+        for (let sIdx = 0; sIdx < TRACK_SAMPLES; sIdx++) {
+          const dSq = samples[sIdx].pos.distanceToSquared(car.pos);
+          if (dSq < bestDistSq) {
+            bestDistSq = dSq;
+            bestSampleIdx = sIdx;
+          }
         }
       }
 
@@ -655,7 +662,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       car.totalProgress = car.lap + bestSampleIdx / TRACK_SAMPLES;
 
       const curSample = samples[bestSampleIdx];
-      const lookSample = samples[(bestSampleIdx + 7) % TRACK_SAMPLES];
+      const lookSample = samples[(bestSampleIdx + 10) % TRACK_SAMPLES];
 
       // Steering, Throttle, Drift & Power-up Input
       let steerInput = 0;
@@ -684,7 +691,10 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         car.prevB = inp.buttons.B;
         car.prevR1 = inp.buttons.R1;
       } else {
-        // AI Street Racer Logic (or post-finish autopilot)
+        // AI Street Racer Logic (smoothly weaves lanes, follows spline, never stalls)
+        car.aiTargetOffset =
+          Math.sin(rs.raceTimeSec * 0.65 + car.id * 1.8) * (TRACK_HALF_WIDTH * 0.42);
+
         const targetPos = scratchVecA
           .copy(lookSample.pos)
           .addScaledVector(lookSample.right, car.aiTargetOffset);
@@ -694,15 +704,17 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-        steerInput = Math.max(-1, Math.min(1, angleDiff * 2.4));
-        throttleInput = 0.94;
-        brakeOrDrift = Math.abs(angleDiff) > 0.48 && car.speed > 38;
+        // NOTE: car.heading updates via `car.heading -= steerInput * turnRate * dt`
+        // so negative steerInput increases car.heading toward +angleDiff!
+        steerInput = Math.max(-1, Math.min(1, -angleDiff * 3.1));
+        throttleInput = 0.96 + (car.id % 3) * 0.03;
+        brakeOrDrift = Math.abs(angleDiff) > 0.55 && car.speed > 42;
 
         // AI Power-up firing
         car.aiFireCooldown -= dt;
         if (car.aiFireCooldown <= 0 && car.slots[car.activeSlotIndex] !== null) {
           firePressed = true;
-          car.aiFireCooldown = 2.8 + (car.id % 3) * 0.9;
+          car.aiFireCooldown = 2.6 + (car.id % 3) * 0.8;
         }
       }
 
@@ -714,8 +726,8 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       }
 
       // Speed & Acceleration
-      const topSpeed = car.nitroTimer > 0 ? 78 : 54;
-      const accelRate = car.nitroTimer > 0 ? 64 : 34;
+      const topSpeed = car.nitroTimer > 0 ? 78 : 55;
+      const accelRate = car.nitroTimer > 0 ? 64 : 36;
 
       if (throttleInput > 0) {
         car.speed += accelRate * throttleInput * dt;
@@ -743,7 +755,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       car.speed = Math.max(-18, Math.min(topSpeed, car.speed));
 
       // Turn rate (sharper when drifting)
-      const turnRate = (2.15 + car.driftFactor * 1.15) * (car.speed >= 0 ? 1 : -1);
+      const turnRate = (2.25 + car.driftFactor * 1.15) * (car.speed >= 0 ? 1 : -1);
       car.heading -= steerInput * turnRate * dt;
 
       // Forward + Lateral Drift slip velocity
@@ -763,22 +775,23 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
 
       car.pos.addScaledVector(car.vel, dt);
 
-      // Guardrail Barrier Collision & Smooth Wall Redirection
+      // Guardrail Barrier Collision & Smooth Wall Redirection (frame-rate independent, never stalls)
       const relVec = scratchVecA.subVectors(car.pos, curSample.pos);
       const lateralOffset = relVec.dot(curSample.right);
-      const maxOffset = TRACK_HALF_WIDTH - 1.5;
+      const maxOffset = TRACK_HALF_WIDTH - 1.6;
 
       if (Math.abs(lateralOffset) > maxOffset) {
-        const clampedOffset = Math.sign(lateralOffset) * maxOffset;
+        const clampedOffset = Math.sign(lateralOffset) * (maxOffset - 0.2);
         car.pos.addScaledVector(curSample.right, clampedOffset - lateralOffset);
-        car.speed *= 0.91;
+        car.speed *= Math.max(0.88, 1 - 0.85 * dt);
+        car.lateralVel *= 0.4;
 
-        // Gently align car heading toward track tangent so it slides along the barrier
+        // Smoothly align car heading toward track forward tangent so it glides along the wall
         const tangentHeading = Math.atan2(curSample.tangent.x, curSample.tangent.z);
         let diff = tangentHeading - car.heading;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        car.heading += diff * 4.5 * dt;
+        car.heading += diff * Math.min(1, 9.5 * dt);
       }
 
       // Check Power-Up Hologram Pad Pickups
