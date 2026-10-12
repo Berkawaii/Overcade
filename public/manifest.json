@@ -1,0 +1,19 @@
+{
+  "name": "Overcade Wireless Controller",
+  "short_name": "Overcade Pad",
+  "description": "Ultra-low latency WebRTC P2P Wireless Gamepad Controller for Overcade Console",
+  "start_url": "/controller.html",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape-primary",
+  "background_color": "#09090B",
+  "theme_color": "#09090B",
+  "icons": [
+    {
+      "src": "/icons/controller-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

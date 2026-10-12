@@ -1,0 +1,36 @@
+{
+  "name": "overcade",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host",
+    "deploy": "npm run build && npx -y firebase-tools@latest deploy"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.7",
+    "@react-three/drei": "^10.0.4",
+    "@react-three/fiber": "^9.0.4",
+    "firebase": "^11.4.0",
+    "motion": "^12.4.7",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.174.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.9",
+    "@types/node": "^22.13.5",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@types/three": "^0.174.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.9",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0"
+  }
+}

@@ -1,0 +1,241 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// Collection: rooms
+// Document ID: {roomId} (4 to 16 alphanumeric characters, e.g., 6-char room code)
+// Fields:
+//   - offer: map (optional, keys: ['type', 'sdp'], sdp < 15000 chars) - WebRTC SDP offer created by Host
+//   - answer: map (optional, keys: ['type', 'sdp'], sdp < 15000 chars) - WebRTC SDP answer created by Mobile Controller
+//   - createdAt: timestamp | number | string (optional, immutable on update) - Room creation timestamp
+//   - updatedAt: timestamp | number | string (optional) - Last signaling update timestamp
+//   - hostUid: string | null (optional, <= 128 chars, immutable once set) - Optional Firebase Auth UID of Host
+//   - status: string (optional, <= 32 chars) - Room signaling state (e.g., 'waiting', 'connected', 'closed')
+//
+// Subcollections:
+//   - /rooms/{roomId}/callerCandidates/{candidateId}
+//   - /rooms/{roomId}/calleeCandidates/{candidateId}
+// Fields:
+//   - candidate: string (required, < 2000 chars) - serialized ICE candidate SDP string
+//   - sdpMid: string | null (optional, <= 64 chars) - media stream identification tag
+//   - sdpMLineIndex: number | null (optional, 0..64) - zero-based index of media description
+//   - usernameFragment: string | null (optional, <= 128 chars) - ICE username fragment (ufrag)
+//
+// Collection: users
+// Document ID: {userId} (matches request.auth.uid)
+// Fields:
+//   - email: string | null (optional, valid email format, <= 254 chars) - User email address (PII, owner-only)
+//   - displayName: string | null (optional, 1..100 chars) - User display name
+//   - createdAt: timestamp | number | string (optional, immutable on update) - Account creation timestamp
+//   - lastLoginAt: timestamp | number | string (optional) - Last login timestamp
+//   - favoriteGames: list (optional, <= 100 items) - List of favorite game IDs
+//   - settings: map (optional, <= 20 keys) - User console/controller preferences
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user owns the resource (for user-owned documents)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if user is owner based on document's uid field
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    // Verify UID hasn't been tampered with on create
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    // Ensure uid field is not modified on update
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == resource.data.uid;
+    }
+
+    // Validate required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate that the document contains only the allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate that a map contains only allowed keys
+    function isValidMap(mapData, allowedKeys) {
+      return mapData is map && mapData.keys().hasOnly(allowedKeys);
+    }
+
+    // Validate string length
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    // Validate optional string (if present and non-null, must be string and within length)
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] == null ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen);
+    }
+
+    // Validate email format
+    function isValidEmail(email) {
+      return email is string &&
+        email.size() <= 254 &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // Validate that a list is a list and enforces size limits
+    function isValidList(list, maxSize) {
+      return list is list && list.size() <= maxSize;
+    }
+
+    // Validate timestamp or epoch/ISO representation with bounded length
+    function isValidTimestampOrTime(val) {
+      return val is timestamp ||
+        (val is number && val >= 0) ||
+        (val is string && val.size() >= 1 && val.size() <= 64);
+    }
+
+    // Validate room code ID format (4 to 16 alphanumeric characters)
+    function isValidRoomId(roomId) {
+      return roomId is string &&
+        roomId.size() >= 4 &&
+        roomId.size() <= 16 &&
+        roomId.matches("^[a-zA-Z0-9_-]+$");
+    }
+
+    // Validate WebRTC Session Description (offer / answer)
+    function isValidSessionDescription(desc, expectedType) {
+      return desc is map &&
+        desc.keys().hasOnly(['type', 'sdp']) &&
+        desc.type in ['offer', 'answer'] &&
+        desc.type == expectedType &&
+        desc.sdp is string &&
+        desc.sdp.size() > 0 &&
+        desc.sdp.size() < 15000;
+    }
+
+    // ===============================================================
+    // Domain Validators (Used in BOTH create and update)
+    // ===============================================================
+
+    // Validate ephemeral WebRTC signaling room document
+    function isValidRoom(data) {
+      return hasOnlyAllowedFields(['offer', 'answer', 'createdAt', 'updatedAt', 'hostUid', 'status']) &&
+        (!('offer' in data) || data.offer == null || isValidSessionDescription(data.offer, 'offer')) &&
+        (!('answer' in data) || data.answer == null || isValidSessionDescription(data.answer, 'answer')) &&
+        (!('createdAt' in data) || data.createdAt == null || isValidTimestampOrTime(data.createdAt)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || isValidTimestampOrTime(data.updatedAt)) &&
+        isValidOptionalString('hostUid', 1, 128) &&
+        isValidOptionalString('status', 1, 32);
+    }
+
+    // Validate WebRTC ICE candidate document
+    function isValidIceCandidate(data) {
+      return hasOnlyAllowedFields(['candidate', 'sdpMid', 'sdpMLineIndex', 'usernameFragment']) &&
+        'candidate' in data &&
+        data.candidate is string &&
+        data.candidate.size() < 2000 &&
+        (!('sdpMid' in data) || data.sdpMid == null || (data.sdpMid is string && data.sdpMid.size() <= 64)) &&
+        (!('sdpMLineIndex' in data) || data.sdpMLineIndex == null || (data.sdpMLineIndex is number && data.sdpMLineIndex >= 0 && data.sdpMLineIndex <= 64)) &&
+        (!('usernameFragment' in data) || data.usernameFragment == null || (data.usernameFragment is string && data.usernameFragment.size() <= 128));
+    }
+
+    // Validate User Profile document
+    function isValidUserProfile(data) {
+      return hasOnlyAllowedFields(['email', 'displayName', 'createdAt', 'lastLoginAt', 'favoriteGames', 'settings']) &&
+        (!('email' in data) || data.email == null || isValidEmail(data.email)) &&
+        isValidOptionalString('displayName', 1, 100) &&
+        (!('createdAt' in data) || data.createdAt == null || isValidTimestampOrTime(data.createdAt)) &&
+        (!('lastLoginAt' in data) || data.lastLoginAt == null || isValidTimestampOrTime(data.lastLoginAt)) &&
+        (!('favoriteGames' in data) || isValidList(data.favoriteGames, 100)) &&
+        (!('settings' in data) || (data.settings is map && data.settings.keys().size() <= 20));
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // Ephemeral WebRTC Signaling Rooms
+    // Allows unauthenticated/QR-joined mobile controllers and hosts to exchange SDP offers,
+    // answers, and ICE candidates by exact roomId, while blocking room enumeration (no list on /rooms).
+    match /rooms/{roomId} {
+      allow get: if isValidRoomId(roomId);
+      allow list: if false;
+
+      allow create: if isValidRoomId(roomId) &&
+        isValidRoom(request.resource.data) &&
+        (!('hostUid' in request.resource.data) ||
+         request.resource.data.hostUid == null ||
+         !isAuthenticated() ||
+         request.resource.data.hostUid == request.auth.uid);
+
+      allow update: if isValidRoomId(roomId) &&
+        isValidRoom(request.resource.data) &&
+        (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt) &&
+        (!('hostUid' in resource.data) || resource.data.hostUid == null || request.resource.data.hostUid == resource.data.hostUid);
+
+      allow delete: if isValidRoomId(roomId);
+
+      // Host ICE Candidates
+      match /callerCandidates/{candidateId} {
+        allow get, list: if isValidRoomId(roomId);
+        allow create: if isValidRoomId(roomId) &&
+          candidateId.size() <= 64 &&
+          isValidIceCandidate(request.resource.data);
+        allow update: if false;
+        allow delete: if isValidRoomId(roomId);
+      }
+
+      // Mobile Controller ICE Candidates
+      match /calleeCandidates/{candidateId} {
+        allow get, list: if isValidRoomId(roomId);
+        allow create: if isValidRoomId(roomId) &&
+          candidateId.size() <= 64 &&
+          isValidIceCandidate(request.resource.data);
+        allow update: if false;
+        allow delete: if isValidRoomId(roomId);
+      }
+    }
+
+    // User Profiles (Strictly owner-only to protect PII such as email)
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) &&
+        isValidUserProfile(request.resource.data) &&
+        (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if isOwner(userId);
+    }
+
+    // Default Deny on all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
