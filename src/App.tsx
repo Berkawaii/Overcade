@@ -15,6 +15,10 @@ const IroncladGame = lazy(() =>
   import('./components/IroncladGame').then((m) => ({ default: m.IroncladGame }))
 );
 
+const VortexDriftGame = lazy(() =>
+  import('./components/VortexDriftGame').then((m) => ({ default: m.VortexDriftGame }))
+);
+
 function isControllerRoute(): boolean {
   const rootEl = document.getElementById('root');
   if (rootEl?.getAttribute('data-mode') === 'controller') return true;
@@ -30,7 +34,9 @@ export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
-  const [activeView, setActiveView] = useState<'catalog' | 'ironclad' | 'arena'>('catalog');
+  const [activeView, setActiveView] = useState<
+    'catalog' | 'vortex' | 'ironclad' | 'arena'
+  >('catalog');
   const [isPairingOpen, setIsPairingOpen] = useState(false);
 
   const hostSessionRef = useRef<HostSignalingSession | null>(null);
@@ -65,7 +71,7 @@ export const App: React.FC = () => {
 
   // Map local PC keyboard (WASD / Arrow Keys / Space / Shift / Q / F) into GameEngineBridge
   // Note: If Phone #1 is connected in Slot 0 (P1), GameEngineBridge automatically routes
-  // local PC keyboard input to Slot 1 (P2) so 1 Phone + 1 Keyboard can play 2-Player Co-op/PvP!
+  // local PC keyboard input to Slot 1 (P2) so 1 Phone + 1 Keyboard can play 2-Player Split-Screen!
   useEffect(() => {
     if (isMobileController) return;
 
@@ -113,13 +119,16 @@ export const App: React.FC = () => {
     };
   }, [isMobileController]);
 
-  // Global controller shortcuts when inside 3D Arena or Ironclad Game
+  // Global controller shortcuts when inside a game
   useEffect(() => {
     if (isMobileController) return;
     return GameEngineBridge.onButtonPress((btn) => {
       if (btn === 'START' && activeView === 'arena') {
         setActiveView('catalog');
-      } else if (btn === 'SELECT' && (activeView === 'ironclad' || activeView === 'arena')) {
+      } else if (
+        btn === 'SELECT' &&
+        (activeView === 'vortex' || activeView === 'ironclad' || activeView === 'arena')
+      ) {
         setIsPairingOpen((prev) => !prev);
       }
     });
@@ -142,7 +151,9 @@ export const App: React.FC = () => {
   };
 
   const handleLaunchGame = (gameId: string) => {
-    if (gameId === 'ironclad-protocol') {
+    if (gameId === 'vortex-drift-09') {
+      setActiveView('vortex');
+    } else if (gameId === 'ironclad-protocol') {
       setActiveView('ironclad');
     } else if (gameId === 'telemetry-arena') {
       setActiveView('arena');
@@ -168,6 +179,19 @@ export const App: React.FC = () => {
           onGuestContinue={() => setGuestMode(true)}
           onOpenPairing={() => setIsPairingOpen(true)}
         />
+      ) : activeView === 'vortex' ? (
+        <Suspense
+          fallback={
+            <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
+              VORTEX // DRIFT 09: BLUR YARIŞ MOTORU YÜKLENİYOR...
+            </div>
+          }
+        >
+          <VortexDriftGame
+            onExitGame={() => setActiveView('catalog')}
+            onOpenPairing={() => setIsPairingOpen(true)}
+          />
+        </Suspense>
       ) : activeView === 'ironclad' ? (
         <Suspense
           fallback={

@@ -217,7 +217,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                     : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
-                OYNANABİLİR (2)
+                OYNANABİLİR (3)
               </button>
               <button
                 type="button"
@@ -229,7 +229,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                     : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
-                GELECEK SLOTLAR (3)
+                GELECEK SLOTLAR (2)
               </button>
               <span className="px-2 text-[10px] text-[#A1A1AA]">[R1]</span>
             </nav>

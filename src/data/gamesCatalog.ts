@@ -23,6 +23,27 @@ export interface CatalogGameItem {
 
 export const GAMES_CATALOG: CatalogGameItem[] = [
   {
+    id: 'vortex-drift-09',
+    title: 'VORTEX // DRIFT 09: BLUR',
+    subtitle: '1-4 Oyunculu Bölünmüş Ekran (Split-Screen) Neon Güçlendiricili Savaş Yarışı',
+    genre: 'BLUR TARZI SAVAŞ YARIŞI',
+    players: '1-4 Oyuncu (Otomatik Split-Screen)',
+    engineSpec: 'Three.js Çoklu Kamera + 6 Araç AI',
+    status: 'playable_game',
+    statusLabel: 'OYNANABİLİR // 1-4 SPLIT-SCREEN',
+    coverImage: '/assets/game-vortex-drift.jpg',
+    bentoSpan: 'hero',
+    description:
+      'Blur efsanesinden ilham alan yüksek hızlı siber-otoyol savaş yarışı! Pist üzerindeki neon hologram kutulardan Shunt (Güdümlü Füze), Barge (Yanal Şok Dalgası), Nitro, Kalkan ve 3x Plazma Oku toplayın. Bağlanan telefon sayısına göre ekran otomatik olarak 1P, 2P veya 4P bölünmüş ekrana (Split-Screen) dönüşür.',
+    controlsMapping: {
+      leftStick: 'Hassas Direksiyon ve Viraj Açısı',
+      rightStick: 'Yedek Direksiyon Ekseni',
+      buttonA: 'Tam Gaz (veya [Y] ile Otomatik Gaz)',
+      buttonB: 'Güçlendirici Ateşle (Shunt / Barge / Nitro)',
+      triggers: 'L1 Hidrolik Drift & Şarj / R1 Slot Değiştir',
+    },
+  },
+  {
     id: 'ironclad-protocol',
     title: 'IRONCLAD PROTOCOL',
     subtitle: '1-4 Oyunculu Çift Analog (Twin-Stick) Zırhlı Meka Taktiksel Arena Çatışması',
@@ -32,7 +53,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     status: 'playable_game',
     statusLabel: 'OYNANABİLİR // 1-4 OYUNCU',
     coverImage: '/assets/game-ironclad-mech.jpg',
-    bentoSpan: 'hero',
+    bentoSpan: 'wide',
     description:
       'Aynı oda koduna 1 ila 4 akıllı telefonu kablosuz kumanda olarak bağlayın! Sol analog ile meka gövde yönelimi, sağ analog ile 360 derece taret nişangahı, A ile termal dash, B ile güdümlü roket yaylımı ve L1 ile EMP şok dalgası. Dalga Savunması (Co-op) veya Meka Düellosu (PvP) modlarında çarpışın.',
     controlsMapping: {
@@ -53,7 +74,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     status: 'playable_testbed',
     statusLabel: 'AKTİF SİMÜLASYON',
     coverImage: '/assets/hero-hardware.jpg',
-    bentoSpan: 'wide',
+    bentoSpan: 'standard',
     description:
       'Telefon kumandanızın 8 baytlık ikili (binary) veri paketlerini, çift analog eksen hassasiyetini ve sıfır gecikmeli UDP tepkiselliğini 60 FPS 3D sahnede test edin.',
     controlsMapping: {
@@ -62,27 +83,6 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
       buttonA: 'Afterburner Turbo İtki',
       buttonB: 'Elektromanyetik Şok Dalgası',
       triggers: 'L1 Alçalma / R1 Yükselme',
-    },
-  },
-  {
-    id: 'vortex-drift-09',
-    title: 'VORTEX // DRIFT 09',
-    subtitle: 'Yüksek Hızlı Tünel Telemetri ve Hassas Analog Drift Yarışı',
-    genre: 'ARKAD YARIŞ',
-    players: '1-4 Oyuncu (Çoklu Kumanda)',
-    engineSpec: 'Three.js WebGPU + Rapier 3D',
-    status: 'ready_slot',
-    statusLabel: 'KATALOG SLOTU HAZIR',
-    coverImage: '/assets/game-vortex-drift.jpg',
-    bentoSpan: 'standard',
-    description:
-      'Sol analog çubuk ile milimetrik direksiyon açısı, A/B butonları ile gaz-el freni dengesi ve R1 vites geçişleriyle karanlık beton tünellerde zamana karşı yarış.',
-    controlsMapping: {
-      leftStick: 'Direksiyon ve Kontra Açısı',
-      rightStick: 'Kokpit / Serbest Kamera',
-      buttonA: 'Tam Gaz / Nitro',
-      buttonB: 'Hidrolik El Freni (Drift)',
-      triggers: 'L1 Fren / R1 Vites Yükselt',
     },
   },
   {
