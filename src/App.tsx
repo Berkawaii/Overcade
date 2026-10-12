@@ -19,6 +19,10 @@ const VortexDriftGame = lazy(() =>
   import('./components/VortexDriftGame').then((m) => ({ default: m.VortexDriftGame }))
 );
 
+const FiredUpGame = lazy(() =>
+  import('./components/FiredUpGame').then((m) => ({ default: m.FiredUpGame }))
+);
+
 function isControllerRoute(): boolean {
   const rootEl = document.getElementById('root');
   if (rootEl?.getAttribute('data-mode') === 'controller') return true;
@@ -35,7 +39,7 @@ export const App: React.FC = () => {
   const [authReady, setAuthReady] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
   const [activeView, setActiveView] = useState<
-    'catalog' | 'vortex' | 'ironclad' | 'arena'
+    'catalog' | 'firedup' | 'vortex' | 'ironclad' | 'arena'
   >('catalog');
   const [isPairingOpen, setIsPairingOpen] = useState(false);
 
@@ -70,8 +74,6 @@ export const App: React.FC = () => {
   }, [isMobileController]);
 
   // Map local PC keyboard (WASD / Arrow Keys / Space / Shift / Q / F) into GameEngineBridge
-  // Note: If Phone #1 is connected in Slot 0 (P1), GameEngineBridge automatically routes
-  // local PC keyboard input to Slot 1 (P2) so 1 Phone + 1 Keyboard can play 2-Player Split-Screen!
   useEffect(() => {
     if (isMobileController) return;
 
@@ -127,7 +129,10 @@ export const App: React.FC = () => {
         setActiveView('catalog');
       } else if (
         btn === 'SELECT' &&
-        (activeView === 'vortex' || activeView === 'ironclad' || activeView === 'arena')
+        (activeView === 'firedup' ||
+          activeView === 'vortex' ||
+          activeView === 'ironclad' ||
+          activeView === 'arena')
       ) {
         setIsPairingOpen((prev) => !prev);
       }
@@ -151,7 +156,9 @@ export const App: React.FC = () => {
   };
 
   const handleLaunchGame = (gameId: string) => {
-    if (gameId === 'vortex-drift-09') {
+    if (gameId === 'fired-up-overdrive') {
+      setActiveView('firedup');
+    } else if (gameId === 'vortex-drift-09') {
       setActiveView('vortex');
     } else if (gameId === 'ironclad-protocol') {
       setActiveView('ironclad');
@@ -179,6 +186,19 @@ export const App: React.FC = () => {
           onGuestContinue={() => setGuestMode(true)}
           onOpenPairing={() => setIsPairingOpen(true)}
         />
+      ) : activeView === 'firedup' ? (
+        <Suspense
+          fallback={
+            <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
+              FIRED UP // OVERDRIVE SAVAŞ ARENASI YÜKLENİYOR...
+            </div>
+          }
+        >
+          <FiredUpGame
+            onExitGame={() => setActiveView('catalog')}
+            onOpenPairing={() => setIsPairingOpen(true)}
+          />
+        </Suspense>
       ) : activeView === 'vortex' ? (
         <Suspense
           fallback={
