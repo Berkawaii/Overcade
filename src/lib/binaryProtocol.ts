@@ -1,7 +1,8 @@
 /**
- * OVERCADE 8-Byte Binary Gamepad Protocol
+ * OVERCADE 8-Byte Binary Gamepad Protocol + 4-Byte Host Feedback Protocol
  * Zero-GC ArrayBuffer & DataView Serialization
  *
+ * Controller -> Host (8 Bytes):
  * Byte 0: Uint8  - Packet Type (0x01 = Gamepad State, 0x02 = Heartbeat/Ping)
  * Byte 1: Uint8  - 8-Button Bitmask (A, B, X, Y, L1, R1, START, SELECT)
  * Byte 2: Int8   - Left Stick X (-127..127)
@@ -9,10 +10,22 @@
  * Byte 4: Int8   - Right Stick X (-127..127)
  * Byte 5: Int8   - Right Stick Y (-127..127)
  * Byte 6-7: Uint16 (Little-Endian) - Circular Sequence Number (0..65535)
+ *
+ * Host -> Controller (4 Bytes):
+ * Byte 0: Uint8  - Packet Type (0x03 = Player Slot & Telemetry Feedback)
+ * Byte 1: Uint8  - Assigned Player Slot Index (0 = P1, 1 = P2, 2 = P3, 3 = P4)
+ * Byte 2: Uint8  - Mech Armor HP Percentage (0..100)
+ * Byte 3: Uint8  - Haptic Vibration Duration in ms (0..250)
  */
 
 export const PACKET_TYPE_GAMEPAD = 0x01;
 export const PACKET_TYPE_HEARTBEAT = 0x02;
+export const PACKET_TYPE_HOST_FEEDBACK = 0x03;
+
+export const MAX_PLAYERS = 4;
+
+export const PLAYER_COLORS = ['#FF5500', '#10B981', '#F59E0B', '#06B6D4'] as const;
+export const PLAYER_CALLSIGNS = ['MECH-01 // P1', 'MECH-02 // P2', 'MECH-03 // P3', 'MECH-04 // P4'] as const;
 
 export interface GamepadButtons {
   A: boolean;
@@ -38,6 +51,12 @@ export interface GamepadState {
   sequence: number;
   timestamp: number;
   rawBytes: [number, number, number, number, number, number, number, number];
+}
+
+export interface HostFeedbackPacket {
+  playerSlot: number;
+  hpPercent: number;
+  vibrateMs: number;
 }
 
 export function createEmptyGamepadState(): GamepadState {
@@ -108,7 +127,7 @@ export class GamepadPacketEncoder {
     return [
       this.uint8View[0],
       this.uint8View[1],
-      this.uint8View[2],
+      this.uint8View[3 - 1],
       this.uint8View[3],
       this.uint8View[4],
       this.uint8View[5],
@@ -183,4 +202,29 @@ export function decodeGamepadPacket(
   state.rawBytes[7] = u8[7];
 
   return { accepted: true, state, sequence };
+}
+
+export function encodeHostFeedbackPacket(
+  playerSlot: number,
+  hpPercent: number,
+  vibrateMs = 0
+): ArrayBuffer {
+  const buf = new ArrayBuffer(4);
+  const view = new DataView(buf);
+  view.setUint8(0, PACKET_TYPE_HOST_FEEDBACK);
+  view.setUint8(1, Math.max(0, Math.min(3, playerSlot)));
+  view.setUint8(2, Math.max(0, Math.min(100, Math.round(hpPercent))));
+  view.setUint8(3, Math.max(0, Math.min(250, Math.round(vibrateMs))));
+  return buf;
+}
+
+export function decodeHostFeedbackPacket(buffer: ArrayBuffer): HostFeedbackPacket | null {
+  if (buffer.byteLength < 4) return null;
+  const view = new DataView(buffer);
+  if (view.getUint8(0) !== PACKET_TYPE_HOST_FEEDBACK) return null;
+  return {
+    playerSlot: view.getUint8(1),
+    hpPercent: view.getUint8(2),
+    vibrateMs: view.getUint8(3),
+  };
 }

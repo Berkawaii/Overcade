@@ -29,41 +29,45 @@ interface ConsoleDashboardProps {
   user: User | null;
   onLogout: () => void;
   onOpenPairing: () => void;
-  onLaunchArena: () => void;
+  onLaunchGame: (gameId: string) => void;
 }
 
 export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
   user,
   onLogout,
   onOpenPairing,
-  onLaunchArena,
+  onLaunchGame,
 }) => {
   const [selectedGame, setSelectedGame] = useState<CatalogGameItem>(GAMES_CATALOG[0]);
   const [activeFilter, setActiveFilter] = useState<'all' | 'playable' | 'upcoming'>('all');
   const [slotNotice, setSlotNotice] = useState<string | null>(null);
 
   const spatialContainerRef = useRef<HTMLDivElement | null>(null);
-  const { roomId, phase, packetsPerSecond } = useConsoleConnectionStore();
+  const { roomId, phase, packetsPerSecond, connectedCount } = useConsoleConnectionStore();
 
   const filteredGames = GAMES_CATALOG.filter((game) => {
-    if (activeFilter === 'playable') return game.status === 'playable_testbed';
-    if (activeFilter === 'upcoming') return game.status === 'ready_slot';
+    if (activeFilter === 'playable') {
+      return game.status === 'playable_game' || game.status === 'playable_testbed';
+    }
+    if (activeFilter === 'upcoming') {
+      return game.status === 'ready_slot';
+    }
     return true;
   });
 
   const handleActivateGame = useCallback(
     (game: CatalogGameItem) => {
       setSelectedGame(game);
-      if (game.id === 'telemetry-arena') {
-        onLaunchArena();
+      if (game.status === 'playable_game' || game.status === 'playable_testbed') {
+        onLaunchGame(game.id);
       } else {
         setSlotNotice(
-          `${game.title} katalog slotu hazır. Faz 2'de bu slota oyun motoru modülü eklenecektir. Şu anda TELEMETRY // 3D ARENA ile telefon kumandanızı canlı test edebilirsiniz.`
+          `${game.title} katalog slotu hazır. Şu anda IRONCLAD PROTOCOL (1-4 Oyuncu Meka Arenası) veya TELEMETRY // 3D ARENA oynanabilir durumdadır.`
         );
         setTimeout(() => setSlotNotice(null), 5000);
       }
     },
-    [onLaunchArena]
+    [onLaunchGame]
   );
 
   // Move spatial focus via Arrow keys or Phone Gamepad Left Stick / D-Pad
@@ -158,6 +162,9 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
     user?.displayName ||
     (user?.email ? user.email.split('@')[0].toUpperCase() : 'MİSAFİR OPERATÖR');
 
+  const isSelectedPlayable =
+    selectedGame.status === 'playable_game' || selectedGame.status === 'playable_testbed';
+
   return (
     <div
       ref={spatialContainerRef}
@@ -210,7 +217,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                     : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
-                AKTİF TEST ARENASI (1)
+                OYNANABİLİR (2)
               </button>
               <button
                 type="button"
@@ -222,7 +229,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                     : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
-                OYUN SLOTLARI (4)
+                GELECEK SLOTLAR (3)
               </button>
               <span className="px-2 text-[10px] text-[#A1A1AA]">[R1]</span>
             </nav>
@@ -243,12 +250,14 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
               {phase === 'connected_p2p' ? (
                 <>
                   <CheckCircle size={16} weight="fill" className="text-emerald-400" />
-                  <span>P2P KUMANDA AKTİF ({packetsPerSecond} Hz)</span>
+                  <span>
+                    {connectedCount}/4 KUMANDA AKTİF ({packetsPerSecond} Hz)
+                  </span>
                 </>
               ) : (
                 <>
                   <QrCode size={16} weight="bold" />
-                  <span>KUMANDA BAĞLA [{roomId || '...'}]</span>
+                  <span>1-4 KUMANDA BAĞLA [{roomId || '...'}]</span>
                 </>
               )}
             </button>
@@ -294,10 +303,10 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
               <span>{slotNotice}</span>
               <button
                 type="button"
-                onClick={onLaunchArena}
+                onClick={() => onLaunchGame('ironclad-protocol')}
                 className="shrink-0 rounded-full bg-[#FF5500] px-3.5 py-1.5 font-bold text-[#09090B]"
               >
-                3D TEST ARENASINI AÇ
+                IRONCLAD PROTOCOL BAŞLAT
               </button>
             </div>
           )}
@@ -306,6 +315,8 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             {filteredGames.map((game, index) => {
               const isSelected = selectedGame.id === game.id;
+              const isPlayable =
+                game.status === 'playable_game' || game.status === 'playable_testbed';
               const colSpanClass =
                 game.bentoSpan === 'hero'
                   ? 'md:col-span-12'
@@ -342,8 +353,10 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
 
                       <span
                         className={`rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${
-                          game.status === 'playable_testbed'
+                          game.status === 'playable_game'
                             ? 'bg-[#FF5500] text-[#09090B]'
+                            : game.status === 'playable_testbed'
+                            ? 'border border-emerald-400/40 bg-emerald-500/20 text-emerald-300'
                             : 'border border-white/15 bg-[#09090B]/85 text-[#A1A1AA]'
                         }`}
                       >
@@ -363,7 +376,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                       </div>
 
                       <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-[#FF5500] text-[#09090B] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                        {game.status === 'playable_testbed' ? (
+                        {isPlayable ? (
                           <Play size={18} weight="fill" />
                         ) : (
                           <ArrowUpRight size={18} weight="bold" />
@@ -459,12 +472,14 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                 className="spatial-focusable group flex w-full items-center justify-between rounded-full bg-[#FF5500] pl-6 pr-2 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#09090B] active:scale-[0.98] transition-transform"
               >
                 <span>
-                  {selectedGame.status === 'playable_testbed'
+                  {selectedGame.status === 'playable_game'
+                    ? 'OYUNU BAŞLAT [A]'
+                    : selectedGame.status === 'playable_testbed'
                     ? 'SİMÜLASYONU BAŞLAT [A]'
                     : 'SLOT DETAYINI GÖRÜNTÜLE'}
                 </span>
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/15 transition-transform group-hover:translate-x-0.5">
-                  {selectedGame.status === 'playable_testbed' ? (
+                  {isSelectedPlayable ? (
                     <Play size={16} weight="fill" />
                   ) : (
                     <Sparkle size={16} weight="fill" />

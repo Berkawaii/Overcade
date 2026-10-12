@@ -1,4 +1,4 @@
-export type GameStatus = 'playable_testbed' | 'ready_slot';
+export type GameStatus = 'playable_game' | 'playable_testbed' | 'ready_slot';
 
 export interface CatalogGameItem {
   id: string;
@@ -23,6 +23,27 @@ export interface CatalogGameItem {
 
 export const GAMES_CATALOG: CatalogGameItem[] = [
   {
+    id: 'ironclad-protocol',
+    title: 'IRONCLAD PROTOCOL',
+    subtitle: '1-4 Oyunculu Çift Analog (Twin-Stick) Zırhlı Meka Taktiksel Arena Çatışması',
+    genre: 'MEKA AKSİYON // CO-OP & PVP',
+    players: '1-4 Oyuncu (Yerel Çoklu Telefon P2P)',
+    engineSpec: 'Three.js R3F + 4-Kanal 8-Byte UDP',
+    status: 'playable_game',
+    statusLabel: 'OYNANABİLİR // 1-4 OYUNCU',
+    coverImage: '/assets/game-ironclad-mech.jpg',
+    bentoSpan: 'hero',
+    description:
+      'Aynı oda koduna 1 ila 4 akıllı telefonu kablosuz kumanda olarak bağlayın! Sol analog ile meka gövde yönelimi, sağ analog ile 360 derece taret nişangahı, A ile termal dash, B ile güdümlü roket yaylımı ve L1 ile EMP şok dalgası. Dalga Savunması (Co-op) veya Meka Düellosu (PvP) modlarında çarpışın.',
+    controlsMapping: {
+      leftStick: 'Meka Gövde Hareketi (X/Z)',
+      rightStick: '360° Taret Nişangahı + Otomatik Ateş',
+      buttonA: 'Termal İtici Dash (Sıçrama)',
+      buttonB: '6x Güdümlü Roket Yaylımı',
+      triggers: 'L1 EMP Kalkan Darbesi / R1 Seri Ateş',
+    },
+  },
+  {
     id: 'telemetry-arena',
     title: 'TELEMETRY // 3D ARENA',
     subtitle: 'Canlı WebRTC P2P Kumanda Doğrulama ve 3D Uçuş Simülasyonu',
@@ -32,7 +53,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     status: 'playable_testbed',
     statusLabel: 'AKTİF SİMÜLASYON',
     coverImage: '/assets/hero-hardware.jpg',
-    bentoSpan: 'hero',
+    bentoSpan: 'wide',
     description:
       'Telefon kumandanızın 8 baytlık ikili (binary) veri paketlerini, çift analog eksen hassasiyetini ve sıfır gecikmeli UDP tepkiselliğini 60 FPS 3D sahnede test edin.',
     controlsMapping: {
@@ -48,12 +69,12 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     title: 'VORTEX // DRIFT 09',
     subtitle: 'Yüksek Hızlı Tünel Telemetri ve Hassas Analog Drift Yarışı',
     genre: 'ARKAD YARIŞ',
-    players: '1-2 Oyuncu (Bölünmüş Ekran)',
+    players: '1-4 Oyuncu (Çoklu Kumanda)',
     engineSpec: 'Three.js WebGPU + Rapier 3D',
     status: 'ready_slot',
     statusLabel: 'KATALOG SLOTU HAZIR',
     coverImage: '/assets/game-vortex-drift.jpg',
-    bentoSpan: 'wide',
+    bentoSpan: 'standard',
     description:
       'Sol analog çubuk ile milimetrik direksiyon açısı, A/B butonları ile gaz-el freni dengesi ve R1 vites geçişleriyle karanlık beton tünellerde zamana karşı yarış.',
     controlsMapping: {
@@ -65,32 +86,11 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     },
   },
   {
-    id: 'ironclad-protocol',
-    title: 'IRONCLAD PROTOCOL',
-    subtitle: 'İki Ayaklı Ağır Zırhlı Meka Taktiksel Arena Çatışması',
-    genre: 'MEKA AKSİYON',
-    players: '1-4 Oyuncu (Kooperatif)',
-    engineSpec: 'Three.js + İskelet Kinematiği',
-    status: 'ready_slot',
-    statusLabel: 'KATALOG SLOTU HAZIR',
-    coverImage: '/assets/game-ironclad-mech.jpg',
-    bentoSpan: 'standard',
-    description:
-      'Çift analog (Twin-Stick) kontrol mimarisi: Sol analog ile meka gövde yönelimi, sağ analog ile 360 derece taret nişangahı ve omuz tetikleriyle ağır mühimmat ateşleme.',
-    controlsMapping: {
-      leftStick: 'Gövde Yürüyüş Yönü',
-      rightStick: 'Üst Gövde Taret Rotasyonu',
-      buttonA: 'Termal İtici Sıçrama',
-      buttonB: 'Kalkan Darbesi',
-      triggers: 'L1 Sol Kol Topu / R1 Sağ Roket',
-    },
-  },
-  {
     id: 'orbital-strike',
     title: 'ORBITAL STRIKE: ZERO-G',
     subtitle: 'Alçak Yörünge 6-Eksenli Uzay Avcı Uçağı Operasyonu',
     genre: 'UZAY SİMÜLASYONU',
-    players: '1 Oyuncu',
+    players: '1-2 Oyuncu',
     engineSpec: 'Three.js + Post-Processing',
     status: 'ready_slot',
     statusLabel: 'KATALOG SLOTU HAZIR',
@@ -111,7 +111,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     title: 'KINETIC // PHYSICS LAB',
     subtitle: 'Yıkılabilir Rijit Cisim ve Sarkaç Çarpışma Laboratuvarı',
     genre: 'FİZİK SANDBOX',
-    players: '1 Oyuncu',
+    players: '1-4 Oyuncu',
     engineSpec: 'WASM Fizik Çekirdeği',
     status: 'ready_slot',
     statusLabel: 'KATALOG SLOTU HAZIR',

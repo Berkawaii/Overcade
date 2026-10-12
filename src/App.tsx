@@ -11,6 +11,10 @@ const Arena3DScene = lazy(() =>
   import('./components/Arena3DScene').then((m) => ({ default: m.Arena3DScene }))
 );
 
+const IroncladGame = lazy(() =>
+  import('./components/IroncladGame').then((m) => ({ default: m.IroncladGame }))
+);
+
 function isControllerRoute(): boolean {
   const rootEl = document.getElementById('root');
   if (rootEl?.getAttribute('data-mode') === 'controller') return true;
@@ -26,7 +30,7 @@ export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
-  const [activeView, setActiveView] = useState<'catalog' | 'arena'>('catalog');
+  const [activeView, setActiveView] = useState<'catalog' | 'ironclad' | 'arena'>('catalog');
   const [isPairingOpen, setIsPairingOpen] = useState(false);
 
   const hostSessionRef = useRef<HostSignalingSession | null>(null);
@@ -59,7 +63,9 @@ export const App: React.FC = () => {
     };
   }, [isMobileController]);
 
-  // Also map local PC keyboard (WASD / Space / Shift / Enter) into GameEngineBridge for testing
+  // Map local PC keyboard (WASD / Arrow Keys / Space / Shift / Q / F) into GameEngineBridge
+  // Note: If Phone #1 is connected in Slot 0 (P1), GameEngineBridge automatically routes
+  // local PC keyboard input to Slot 1 (P2) so 1 Phone + 1 Keyboard can play 2-Player Co-op/PvP!
   useEffect(() => {
     if (isMobileController) return;
 
@@ -107,12 +113,14 @@ export const App: React.FC = () => {
     };
   }, [isMobileController]);
 
-  // Exit 3D Arena back to Catalog when START button is pressed on phone controller
+  // Global controller shortcuts when inside 3D Arena or Ironclad Game
   useEffect(() => {
     if (isMobileController) return;
     return GameEngineBridge.onButtonPress((btn) => {
       if (btn === 'START' && activeView === 'arena') {
         setActiveView('catalog');
+      } else if (btn === 'SELECT' && (activeView === 'ironclad' || activeView === 'arena')) {
+        setIsPairingOpen((prev) => !prev);
       }
     });
   }, [isMobileController, activeView]);
@@ -125,6 +133,20 @@ export const App: React.FC = () => {
     hostSessionRef.current?.startNewRoom().catch((err) => {
       console.warn('Yeni oda oluşturulamadı:', err);
     });
+  };
+
+  const handleLockRoom = () => {
+    hostSessionRef.current?.lockRoomAndStopSignaling().catch((err) => {
+      console.warn('Oda kilitleme uyarısı:', err);
+    });
+  };
+
+  const handleLaunchGame = (gameId: string) => {
+    if (gameId === 'ironclad-protocol') {
+      setActiveView('ironclad');
+    } else if (gameId === 'telemetry-arena') {
+      setActiveView('arena');
+    }
   };
 
   const handleLogout = async () => {
@@ -146,6 +168,19 @@ export const App: React.FC = () => {
           onGuestContinue={() => setGuestMode(true)}
           onOpenPairing={() => setIsPairingOpen(true)}
         />
+      ) : activeView === 'ironclad' ? (
+        <Suspense
+          fallback={
+            <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
+              IRONCLAD PROTOCOL // 3D MEKA ARENASI YÜKLENİYOR...
+            </div>
+          }
+        >
+          <IroncladGame
+            onExitGame={() => setActiveView('catalog')}
+            onOpenPairing={() => setIsPairingOpen(true)}
+          />
+        </Suspense>
       ) : activeView === 'arena' ? (
         <Suspense
           fallback={
@@ -164,7 +199,7 @@ export const App: React.FC = () => {
           user={user}
           onLogout={handleLogout}
           onOpenPairing={() => setIsPairingOpen(true)}
-          onLaunchArena={() => setActiveView('arena')}
+          onLaunchGame={handleLaunchGame}
         />
       )}
 
@@ -172,6 +207,7 @@ export const App: React.FC = () => {
         isOpen={isPairingOpen}
         onClose={() => setIsPairingOpen(false)}
         onRegenerateRoom={handleRegenerateRoom}
+        onLockRoom={handleLockRoom}
       />
     </>
   );

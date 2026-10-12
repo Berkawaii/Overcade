@@ -10,9 +10,12 @@ import {
   ArrowLeft,
   ArrowRight,
   DeviceRotate,
+  ShieldCheck,
 } from '@phosphor-icons/react';
 import {
   GamepadPacketEncoder,
+  PLAYER_CALLSIGNS,
+  PLAYER_COLORS,
   type GamepadAxes,
   type GamepadButtons,
 } from '../lib/binaryProtocol';
@@ -30,7 +33,7 @@ const STICK_MAX_RADIUS = 48;
 
 function triggerHaptic(ms = 12): void {
   try {
-    if ('vibrate' in navigator) {
+    if ('vibrate' in navigator && ms > 0) {
       navigator.vibrate(ms);
     }
   } catch {
@@ -47,6 +50,8 @@ export const ControllerApp: React.FC = () => {
   const [statusDetail, setStatusDetail] = useState<string>(
     initialRoom ? `${initialRoom.toUpperCase()} odasına bağlanılıyor...` : 'Oda kodu girin veya QR okutun'
   );
+  const [assignedSlot, setAssignedSlot] = useState<number>(0);
+  const [armorHp, setArmorHp] = useState<number>(100);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(
@@ -57,7 +62,6 @@ export const ControllerApp: React.FC = () => {
   const encoderRef = useRef<GamepadPacketEncoder>(new GamepadPacketEncoder());
   const wakeLockSentinelRef = useRef<WakeLockSentinel | null>(null);
 
-  // Mutable input state for 60Hz loop without React re-renders
   const buttonsRef = useRef<GamepadButtons>({
     A: false,
     B: false,
@@ -102,6 +106,9 @@ export const ControllerApp: React.FC = () => {
   const leftKnobRef = useRef<HTMLDivElement | null>(null);
   const rightKnobRef = useRef<HTMLDivElement | null>(null);
   const hexReadoutRef = useRef<HTMLSpanElement | null>(null);
+
+  const playerAccentColor = PLAYER_COLORS[assignedSlot] || '#FF5500';
+  const playerCallsign = PLAYER_CALLSIGNS[assignedSlot] || 'MECH-01 // P1';
 
   const enableWakeLock = useCallback(async () => {
     try {
@@ -155,10 +162,19 @@ export const ControllerApp: React.FC = () => {
     const clean = code.trim().toUpperCase();
     if (!clean) return;
     if (!clientRef.current) {
-      clientRef.current = new ControllerSignalingClient((phase, detail) => {
-        setStatus(phase);
-        if (detail) setStatusDetail(detail);
-      });
+      clientRef.current = new ControllerSignalingClient(
+        (phase, detail) => {
+          setStatus(phase);
+          if (detail) setStatusDetail(detail);
+        },
+        (feedback) => {
+          setAssignedSlot(feedback.playerSlot);
+          setArmorHp(feedback.hpPercent);
+          if (feedback.vibrateMs > 0) {
+            triggerHaptic(feedback.vibrateMs);
+          }
+        }
+      );
     }
     clientRef.current.joinRoom(clean);
   }, []);
@@ -178,11 +194,9 @@ export const ControllerApp: React.FC = () => {
     let lastSendTime = 0;
 
     const transmitLoop = (now: number) => {
-      // Transmit at ~60Hz (every 16ms)
       if (now - lastSendTime >= 15) {
         lastSendTime = now;
 
-        // Combine D-Pad overrides with Left Stick analog values
         const combinedAxes: GamepadAxes = {
           leftX:
             dpadRef.current.left
@@ -219,7 +233,6 @@ export const ControllerApp: React.FC = () => {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  // Analog Stick Handlers (Multi-touch isolated by touch identifier)
   const handleStickStart = (
     side: 'left' | 'right',
     e: React.TouchEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>
@@ -295,7 +308,6 @@ export const ControllerApp: React.FC = () => {
     const normX = clampedX / STICK_MAX_RADIUS;
     const normY = clampedY / STICK_MAX_RADIUS;
 
-    // Apply 8% radial deadzone
     const finalX = Math.abs(normX) < 0.08 ? 0 : normX;
     const finalY = Math.abs(normY) < 0.08 ? 0 : normY;
 
@@ -342,7 +354,6 @@ export const ControllerApp: React.FC = () => {
 
   return (
     <div className="controller-viewport relative flex flex-col justify-between bg-[#09090B] text-[#F4F4F5] p-3 sm:p-5">
-      {/* Portrait Rotation Notice Overlay (Dismissible for desktop testing) */}
       {isPortrait && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#09090B]/95 p-6 text-center backdrop-blur-xl">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#FF5500]/40 bg-[#FF5500]/15 text-[#FF5500]">
@@ -352,8 +363,7 @@ export const ControllerApp: React.FC = () => {
             Telefonu Yatay (Landscape) Konuma Çevirin
           </h2>
           <p className="mt-2 max-w-xs text-xs text-[#A1A1AA]">
-            Overcade kumanda arayüzü çift analog ve omuz tetikleri için yatay konsol tutuşuna göre
-            tasarlanmıştır.
+            Overcade Twin-Stick kumanda arayüzü yatay konsol tutuşuna göre tasarlanmıştır.
           </p>
           <button
             type="button"
@@ -374,26 +384,26 @@ export const ControllerApp: React.FC = () => {
           onPointerUp={(e) => setButtonState('L1', false, e.currentTarget)}
           onPointerLeave={(e) => setButtonState('L1', false, e.currentTarget)}
           onPointerCancel={(e) => setButtonState('L1', false, e.currentTarget)}
-          className="col-span-3 flex h-12 sm:h-14 items-center justify-center rounded-tl-3xl rounded-tr-xl rounded-b-xl border border-white/15 bg-[#121215] font-mono text-sm font-bold tracking-widest text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-[0.98] transition-transform"
+          className="col-span-3 flex h-12 sm:h-14 items-center justify-center rounded-tl-3xl rounded-tr-xl rounded-b-xl border border-white/15 bg-[#121215] font-mono text-xs sm:text-sm font-bold tracking-widest text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-[0.98] transition-transform"
         >
-          L1 // SOL TETİK
+          L1 // EMP KALKAN
         </button>
 
-        {/* Center Status & Room Input Pill */}
+        {/* Center Status, Assigned Player Slot, Armor HP & Room Input Pill */}
         <div className="col-span-6 flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#121215] px-3 py-1.5">
           <div className="flex w-full items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <span
-                className={`h-2 w-2 rounded-full ${
-                  status === 'connected'
-                    ? 'bg-emerald-400'
-                    : status === 'connecting'
-                    ? 'bg-amber-400 animate-pulse'
-                    : 'bg-[#FF5500]'
-                }`}
+                className="h-2.5 w-2.5 rounded-full"
+                style={{
+                  backgroundColor:
+                    status === 'connected' ? playerAccentColor : '#F59E0B',
+                }}
               />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#F4F4F5] truncate max-w-[140px] sm:max-w-none">
-                {status === 'connected' ? `P2P AKTİF [${roomInput}]` : statusDetail}
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#F4F4F5] truncate max-w-[145px] sm:max-w-none">
+                {status === 'connected'
+                  ? `${playerCallsign} [${roomInput}]`
+                  : statusDetail}
               </span>
             </div>
 
@@ -420,7 +430,6 @@ export const ControllerApp: React.FC = () => {
             </div>
           </div>
 
-          {/* Manual Room Code Join Bar (if not connected) or Live 8-Byte Readout */}
           {status !== 'connected' ? (
             <form
               onSubmit={(e) => {
@@ -446,11 +455,17 @@ export const ControllerApp: React.FC = () => {
               </button>
             </form>
           ) : (
-            <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px] text-[#A1A1AA]">
-              <span>8B ARRAYBUFFER:</span>
-              <strong ref={hexReadoutRef} className="text-[#FF5500]">
-                01 00 00 00 00 00 00 00
-              </strong>
+            <div className="mt-1 flex w-full items-center justify-between gap-3 font-mono text-[10px]">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck size={12} style={{ color: playerAccentColor }} />
+                <span className="text-[#F4F4F5] font-bold">ZIRH: %{armorHp}</span>
+              </div>
+              <div className="hidden sm:flex items-center gap-1 text-[#A1A1AA]">
+                <span>8B:</span>
+                <strong ref={hexReadoutRef} style={{ color: playerAccentColor }}>
+                  01 00 00 00 00 00 00 00
+                </strong>
+              </div>
             </div>
           )}
         </div>
@@ -462,17 +477,16 @@ export const ControllerApp: React.FC = () => {
           onPointerUp={(e) => setButtonState('R1', false, e.currentTarget)}
           onPointerLeave={(e) => setButtonState('R1', false, e.currentTarget)}
           onPointerCancel={(e) => setButtonState('R1', false, e.currentTarget)}
-          className="col-span-3 flex h-12 sm:h-14 items-center justify-center rounded-tr-3xl rounded-tl-xl rounded-b-xl border border-white/15 bg-[#121215] font-mono text-sm font-bold tracking-widest text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-[0.98] transition-transform"
+          className="col-span-3 flex h-12 sm:h-14 items-center justify-center rounded-tr-3xl rounded-tl-xl rounded-b-xl border border-white/15 bg-[#121215] font-mono text-xs sm:text-sm font-bold tracking-widest text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-[0.98] transition-transform"
         >
-          R1 // SAĞ TETİK
+          R1 // OVERDRIVE
         </button>
       </div>
 
-      {/* Main Ergonomic Controller Body */}
+      {/* Main Ergonomic Twin-Stick Controller Body */}
       <div className="grid flex-1 grid-cols-12 items-center gap-2 py-2">
-        {/* LEFT DECK: Left Analog Stick + D-Pad */}
+        {/* LEFT DECK: Left Analog Stick (Movement) + D-Pad */}
         <div className="col-span-5 flex items-center justify-around gap-2">
-          {/* Left Analog Thumbstick */}
           <div className="flex flex-col items-center">
             <div
               onTouchStart={(e) => handleStickStart('left', e)}
@@ -493,18 +507,19 @@ export const ControllerApp: React.FC = () => {
               <div className="pointer-events-none absolute h-24 w-24 rounded-full border border-dashed border-white/10" />
               <div
                 ref={leftKnobRef}
-                className="pointer-events-none flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border-2 border-[#FF5500] bg-[#18181C] shadow-lg will-change-transform"
+                style={{ borderColor: playerAccentColor }}
+                className="pointer-events-none flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border-2 bg-[#18181C] shadow-lg will-change-transform"
               >
                 <div className="h-6 w-6 rounded-full border border-white/20 bg-[#09090B]" />
               </div>
             </div>
             <span className="mt-1.5 font-mono text-[10px] uppercase tracking-widest text-[#A1A1AA]">
-              SOL ANALOG (L3)
+              SOL ANALOG (YÜRÜYÜŞ)
             </span>
           </div>
 
           {/* 4-Way Tactical D-Pad */}
-          <div className="hidden sm:grid grid-cols-3 grid-rows-3 gap-1 w-28 h-28">
+          <div className="hidden md:grid grid-cols-3 grid-rows-3 gap-1 w-24 h-24">
             <div />
             <button
               type="button"
@@ -513,7 +528,7 @@ export const ControllerApp: React.FC = () => {
               onPointerLeave={(e) => setDpadState('up', false, e.currentTarget)}
               className="flex items-center justify-center rounded-t-lg border border-white/15 bg-[#121215] text-[#F4F4F5] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
             >
-              <ArrowUp size={16} weight="bold" />
+              <ArrowUp size={15} weight="bold" />
             </button>
             <div />
             <button
@@ -523,7 +538,7 @@ export const ControllerApp: React.FC = () => {
               onPointerLeave={(e) => setDpadState('left', false, e.currentTarget)}
               className="flex items-center justify-center rounded-l-lg border border-white/15 bg-[#121215] text-[#F4F4F5] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
             >
-              <ArrowLeft size={16} weight="bold" />
+              <ArrowLeft size={15} weight="bold" />
             </button>
             <div className="rounded bg-[#09090B] border border-white/5" />
             <button
@@ -533,7 +548,7 @@ export const ControllerApp: React.FC = () => {
               onPointerLeave={(e) => setDpadState('right', false, e.currentTarget)}
               className="flex items-center justify-center rounded-r-lg border border-white/15 bg-[#121215] text-[#F4F4F5] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
             >
-              <ArrowRight size={16} weight="bold" />
+              <ArrowRight size={15} weight="bold" />
             </button>
             <div />
             <button
@@ -543,7 +558,7 @@ export const ControllerApp: React.FC = () => {
               onPointerLeave={(e) => setDpadState('down', false, e.currentTarget)}
               className="flex items-center justify-center rounded-b-lg border border-white/15 bg-[#121215] text-[#F4F4F5] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
             >
-              <ArrowDown size={16} weight="bold" />
+              <ArrowDown size={15} weight="bold" />
             </button>
             <div />
           </div>
@@ -552,10 +567,13 @@ export const ControllerApp: React.FC = () => {
         {/* CENTER DECK: SELECT / OVERCADE CORE / START */}
         <div className="col-span-2 flex flex-col items-center justify-center gap-3">
           <div className="text-center">
-            <div className="font-mono text-[10px] font-bold tracking-[0.25em] text-[#FF5500]">
-              OVERCADE
+            <div
+              className="font-mono text-[10px] font-bold tracking-[0.2em]"
+              style={{ color: playerAccentColor }}
+            >
+              {playerCallsign}
             </div>
-            <div className="font-mono text-[9px] text-[#A1A1AA]">P2P CONTROLLER</div>
+            <div className="font-mono text-[9px] text-[#A1A1AA]">TWIN-STICK PAD</div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-2">
@@ -564,7 +582,7 @@ export const ControllerApp: React.FC = () => {
               onPointerDown={(e) => setButtonState('SELECT', true, e.currentTarget)}
               onPointerUp={(e) => setButtonState('SELECT', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('SELECT', false, e.currentTarget)}
-              className="rounded-full border border-white/15 bg-[#121215] px-3.5 py-2 font-mono text-[10px] font-bold tracking-wider text-[#A1A1AA] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
+              className="rounded-full border border-white/15 bg-[#121215] px-3 py-1.5 font-mono text-[10px] font-bold tracking-wider text-[#A1A1AA] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
             >
               SELECT
             </button>
@@ -574,17 +592,17 @@ export const ControllerApp: React.FC = () => {
               onPointerDown={(e) => setButtonState('START', true, e.currentTarget)}
               onPointerUp={(e) => setButtonState('START', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('START', false, e.currentTarget)}
-              className="rounded-full border border-white/15 bg-[#121215] px-3.5 py-2 font-mono text-[10px] font-bold tracking-wider text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
+              className="rounded-full border border-white/15 bg-[#121215] px-3 py-1.5 font-mono text-[10px] font-bold tracking-wider text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
             >
               START
             </button>
           </div>
         </div>
 
-        {/* RIGHT DECK: Right Analog Stick + Diamond Action Cluster (Y, X, B, A) */}
+        {/* RIGHT DECK: Right Analog Stick (360° Aim & Autocannon Fire) + Diamond Action Cluster */}
         <div className="col-span-5 flex items-center justify-around gap-2">
-          {/* Right Analog Thumbstick */}
-          <div className="hidden sm:flex flex-col items-center">
+          {/* Right Analog Thumbstick (Always visible for Twin-Stick Mech aiming!) */}
+          <div className="flex flex-col items-center">
             <div
               onTouchStart={(e) => handleStickStart('right', e)}
               onTouchMove={(e) => handleStickMove('right', e)}
@@ -599,73 +617,72 @@ export const ControllerApp: React.FC = () => {
               onPointerUp={(e) => {
                 if (e.pointerType !== 'touch') handleStickEnd('right', e);
               }}
-              className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 border-white/15 bg-[#121215] shadow-[inset_0_2px_12px_rgba(0,0,0,0.85)]"
+              className="relative flex h-32 w-32 sm:h-36 sm:w-36 items-center justify-center rounded-full border-2 border-white/15 bg-[#121215] shadow-[inset_0_2px_12px_rgba(0,0,0,0.85)]"
             >
               <div
                 ref={rightKnobRef}
-                className="pointer-events-none flex h-14 w-14 items-center justify-center rounded-full border-2 border-emerald-400 bg-[#18181C] shadow-lg will-change-transform"
+                className="pointer-events-none flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 border-emerald-400 bg-[#18181C] shadow-lg will-change-transform"
               >
                 <div className="h-5 w-5 rounded-full border border-white/20 bg-[#09090B]" />
               </div>
             </div>
             <span className="mt-1.5 font-mono text-[10px] uppercase tracking-widest text-[#A1A1AA]">
-              SAĞ ANALOG (R3)
+              SAĞ ANALOG (360° ATEŞ)
             </span>
           </div>
 
           {/* Diamond ABXY Cluster */}
-          <div className="grid grid-cols-3 grid-rows-3 gap-1.5 w-40 h-40 sm:w-44 sm:h-44">
+          <div className="grid grid-cols-3 grid-rows-3 gap-1 w-32 h-32 sm:w-40 sm:h-40">
             <div />
-            {/* Y Button (Top) */}
             <button
               type="button"
               onPointerDown={(e) => setButtonState('Y', true, e.currentTarget)}
               onPointerUp={(e) => setButtonState('Y', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('Y', false, e.currentTarget)}
               onPointerCancel={(e) => setButtonState('Y', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-full border-2 border-white/20 bg-[#121215] font-mono text-lg font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
+              className="flex flex-col items-center justify-center rounded-full border-2 border-white/20 bg-[#121215] font-mono text-sm font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
             >
-              Y
+              <span>Y</span>
+              <span className="text-[7px] font-normal text-[#A1A1AA]">MOD</span>
             </button>
             <div />
 
-            {/* X Button (Left) */}
             <button
               type="button"
               onPointerDown={(e) => setButtonState('X', true, e.currentTarget)}
               onPointerUp={(e) => setButtonState('X', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('X', false, e.currentTarget)}
               onPointerCancel={(e) => setButtonState('X', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-full border-2 border-white/20 bg-[#121215] font-mono text-lg font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
+              className="flex items-center justify-center rounded-full border-2 border-white/20 bg-[#121215] font-mono text-sm font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
             >
               X
             </button>
             <div className="flex items-center justify-center">
-              <div className="h-3 w-3 rounded-full bg-white/10" />
+              <div className="h-2.5 w-2.5 rounded-full bg-white/10" />
             </div>
-            {/* B Button (Right) */}
             <button
               type="button"
               onPointerDown={(e) => setButtonState('B', true, e.currentTarget)}
               onPointerUp={(e) => setButtonState('B', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('B', false, e.currentTarget)}
               onPointerCancel={(e) => setButtonState('B', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-full border-2 border-white/20 bg-[#121215] font-mono text-lg font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
+              className="flex flex-col items-center justify-center rounded-full border-2 border-white/25 bg-[#121215] font-mono text-sm font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
             >
-              B
+              <span>B</span>
+              <span className="text-[7px] font-normal text-[#FF5500]">ROKET</span>
             </button>
 
             <div />
-            {/* A Button (Bottom - Primary Action Highlighted) */}
             <button
               type="button"
               onPointerDown={(e) => setButtonState('A', true, e.currentTarget)}
               onPointerUp={(e) => setButtonState('A', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('A', false, e.currentTarget)}
               onPointerCancel={(e) => setButtonState('A', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-full border-2 border-[#FF5500] bg-[#FF5500]/15 font-mono text-lg font-extrabold text-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
+              className="flex flex-col items-center justify-center rounded-full border-2 border-[#FF5500] bg-[#FF5500]/15 font-mono text-sm font-extrabold text-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
             >
-              A
+              <span>A</span>
+              <span className="text-[7px] font-normal">DASH</span>
             </button>
             <div />
           </div>
@@ -676,13 +693,13 @@ export const ControllerApp: React.FC = () => {
       <div className="flex items-center justify-between border-t border-white/10 pt-1.5 font-mono text-[10px] text-[#A1A1AA]">
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1">
-            <WifiHigh size={12} className="text-[#FF5500]" />
-            UDP MODU: ORDERED=FALSE, MAX_RETRANSMITS=0
+            <WifiHigh size={12} style={{ color: playerAccentColor }} />
+            UDP P2P // TWIN-STICK MEKA PROTOKOLÜ
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Vibrate size={12} className="text-emerald-400" />
-          <span>HAPTİK GERİ BİLDİRİM AKTİF</span>
+          <span>ÇİFT YÖNLÜ HAPTİK TELEMETRİ AKTİF</span>
         </div>
       </div>
     </div>

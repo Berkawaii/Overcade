@@ -11,19 +11,23 @@ import {
   Copy,
   Check,
   ArrowSquareOut,
+  LockSimple,
 } from '@phosphor-icons/react';
+import { PLAYER_CALLSIGNS, PLAYER_COLORS } from '../lib/binaryProtocol';
 import { useConsoleConnectionStore } from '../lib/gameEngineBridge';
 
 interface PairingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRegenerateRoom: () => void;
+  onLockRoom?: () => void;
 }
 
 export const PairingModal: React.FC<PairingModalProps> = ({
   isOpen,
   onClose,
   onRegenerateRoom,
+  onLockRoom,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const {
@@ -32,6 +36,8 @@ export const PairingModal: React.FC<PairingModalProps> = ({
     errorMessage,
     firestoreSignalingOps,
     firestoreListenersActive,
+    connectedSlots,
+    connectedCount,
   } = useConsoleConnectionStore();
 
   const [hostOrigin, setHostOrigin] = useState<string>(() => window.location.origin);
@@ -89,13 +95,13 @@ export const PairingModal: React.FC<PairingModalProps> = ({
               </div>
               <div>
                 <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#FF5500]">
-                  WEBRTC P2P SİNYALLEŞME KÖPRÜSÜ
+                  1-4 OYUNCULU WEBRTC P2P SİNYALLEŞME MERKEZİ
                 </span>
                 <h2
                   id="pairing-modal-title"
                   className="text-xl md:text-2xl font-bold tracking-tight text-[#F4F4F5]"
                 >
-                  Mobil Kumanda Eşleştirme
+                  Çoklu Mobil Kumanda Eşleştirme ({connectedCount}/4 Bağlı)
                 </h2>
               </div>
             </div>
@@ -114,9 +120,9 @@ export const PairingModal: React.FC<PairingModalProps> = ({
           <div className="mt-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             {/* Left Column: Dynamic QR Canvas */}
             <div className="md:col-span-5 flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#09090B] p-5">
-              <div className="relative flex h-[256px] w-[256px] items-center justify-center rounded-xl border border-white/10 bg-[#121215] p-2">
+              <div className="relative flex h-[248px] w-[248px] items-center justify-center rounded-xl border border-white/10 bg-[#121215] p-2">
                 {roomId ? (
-                  <canvas ref={canvasRef} className="h-[240px] w-[240px]" />
+                  <canvas ref={canvasRef} className="h-[232px] w-[232px]" />
                 ) : (
                   <div className="font-mono text-xs text-[#A1A1AA] animate-pulse">
                     ODA KODU ÜRETİLİYOR...
@@ -126,7 +132,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
 
               <div className="mt-4 w-full text-center">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#A1A1AA]">
-                  AKTİF ODA KODU (ROOM ID)
+                  ORTAK ODA KODU (4 TELEFONA KADAR)
                 </div>
                 <div className="mt-1 font-mono text-3xl font-bold tracking-[0.25em] text-[#FF5500]">
                   {roomId || '------'}
@@ -134,28 +140,60 @@ export const PairingModal: React.FC<PairingModalProps> = ({
               </div>
             </div>
 
-            {/* Right Column: Instructions & Telemetry */}
-            <div className="md:col-span-7 flex flex-col justify-between space-y-5">
-              {/* Connection Status Banner */}
+            {/* Right Column: 4-Slot Matrix & Telemetry */}
+            <div className="md:col-span-7 flex flex-col justify-between space-y-4">
+              {/* 4-Player Slot Matrix */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {[0, 1, 2, 3].map((slotIdx) => {
+                  const isConnected = connectedSlots[slotIdx];
+                  const color = PLAYER_COLORS[slotIdx];
+                  return (
+                    <div
+                      key={slotIdx}
+                      className={`flex items-center justify-between rounded-xl border p-3 font-mono text-xs ${
+                        isConnected
+                          ? 'border-white/25 bg-[#18181C]'
+                          : 'border-white/10 bg-[#09090B]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{
+                            backgroundColor: isConnected ? color : 'rgba(255,255,255,0.15)',
+                          }}
+                        />
+                        <span className="font-bold text-[#F4F4F5]">
+                          {PLAYER_CALLSIGNS[slotIdx]}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-semibold ${
+                          isConnected ? 'text-emerald-400' : 'text-[#A1A1AA]'
+                        }`}
+                      >
+                        {isConnected ? 'P2P AKTİF' : 'BEKLİYOR'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Connection & Firestore Quota Status Banner */}
               <div className="rounded-xl border border-white/10 bg-[#09090B] p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs uppercase tracking-wider text-[#A1A1AA]">
-                    OTURUM DURUMU
+                    AĞ TOPOLOJİSİ
                   </span>
-                  {phase === 'connected_p2p' ? (
+                  {connectedCount > 0 ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-3 py-1 font-mono text-xs font-semibold text-emerald-400">
                       <CheckCircle size={15} weight="fill" />
-                      P2P DATA CHANNEL AKTİF
+                      {connectedCount} KUMANDA BAĞLI
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF5500]/15 border border-[#FF5500]/40 px-3 py-1 font-mono text-xs font-semibold text-[#FF5500]">
                       <WifiHigh size={15} weight="bold" />
-                      {phase === 'creating_room' && 'ODA OLUŞTURULUYOR'}
-                      {phase === 'waiting_for_peer' && 'MOBİL CİHAZ BEKLENİYOR'}
-                      {phase === 'negotiating_webrtc' && 'SDP / ICE EL SIKIŞMASI'}
-                      {phase === 'disconnected' && 'BAĞLANTI KESİLDİ'}
-                      {phase === 'error' && 'BAĞLANTI HATASI'}
-                      {phase === 'idle' && 'HAZIR'}
+                      {phase === 'creating_room' ? 'ODA OLUŞTURULUYOR' : 'QR TARAMASI BEKLENİYOR'}
                     </span>
                   )}
                 </div>
@@ -172,7 +210,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[#A1A1AA]">SİNYAL DİNLEYİCİSİ</div>
+                    <div className="text-[#A1A1AA]">SONRAKİ OYUNCU SİNYALİ</div>
                     <div className="mt-0.5 flex items-center gap-1.5 font-semibold">
                       <ShieldCheck
                         size={15}
@@ -187,42 +225,30 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                         }
                       >
                         {firestoreListenersActive
-                          ? 'El Sıkışma Bekleniyor'
-                          : 'Kapatıldı (0 Sunucu Yükü)'}
+                          ? `P${connectedCount + 1} İçin Hazır`
+                          : 'Kilitli (0 Sunucu Yükü)'}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Steps */}
-              <div className="space-y-2.5 text-sm text-[#A1A1AA]">
-                <div className="flex items-start gap-2.5">
-                  <DeviceMobile size={18} className="mt-0.5 shrink-0 text-[#FF5500]" />
-                  <span>
-                    Telefon kameranızla QR kodu okutun veya mobil tarayıcıdan{' '}
-                    <code className="text-[#F4F4F5]">/controller.html?room={roomId}</code>{' '}
-                    adresini açın.
-                  </span>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <ShieldCheck size={18} className="mt-0.5 shrink-0 text-emerald-400" />
-                  <span>
-                    WebRTC P2P veri kanalı açıldığı anda Firestore bağlantısı otomatik kesilir ve
-                    oda belgesi silinir. Tüm girdi akışı yerel ağ (UDP) üzerinden 8 baytlık ikili
-                    paketlerle gerçekleşir.
-                  </span>
-                </div>
+              <div className="flex items-start gap-2.5 text-xs text-[#A1A1AA]">
+                <DeviceMobile size={18} className="mt-0.5 shrink-0 text-[#FF5500]" />
+                <span>
+                  1 ila 4 telefon sırayla <strong>aynı QR kodu</strong> okutarak odaya katılabilir.
+                  Her telefon bağlandığında otomatik olarak bir sonraki oyuncu slotu (P1, P2, P3,
+                  P4) hazırlanır.
+                </span>
               </div>
 
-              {/* Localhost LAN IP Override Helper */}
               {isLocalhost && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
                   <label
                     htmlFor="lan-host-input"
-                    className="block font-mono text-[11px] uppercase tracking-wider text-amber-300"
+                    className="block font-mono text-[10px] uppercase tracking-wider text-amber-300"
                   >
-                    YEREL AĞ (LAN) TEST ADRESİ (TELEFONDAN ERİŞİM İÇİN BİLGİSAYAR IP ADRESİNİZİ YAZABİLİRSİNİZ)
+                    YEREL AĞ (LAN) TEST ADRESİ
                   </label>
                   <input
                     id="lan-host-input"
@@ -230,39 +256,50 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                     value={hostOrigin}
                     onChange={(e) => setHostOrigin(e.target.value)}
                     placeholder="Örn: http://192.168.1.45:5173"
-                    className="mt-1.5 w-full rounded-lg border border-white/15 bg-[#09090B] px-3 py-1.5 font-mono text-xs text-[#F4F4F5] focus:border-[#FF5500] focus:outline-none"
+                    className="mt-1 w-full rounded-lg border border-white/15 bg-[#09090B] px-3 py-1.5 font-mono text-xs text-[#F4F4F5] focus:border-[#FF5500] focus:outline-none"
                   />
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={handleCopyUrl}
-                  className="spatial-focusable inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 font-mono text-xs font-semibold text-[#F4F4F5] hover:bg-white/10 active:scale-[0.98] transition-transform"
+                  className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3.5 py-2 font-mono text-xs font-semibold text-[#F4F4F5] hover:bg-white/10 active:scale-[0.98] transition-transform"
                 >
-                  {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-                  {copied ? 'BAĞLANTI KOPYALANDI' : 'KUMANDA LİNKİNİ KOPYALA'}
+                  {copied ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
+                  {copied ? 'KOPYALANDI' : 'LİNKİ KOPYALA'}
                 </button>
 
                 <a
                   href={joinUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="spatial-focusable inline-flex items-center gap-2 rounded-xl border border-[#FF5500]/40 bg-[#FF5500]/15 px-4 py-2.5 font-mono text-xs font-semibold text-[#FF5500] hover:bg-[#FF5500]/25 active:scale-[0.98] transition-transform"
+                  className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-[#FF5500]/40 bg-[#FF5500]/15 px-3.5 py-2 font-mono text-xs font-semibold text-[#FF5500] hover:bg-[#FF5500]/25 active:scale-[0.98] transition-transform"
                 >
-                  <ArrowSquareOut size={16} weight="bold" />
-                  YENİ SEKMEDE SİMÜLATÖR AÇ
+                  <ArrowSquareOut size={15} weight="bold" />
+                  YENİ SEKMEDE KUMANDA AÇ
                 </a>
+
+                {firestoreListenersActive && connectedCount > 0 && onLockRoom && (
+                  <button
+                    type="button"
+                    onClick={onLockRoom}
+                    className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 font-mono text-xs font-semibold text-emerald-300 hover:bg-emerald-500/25 active:scale-[0.98] transition-transform"
+                  >
+                    <LockSimple size={15} weight="bold" />
+                    ODAYI KİLİTLE (FIRESTORE KAPAT)
+                  </button>
+                )}
 
                 <button
                   type="button"
                   onClick={onRegenerateRoom}
-                  className="spatial-focusable inline-flex items-center gap-2 rounded-xl border border-white/15 bg-[#09090B] px-4 py-2.5 font-mono text-xs font-semibold text-[#A1A1AA] hover:text-[#F4F4F5] active:scale-[0.98] transition-transform ml-auto"
+                  className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#09090B] px-3.5 py-2 font-mono text-xs font-semibold text-[#A1A1AA] hover:text-[#F4F4F5] active:scale-[0.98] transition-transform ml-auto"
                 >
-                  <ArrowsClockwise size={16} weight="bold" />
-                  YENİ ODA ÜRET
+                  <ArrowsClockwise size={15} weight="bold" />
+                  YENİ ODA
                 </button>
               </div>
             </div>
