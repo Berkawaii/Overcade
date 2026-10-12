@@ -16,6 +16,7 @@ import {
   Skull,
   Users,
   Wrench,
+  ShieldWarning,
 } from '@phosphor-icons/react';
 import { GameEngineBridge, useConsoleConnectionStore } from '../lib/gameEngineBridge';
 import { MAX_PLAYERS, PLAYER_COLORS } from '../lib/binaryProtocol';
@@ -31,12 +32,34 @@ type SplitMode = 'auto' | '1p' | '2p' | '4p';
 type GamePhase = 'lobby_garage' | 'lobby_vote' | 'combat';
 
 /**
- * Weapon types in Fired Up:
- * - LASER_1HKO: Special Super-Weapon (Spawns ONLY on High Bridge). Instant 1-Hit KO (100% Max HP)!
- * - HYDRA_JAVELIN: Special Super-Weapon (Spawns ONLY inside Underground Tunnel). Fires 3 top-attack Javelin missiles that climb straight UP then dive onto nearest target(s), each dealing 45% of target's Max HP!
- * - DUMB_ROCKET: Standard forward-firing unguided heavy rocket (35% HP damage, 3 shots).
+ * Expanded Arsenal of Secondary Weapons:
+ * S-TIER SUPER WEAPONS (Landmark Exclusive):
+ * - LASER_1HKO: Instant 1-Hit KO (100% Max HP). Spawns ONLY on Central High Viaduct Bridge. Unguided line-of-sight beam.
+ * - HYDRA_JAVELIN: Fires 3 top-attack Javelin missiles (climb UP first, then dive onto target). Each deals 45% Max HP (135% total). GUIDED LOCK-ON! Spawns ONLY inside Underground Tunnels.
+ *
+ * A/B-TIER TACTICAL WEAPONS:
+ * - SEEKER_SWARM: Fires 2 low-altitude guided Stinger missiles (22% Max HP each = 44% total). GUIDED LOCK-ON!
+ * - AT_CANNON: High-velocity Armor-Piercing Sabot shell (55% Max HP, 2 shots). Unguided.
+ * - CLUSTER_MORTAR: Ballistic arching artillery shell with 24m blast radius (42% Max HP, 2 shots). Unguided.
+ * - DUMB_ROCKET: Standard forward-firing unguided heavy rocket pod (32% Max HP, 3 shots). Unguided.
+ * - EMP_BLAST: 55m Electromagnetic Shockwave pulse (28% Max HP + slows enemies, 2 shots). Unguided.
  */
-type SecondaryWeaponType = 'LASER_1HKO' | 'HYDRA_JAVELIN' | 'DUMB_ROCKET';
+type SecondaryWeaponType =
+  | 'LASER_1HKO'
+  | 'HYDRA_JAVELIN'
+  | 'SEEKER_SWARM'
+  | 'AT_CANNON'
+  | 'CLUSTER_MORTAR'
+  | 'DUMB_ROCKET'
+  | 'EMP_BLAST';
+
+/**
+ * Returns true ONLY if the weapon is a guided lock-on weapon.
+ * Target Lock-On UI ("HEDEF KİLİTLENDİ") ONLY appears when holding one of these!
+ */
+function isGuidedLockOnWeapon(w: SecondaryWeaponType | null): boolean {
+  return w === 'HYDRA_JAVELIN' || w === 'SEEKER_SWARM';
+}
 
 export interface CombatVehicleSpec {
   id: string;
@@ -68,9 +91,9 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
     armorStat: 65,
     firepowerStat: 78,
     handlingStat: 95,
-    topSpeed: 58,
-    accel: 44,
-    turnRate: 2.35,
+    topSpeed: 108,
+    accel: 76,
+    turnRate: 2.3,
     maxHp: 100,
     chaingunDamage: 4.5,
     camoPrimary: '#C29B61',
@@ -86,9 +109,9 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
     armorStat: 82,
     firepowerStat: 85,
     handlingStat: 84,
-    topSpeed: 53,
-    accel: 39,
-    turnRate: 2.1,
+    topSpeed: 98,
+    accel: 68,
+    turnRate: 2.05,
     maxHp: 125,
     chaingunDamage: 5.2,
     camoPrimary: '#5A6351',
@@ -104,9 +127,9 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
     armorStat: 78,
     firepowerStat: 80,
     handlingStat: 90,
-    topSpeed: 54,
-    accel: 41,
-    turnRate: 2.2,
+    topSpeed: 102,
+    accel: 72,
+    turnRate: 2.15,
     maxHp: 120,
     chaingunDamage: 4.8,
     camoPrimary: '#A45A3D',
@@ -122,8 +145,8 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
     armorStat: 92,
     firepowerStat: 90,
     handlingStat: 75,
-    topSpeed: 46,
-    accel: 34,
+    topSpeed: 86,
+    accel: 60,
     turnRate: 1.85,
     maxHp: 155,
     chaingunDamage: 6.0,
@@ -140,8 +163,8 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
     armorStat: 100,
     firepowerStat: 98,
     handlingStat: 68,
-    topSpeed: 40,
-    accel: 29,
+    topSpeed: 76,
+    accel: 52,
     turnRate: 1.65,
     maxHp: 190,
     chaingunDamage: 7.5,
@@ -163,8 +186,8 @@ export interface ArenaMapSpec {
   concreteColor: string;
   bunkerColor: string;
   accentColor: string;
-  arenaHalfSize: number; // 260 => 520m x 520m huge open battlefield!
-  bunkers: [number, number, number, number][]; // [x, z, width, depth]
+  arenaHalfSize: number; // 1040 => 2080m x 2080m (4x larger than 520m!)
+  bunkers: [number, number, number, number, number][]; // [x, z, width, depth, height]
 }
 
 export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
@@ -172,8 +195,8 @@ export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
     id: 'desert-badlands',
     name: 'SCORCHED BADLANDS // SEKTÖR 01',
     subtitle:
-      '520x520m Çöl Vadisi: Merkezde Yüksek Beton Köprü (LASER), Kuzeyde Yeraltı Tüneli (HYDRA) ve Keskin Tepeler',
-    zoneTag: '520M AÇIK ARAZİ // KÖPRÜ & TÜNEL',
+      '2080x2080m Dev Çöl Cephesi: Merkez Viyadük Köprüsü (LAZER 1HKO), Kuzey ve Güney Yeraltı Sığınak Tünelleri (HYDRA JAVELIN) ve Korugan Tepeleri',
+    zoneTag: '2080M DEV CEPHE // KÖPRÜ & 2X TÜNEL',
     skyColor: '#C89D66',
     fogColor: '#B58952',
     groundLowColor: '#6E4E2E',
@@ -182,22 +205,28 @@ export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
     concreteColor: '#7A7468',
     bunkerColor: '#5C5346',
     accentColor: '#D97706',
-    arenaHalfSize: 260,
+    arenaHalfSize: 1040,
     bunkers: [
-      [-115, -85, 22, 18],
-      [115, -85, 22, 18],
-      [-115, 85, 22, 18],
-      [115, 85, 22, 18],
-      [-175, 0, 18, 36],
-      [175, 0, 18, 36],
+      [-280, -210, 44, 36, 16],
+      [280, -210, 44, 36, 16],
+      [-280, 210, 44, 36, 16],
+      [280, 210, 44, 36, 16],
+      [-520, -340, 52, 42, 18],
+      [520, -340, 52, 42, 18],
+      [-520, 340, 52, 42, 18],
+      [520, 340, 52, 42, 18],
+      [-460, 0, 38, 72, 16],
+      [460, 0, 38, 72, 16],
+      [0, -240, 64, 30, 15],
+      [0, 240, 64, 30, 15],
     ],
   },
   {
     id: 'arctic-outpost',
     name: 'SIBERIA RADAR VALLEY // SEKTÖR 02',
     subtitle:
-      '520x520m Kutup Vadisi: Donmuş Nehir Yatağı Üstünde Yüksek Viyadük Köprüsü ve Dağ İçi Sığınak Tüneli',
-    zoneTag: '520M KUTUP VADİSİ // VİYADÜK & SIĞINAK',
+      '2080x2080m Kutup Vadisi: Donmuş Kanyon Üstünde Yüksek Viyadük Köprüsü, Dağ İçi Sığınak Tünelleri ve Radar Kuleleri',
+    zoneTag: '2080M KUTUP VADİSİ // VİYADÜK & SIĞINAK',
     skyColor: '#8CA3B5',
     fogColor: '#7B92A6',
     groundLowColor: '#3B4D5E',
@@ -206,21 +235,28 @@ export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
     concreteColor: '#525E6B',
     bunkerColor: '#3A4652',
     accentColor: '#38BDF8',
-    arenaHalfSize: 260,
+    arenaHalfSize: 1040,
     bunkers: [
-      [-110, -90, 24, 20],
-      [110, -90, 24, 20],
-      [-110, 90, 24, 20],
-      [110, 90, 24, 20],
-      [0, 175, 38, 16],
+      [-260, -220, 48, 38, 17],
+      [260, -220, 48, 38, 17],
+      [-260, 220, 48, 38, 17],
+      [260, 220, 48, 38, 17],
+      [-540, -300, 50, 46, 18],
+      [540, -300, 50, 46, 18],
+      [-540, 300, 50, 46, 18],
+      [540, 300, 50, 46, 18],
+      [-450, 0, 42, 68, 16],
+      [450, 0, 42, 68, 16],
+      [0, -250, 70, 32, 16],
+      [0, 250, 70, 32, 16],
     ],
   },
   {
     id: 'iron-quarry',
     name: 'REPUBLIC SLAG QUARRY // SEKTÖR 03',
     subtitle:
-      '520x520m Demir Madeni Krateri: Derin Çukurlar, Yüksek Vinç Köprüsü ve Güney/Kuzey İkmal Tünelleri',
-    zoneTag: '520M MADEN KRATERİ // ÇOK KATMANLI',
+      '2080x2080m Demir Madeni Krateri: Derin Kazı Çukurları, Yüksek Vinç Köprüsü ve Kuzey/Güney Yeraltı İkmal Tünelleri',
+    zoneTag: '2080M MADEN KRATERİ // ÇOK KATMANLI',
     skyColor: '#78716C',
     fogColor: '#57534E',
     groundLowColor: '#292524',
@@ -229,28 +265,42 @@ export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
     concreteColor: '#57534E',
     bunkerColor: '#3F3A36',
     accentColor: '#10B981',
-    arenaHalfSize: 260,
+    arenaHalfSize: 1040,
     bunkers: [
-      [-125, -75, 20, 24],
-      [125, -75, 20, 24],
-      [-125, 75, 20, 24],
-      [125, 75, 20, 24],
-      [-165, -155, 22, 22],
-      [165, 155, 22, 22],
+      [-290, -195, 44, 44, 17],
+      [290, -195, 44, 44, 17],
+      [-290, 195, 44, 44, 17],
+      [290, 195, 44, 44, 17],
+      [-510, -350, 48, 48, 19],
+      [510, -350, 48, 48, 19],
+      [-510, 350, 48, 48, 19],
+      [510, 350, 48, 48, 19],
+      [-460, 0, 40, 74, 17],
+      [460, 0, 40, 74, 17],
+      [0, -245, 62, 34, 16],
+      [0, 245, 62, 34, 16],
     ],
   },
 ];
 
 const WEAPON_LABELS: Record<SecondaryWeaponType, string> = {
   LASER_1HKO: 'YÖRÜNGE LAZERİ [1-HIT KO!]',
-  HYDRA_JAVELIN: 'HYDRA 3X JAVELIN (%45x3 HASAR)',
-  DUMB_ROCKET: 'AĞIR ZIRH DELİCİ ROKET',
+  HYDRA_JAVELIN: 'HYDRA 3X JAVELIN [GÜDÜMLÜ %45x3]',
+  SEEKER_SWARM: 'STINGER 2X SÜRÜ [GÜDÜMLÜ %22x2]',
+  AT_CANNON: 'SABOT ZIRH DELİCİ TOP [%55 HASAR]',
+  CLUSTER_MORTAR: 'PARÇACIKLI HAVAN TOPU [ALAN %42]',
+  DUMB_ROCKET: 'AĞIR ROKET PODU [%32 HASAR]',
+  EMP_BLAST: 'EMP ELEKTROMANYETİK ŞOK [%28]',
 };
 
 const WEAPON_COLORS: Record<SecondaryWeaponType, string> = {
   LASER_1HKO: '#EF4444',
   HYDRA_JAVELIN: '#F59E0B',
+  SEEKER_SWARM: '#FB923C',
+  AT_CANNON: '#38BDF8',
+  CLUSTER_MORTAR: '#A855F7',
   DUMB_ROCKET: '#10B981',
+  EMP_BLAST: '#06B6D4',
 };
 
 const COMBATANT_COLORS = [
@@ -272,85 +322,430 @@ const COMBATANT_CALLSIGNS = [
 ];
 
 const TOTAL_COMBATANTS = 6;
-const MAX_PROJECTILES = 72;
-const MAX_SHOCKWAVES = 18;
+const MAX_PROJECTILES = 96;
+const MAX_SHOCKWAVES = 24;
+const INITIAL_RESPAWNS = 5;
+const STREAK_FOR_BONUS_RESPAWN = 8;
 
-/**
- * Continuous 3D Terrain Height Function:
- * Creates hills (+18m), sunken valleys (-7m), tunnel trenches, and flat bridge approaches.
- */
-function sampleGroundTerrainY(x: number, z: number): number {
-  // 1. Northern Underground Tunnel Trench (x in [-16..16], z in [-170..-90])
-  if (Math.abs(x) < 18 && z > -175 && z < -85) {
-    const xBlend = Math.max(0, 1 - Math.abs(x) / 18);
-    // Inside the tunnel floor is a sunken trench at y = -4.5m
-    return THREE.MathUtils.lerp(0, -4.5, xBlend);
-  }
+// ============================================================================
+// GEOMETRY & MULTI-ELEVATION CONSTANTS (2080m x 2080m Map)
+// ============================================================================
+// Central Viaduct Bridge spans X in [-320..320], Z in [-22..22]
+// Flat Deck: X in [-130..130] at Y = +26m
+// Smooth Cosine Ramps: X in [-320..-130] and [130..320] climbing 0m -> 26m
+const BRIDGE_HALF_LEN = 320;
+const BRIDGE_FLAT_HALF_LEN = 130;
+const BRIDGE_HALF_WIDTH = 22;
+const BRIDGE_DECK_HEIGHT = 26.0;
 
-  // 2. Central Valley under the High Bridge (x in [-48..48], z in [-38..38])
-  const distCenter = Math.hypot(x * 0.65, z);
-  let valleyDepression = 0;
-  if (distCenter < 55) {
-    valleyDepression = -6.5 * Math.cos((distCenter / 55) * (Math.PI * 0.5));
-  }
+// North & South Underground Tunnels at Z = -520 and Z = +520
+// Tunnel Interior spans X in [-180..180], Trench Ramps X in [-270..-180] and [180..270]
+const NORTH_TUNNEL_Z = -520;
+const SOUTH_TUNNEL_Z = 520;
+const TUNNEL_HALF_LEN = 180;
+const TUNNEL_RAMP_OUTER_X = 270;
+const TUNNEL_INNER_HALF_W = 22;
+const TUNNEL_FLOOR_Y = -10.5;
+const TUNNEL_ROOF_BOTTOM_Y = 10.5;
+const TUNNEL_ROOF_TOP_Y = 16.0;
 
-  // 3. Rolling Hills & High Sniper Ridges on East/West/South flanks
-  const hills =
-    Math.sin(x * 0.022) * Math.cos(z * 0.022) * 8.5 +
-    Math.sin(x * 0.045 + 1.2) * Math.sin(z * 0.038) * 4.2;
-
-  // Flatten bridge approach ramps around z in [-14..14], x in [-105..-55] and [55..105]
-  if (Math.abs(z) < 18 && Math.abs(x) >= 50 && Math.abs(x) <= 110) {
-    return 0;
-  }
-
-  return hills + valleyDepression;
+function smoothstep01(t: number): number {
+  const c = Math.max(0, Math.min(1, t));
+  return c * c * (3 - 2 * c);
 }
 
 /**
- * Multi-Layer Surface Resolver (supports driving ON TOP of the High Bridge OR UNDERNEATH it,
- * and driving INSIDE the Underground Tunnel OR OVER its roof ridge!)
+ * Returns the exact height of the Central Viaduct Bridge at a given X coordinate (|x| <= 320).
+ * Uses a C1-continuous cosine curve on the ramps so there is ZERO sudden angle snap ("tak, tak")!
  */
-function resolveVehicleSurface(
+function getCentralBridgeDeckY(x: number): number {
+  const ax = Math.abs(x);
+  if (ax <= BRIDGE_FLAT_HALF_LEN) {
+    return BRIDGE_DECK_HEIGHT;
+  }
+  if (ax >= BRIDGE_HALF_LEN) {
+    return 0;
+  }
+  const u = (ax - BRIDGE_FLAT_HALF_LEN) / (BRIDGE_HALF_LEN - BRIDGE_FLAT_HALF_LEN); // 0 at flat deck, 1 at ground
+  return BRIDGE_DECK_HEIGHT * 0.5 * (1 + Math.cos(u * Math.PI));
+}
+
+/**
+ * C1-Continuous 3D Ground Terrain Height Function across the 2080m x 2080m map.
+ * Smoothly blends rolling hills (+28m), sunken valleys (-12m), bridge ramp approaches, and tunnel trenches.
+ */
+function sampleGroundTerrainY(x: number, z: number): number {
+  // 1. Smoothly flatten ground near the West and East ends of the Central Bridge Ramps
+  // so the ramp entrance at |x| = 320, z = 0 meets the ground at y = 0 with zero step!
+  let bridgeApproachFlatten = 1.0;
+  if (Math.abs(x) >= 120 && Math.abs(x) <= 410 && Math.abs(z) <= 75) {
+    const zx = smoothstep01((Math.abs(z) - 26) / 49);
+    const xx =
+      Math.abs(x) < 260
+        ? smoothstep01((260 - Math.abs(x)) / 140)
+        : smoothstep01((Math.abs(x) - 345) / 65);
+    bridgeApproachFlatten = Math.min(1, zx + xx);
+  }
+
+  // 2. Smooth Trench for North Underground Tunnel (z near -520) & South Underground Tunnel (z near +520)
+  for (const tz of [NORTH_TUNNEL_Z, SOUTH_TUNNEL_Z]) {
+    const dz = Math.abs(z - tz);
+    const ax = Math.abs(x);
+    if (dz < 56 && ax < 310) {
+      // Lateral blend across tunnel width
+      const zFactor =
+        dz <= TUNNEL_INNER_HALF_W
+          ? 1.0
+          : 1.0 - smoothstep01((dz - TUNNEL_INNER_HALF_W) / (56 - TUNNEL_INNER_HALF_W));
+      // Longitudinal ramp blend along X
+      let xTrenchDepth = 0;
+      if (ax <= TUNNEL_HALF_LEN) {
+        xTrenchDepth = TUNNEL_FLOOR_Y;
+      } else if (ax < TUNNEL_RAMP_OUTER_X) {
+        const u = (ax - TUNNEL_HALF_LEN) / (TUNNEL_RAMP_OUTER_X - TUNNEL_HALF_LEN);
+        xTrenchDepth = TUNNEL_FLOOR_Y * 0.5 * (1 + Math.cos(u * Math.PI));
+      }
+      const flattenHills = 1.0 - smoothstep01((310 - ax) / 50) * zFactor;
+      const baseHills =
+        (Math.sin(x * 0.0065) * Math.cos(z * 0.0065) * 20.0 +
+          Math.sin(x * 0.014 + 1.1) * Math.sin(z * 0.012) * 9.5) *
+        flattenHills;
+      return baseHills + xTrenchDepth * zFactor;
+    }
+  }
+
+  // 3. Central Valley under the High Viaduct Bridge (x in [-140..140], z in [-140..140])
+  const distCenter = Math.hypot(x * 0.65, z * 0.85);
+  let valleyDepression = 0;
+  if (distCenter < 145) {
+    valleyDepression = -12.5 * 0.5 * (1 + Math.cos((distCenter / 145) * Math.PI));
+  }
+
+  // 4. Rolling Hills & High Ridges across the 2080m x 2080m battlefield
+  const hills =
+    Math.sin(x * 0.0065) * Math.cos(z * 0.0065) * 20.0 +
+    Math.sin(x * 0.014 + 1.1) * Math.sin(z * 0.012) * 9.5 +
+    Math.cos(x * 0.026 - 0.5) * Math.sin(z * 0.024 + 0.4) * 3.8;
+
+  return (hills + valleyDepression) * bridgeApproachFlatten;
+}
+
+/**
+ * Resolves the surface height at a single point (wx, wz) given the vehicle's current elevation `refY`.
+ * Supports multi-layer surfaces (Central Bridge Deck vs Valley Underneath; Tunnel Roof vs Tunnel Interior).
+ * Crucially, only allows standing on an elevated deck if `refY` is already near or above that deck (`refY >= deckY - 3.2`),
+ * preventing instant teleport snapping ("tak, tak") from the ground up onto a high bridge!
+ */
+function sampleLayeredSurfaceY(wx: number, wz: number, refY: number): {
+  y: number;
+  layer: 'ground' | 'bridge' | 'tunnel_roof' | 'tunnel_inside';
+} {
+  const groundY = sampleGroundTerrainY(wx, wz);
+
+  // 1. Check Central Viaduct Bridge (x in [-320..320], z in [-21.5..21.5])
+  if (Math.abs(wx) <= BRIDGE_HALF_LEN && Math.abs(wz) <= BRIDGE_HALF_WIDTH - 0.5) {
+    const deckY = getCentralBridgeDeckY(wx);
+    // Vehicle is on the bridge if its current Y is within 3.2m of the deck (e.g. entered smoothly from the ramp end where deckY=0)
+    if (refY >= deckY - 3.2) {
+      return { y: deckY, layer: 'bridge' };
+    }
+  }
+
+  // 2. Check North & South Underground Tunnel Roof vs Interior
+  for (const tz of [NORTH_TUNNEL_Z, SOUTH_TUNNEL_Z]) {
+    if (
+      Math.abs(wx) <= TUNNEL_HALF_LEN &&
+      Math.abs(wz - tz) <= TUNNEL_INNER_HALF_W + 5.0
+    ) {
+      if (refY >= TUNNEL_ROOF_TOP_Y - 3.0) {
+        return { y: TUNNEL_ROOF_TOP_Y, layer: 'tunnel_roof' };
+      }
+      if (Math.abs(wz - tz) <= TUNNEL_INNER_HALF_W) {
+        return { y: groundY, layer: 'tunnel_inside' };
+      }
+    }
+  }
+
+  return { y: groundY, layer: 'ground' };
+}
+
+/**
+ * 4-Wheel Suspension & Slope Pose Resolver:
+ * Samples the surface at the Front-Left, Front-Right, Rear-Left, and Rear-Right wheels
+ * along the vehicle's actual `heading` so the vehicle tilts smoothly with exact pitch and roll on hills & ramps!
+ */
+function resolveVehicleFourWheelPose(
   x: number,
   z: number,
-  currentY: number
-): { y: number; pitch: number; onBridge: boolean; inTunnel: boolean } {
-  const groundY = sampleGroundTerrainY(x, z);
+  currentY: number,
+  heading: number
+): {
+  y: number;
+  pitch: number;
+  roll: number;
+  layer: 'ground' | 'bridge' | 'tunnel_roof' | 'tunnel_inside';
+} {
+  const center = sampleLayeredSurfaceY(x, z, currentY);
+  const fwdX = Math.sin(heading);
+  const fwdZ = Math.cos(heading);
+  const rightX = Math.cos(heading);
+  const rightZ = -Math.sin(heading);
 
-  // Check High Central Bridge (spans x in [-100..100], z in [-11..11])
-  // Approach ramps: x in [-100..-52] climbs 0 -> 15.5m; Deck: x in [-52..52] at y = 15.5m; East ramp: x in [52..100] climbs 15.5m -> 0
-  if (Math.abs(z) <= 11.2 && Math.abs(x) <= 100) {
-    let bridgeY = 15.5;
-    let bridgePitch = 0;
-    const absX = Math.abs(x);
-    if (absX > 52) {
-      const t = 1 - (absX - 52) / 48; // 0 at x=100, 1 at x=52
-      bridgeY = t * 15.5;
-      bridgePitch = (15.5 / 48) * (x < 0 ? 1 : -1);
-    }
+  const halfWheelbase = 2.2;
+  const halfTrack = 1.3;
 
-    // If vehicle is on the ramp (absX > 52) OR already high enough to be on the bridge deck
-    if (absX > 52 || currentY >= bridgeY - 4.8) {
-      return { y: bridgeY, pitch: bridgePitch, onBridge: true, inTunnel: false };
+  const hFront = sampleLayeredSurfaceY(
+    x + fwdX * halfWheelbase,
+    z + fwdZ * halfWheelbase,
+    center.y
+  ).y;
+  const hRear = sampleLayeredSurfaceY(
+    x - fwdX * halfWheelbase,
+    z - fwdZ * halfWheelbase,
+    center.y
+  ).y;
+  const hRight = sampleLayeredSurfaceY(
+    x + rightX * halfTrack,
+    z + rightZ * halfTrack,
+    center.y
+  ).y;
+  const hLeft = sampleLayeredSurfaceY(
+    x - rightX * halfTrack,
+    z - rightZ * halfTrack,
+    center.y
+  ).y;
+
+  const avgY = (center.y * 2 + hFront + hRear + hRight + hLeft) / 6;
+  const pitch = Math.atan2(hFront - hRear, halfWheelbase * 2);
+  const roll = Math.atan2(hLeft - hRight, halfTrack * 2);
+
+  return {
+    y: avgY,
+    pitch: Math.max(-0.58, Math.min(0.58, pitch)),
+    roll: Math.max(-0.48, Math.min(0.48, roll)),
+    layer: center.layer,
+  };
+}
+
+/**
+ * 3D Solid World Collider Box
+ * Used for BOTH Vehicle solid wall collisions AND Weapon/Projectile/Hydra Javelin 3D collisions!
+ */
+interface WorldColliderBox {
+  id: string;
+  tag: 'bunker' | 'tunnel_wall' | 'tunnel_roof' | 'bridge_pillar' | 'bridge_deck' | 'ramp_wall' | 'border';
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  minZ: number;
+  maxZ: number;
+}
+
+/**
+ * Builds the complete list of 3D solid colliders for the 2080m x 2080m arena:
+ * - All Military Bunkers
+ * - North & South Underground Tunnel Side Walls (blocks vehicles & horizontal shots)
+ * - North & South Underground Tunnel Concrete Roofs (blocks top-attack Hydra Javelins diving from the sky!)
+ * - Central Bridge Support Pillars in the valley
+ * - Central Bridge Elevated Deck slab (blocks Javelins for cars hiding underneath the bridge!)
+ * - Central Bridge Ramp Side Embankments (prevents cars on the ground from clipping sideways into the ramp!)
+ * - Perimeter Border Walls
+ */
+function buildArenaWorldColliders(arenaSpec: ArenaMapSpec): WorldColliderBox[] {
+  const boxes: WorldColliderBox[] = [];
+  const half = arenaSpec.arenaHalfSize;
+
+  // 1. Military Bunkers
+  arenaSpec.bunkers.forEach(([bx, bz, bw, bd, bh], idx) => {
+    const by = sampleGroundTerrainY(bx, bz);
+    boxes.push({
+      id: `bunker-${idx}`,
+      tag: 'bunker',
+      minX: bx - bw * 0.5,
+      maxX: bx + bw * 0.5,
+      minY: by - 6,
+      maxY: by + bh,
+      minZ: bz - bd * 0.5,
+      maxZ: bz + bd * 0.5,
+    });
+  });
+
+  // 2. North & South Underground Bunker Tunnels (Walls + Solid Overhead Roof!)
+  [NORTH_TUNNEL_Z, SOUTH_TUNNEL_Z].forEach((tz, tIdx) => {
+    // North Side Wall of Tunnel
+    boxes.push({
+      id: `tunnel-nwall-${tIdx}`,
+      tag: 'tunnel_wall',
+      minX: -TUNNEL_HALF_LEN,
+      maxX: TUNNEL_HALF_LEN,
+      minY: TUNNEL_FLOOR_Y - 4,
+      maxY: TUNNEL_ROOF_TOP_Y,
+      minZ: tz - TUNNEL_INNER_HALF_W - 6,
+      maxZ: tz - TUNNEL_INNER_HALF_W,
+    });
+    // South Side Wall of Tunnel
+    boxes.push({
+      id: `tunnel-swall-${tIdx}`,
+      tag: 'tunnel_wall',
+      minX: -TUNNEL_HALF_LEN,
+      maxX: TUNNEL_HALF_LEN,
+      minY: TUNNEL_FLOOR_Y - 4,
+      maxY: TUNNEL_ROOF_TOP_Y,
+      minZ: tz + TUNNEL_INNER_HALF_W,
+      maxZ: tz + TUNNEL_INNER_HALF_W + 6,
+    });
+    // Solid Reinforced Concrete Tunnel Roof Overpass (Blocks Hydra Javelin Missiles!)
+    boxes.push({
+      id: `tunnel-roof-${tIdx}`,
+      tag: 'tunnel_roof',
+      minX: -TUNNEL_HALF_LEN,
+      maxX: TUNNEL_HALF_LEN,
+      minY: TUNNEL_ROOF_BOTTOM_Y,
+      maxY: TUNNEL_ROOF_TOP_Y,
+      minZ: tz - TUNNEL_INNER_HALF_W - 6,
+      maxZ: tz + TUNNEL_INNER_HALF_W + 6,
+    });
+  });
+
+  // 3. Central Viaduct Bridge Support Pillars (under the flat span x in [-130..130])
+  [-105, -38, 38, 105].forEach((px, pIdx) => {
+    [-16, 16].forEach((pz, sIdx) => {
+      boxes.push({
+        id: `bridge-pillar-${pIdx}-${sIdx}`,
+        tag: 'bridge_pillar',
+        minX: px - 4.0,
+        maxX: px + 4.0,
+        minY: -18,
+        maxY: BRIDGE_DECK_HEIGHT - 0.5,
+        minZ: pz - 3.5,
+        maxZ: pz + 3.5,
+      });
+    });
+  });
+
+  // 4. Central Bridge Overhead Deck Slab (protects vehicles underneath the bridge from top-attack Hydra missiles!)
+  boxes.push({
+    id: 'bridge-center-deck',
+    tag: 'bridge_deck',
+    minX: -BRIDGE_FLAT_HALF_LEN,
+    maxX: BRIDGE_FLAT_HALF_LEN,
+    minY: BRIDGE_DECK_HEIGHT - 2.2,
+    maxY: BRIDGE_DECK_HEIGHT + 0.2,
+    minZ: -BRIDGE_HALF_WIDTH,
+    maxZ: BRIDGE_HALF_WIDTH,
+  });
+
+  // 5. Central Bridge Ramp Side Embankments (prevents ground vehicles from driving sideways into the raised ramps!)
+  // West Ramp (x in [-305..-130]) & East Ramp (x in [130..305])
+  const rampSegments = 8;
+  for (const sign of [-1, 1]) {
+    for (let s = 0; s < rampSegments; s++) {
+      const x0 = BRIDGE_FLAT_HALF_LEN + (s / rampSegments) * (BRIDGE_HALF_LEN - 15 - BRIDGE_FLAT_HALF_LEN);
+      const x1 =
+        BRIDGE_FLAT_HALF_LEN + ((s + 1) / rampSegments) * (BRIDGE_HALF_LEN - 15 - BRIDGE_FLAT_HALF_LEN);
+      const midX = sign * (x0 + x1) * 0.5;
+      const deckY = getCentralBridgeDeckY(midX);
+      const minX = sign > 0 ? x0 : -x1;
+      const maxX = sign > 0 ? x1 : -x0;
+      boxes.push({
+        id: `ramp-embankment-${sign}-${s}`,
+        tag: 'ramp_wall',
+        minX,
+        maxX,
+        minY: -5,
+        maxY: deckY - 1.6, // Only blocks vehicles that are BELOW the ramp surface! Vehicles ON the ramp are above maxY!
+        minZ: -BRIDGE_HALF_WIDTH - 1.0,
+        maxZ: BRIDGE_HALF_WIDTH + 1.0,
+      });
     }
   }
 
-  // Check Northern Underground Tunnel (x in [-13..13], z in [-165..-95])
-  if (Math.abs(x) <= 13.5 && z >= -165 && z <= -95) {
-    const roofY = 9.5;
-    if (currentY >= roofY - 2.5) {
-      return { y: roofY, pitch: 0, onBridge: false, inTunnel: false };
+  // 6. Outer Perimeter Fortified Walls
+  boxes.push(
+    {
+      id: 'border-north',
+      tag: 'border',
+      minX: -half - 20,
+      maxX: half + 20,
+      minY: -30,
+      maxY: 60,
+      minZ: -half - 20,
+      maxZ: -half + 4,
+    },
+    {
+      id: 'border-south',
+      tag: 'border',
+      minX: -half - 20,
+      maxX: half + 20,
+      minY: -30,
+      maxY: 60,
+      minZ: half - 4,
+      maxZ: half + 20,
+    },
+    {
+      id: 'border-west',
+      tag: 'border',
+      minX: -half - 20,
+      maxX: -half + 4,
+      minY: -30,
+      maxY: 60,
+      minZ: -half - 20,
+      maxZ: half + 20,
+    },
+    {
+      id: 'border-east',
+      tag: 'border',
+      minX: half - 4,
+      maxX: half + 20,
+      minY: -30,
+      maxY: 60,
+      minZ: -half - 20,
+      maxZ: half + 20,
     }
-    return { y: -4.5, pitch: 0, onBridge: false, inTunnel: true };
+  );
+
+  return boxes;
+}
+
+/**
+ * Checks if a 3D projectile segment [prevPos -> nextPos] collides with ground terrain or any 3D WorldColliderBox.
+ */
+function checkProjectileWorldCollision(
+  prevPos: THREE.Vector3,
+  nextPos: THREE.Vector3,
+  colliders: WorldColliderBox[]
+): { hit: boolean; hitPoint: THREE.Vector3; hitTag: string } {
+  const steps = 4;
+  const pt = new THREE.Vector3();
+
+  for (let s = 1; s <= steps; s++) {
+    pt.lerpVectors(prevPos, nextPos, s / steps);
+
+    // 1. Check Ground Terrain Height
+    const groundY = sampleGroundTerrainY(pt.x, pt.z);
+    if (pt.y <= groundY + 0.25) {
+      pt.y = groundY + 0.25;
+      return { hit: true, hitPoint: pt, hitTag: 'terrain' };
+    }
+
+    // 2. Check All 3D Structure Boxes (Tunnel Roofs, Tunnel Walls, Bunkers, Bridge Deck, Pillars)
+    for (let i = 0; i < colliders.length; i++) {
+      const box = colliders[i];
+      if (
+        pt.x >= box.minX &&
+        pt.x <= box.maxX &&
+        pt.y >= box.minY &&
+        pt.y <= box.maxY &&
+        pt.z >= box.minZ &&
+        pt.z <= box.maxZ
+      ) {
+        return { hit: true, hitPoint: pt, hitTag: box.tag };
+      }
+    }
   }
 
-  // Compute forward terrain slope pitch
-  const eps = 1.5;
-  const gyAhead = sampleGroundTerrainY(x, z + eps);
-  const slopePitch = Math.atan2(gyAhead - groundY, eps) * 0.45;
-
-  return { y: groundY, pitch: slopePitch, onBridge: false, inTunnel: false };
+  return { hit: false, hitPoint: nextPos, hitTag: '' };
 }
 
 /**
@@ -370,7 +765,6 @@ function createRetroPixelTexture(
   ctx.fillStyle = baseHex;
   ctx.fillRect(0, 0, 64, 64);
 
-  // Ordered pixel dithering & gritty PS2 surface noise
   for (let y = 0; y < 64; y += 2) {
     for (let x = 0; x < 64; x += 2) {
       const hash = ((x * 37 + y * 91) ^ (x * y)) & 15;
@@ -406,21 +800,27 @@ interface CombatantRuntime {
   vel: THREE.Vector3;
   heading: number;
   pitch: number;
+  roll: number;
   speed: number;
-  verticalY: number;
   verticalVel: number;
+  airborne: boolean;
+  onBridge: boolean;
+  inTunnel: boolean;
   hp: number;
   maxHp: number;
   shieldTimer: number;
-  adsActive: boolean; // Aim Down Sights (Zoom + Precision Aim)
+  empSlowTimer: number;
+  adsActive: boolean;
   primaryCooldown: number;
   secondaryWeapon: SecondaryWeaponType | null;
   secondaryAmmo: number;
   score: number;
   kills: number;
+  killStreak: number; // Every 8 consecutive kills awards +1 Respawn!
+  respawnsLeft: number; // Starts at 5x Respawns
+  eliminated: boolean;
   carryingBomb: boolean;
   prevB: boolean;
-  // Laser visual beam timer
   laserBeamTimer: number;
   laserStart: THREE.Vector3;
   laserEnd: THREE.Vector3;
@@ -438,7 +838,13 @@ interface SupplyCrateRuntime {
 
 interface ProjectileRuntime {
   active: boolean;
-  kind: 'CHAINGUN' | 'ROCKET' | 'HYDRA_JAVELIN';
+  kind:
+    | 'CHAINGUN'
+    | 'ROCKET'
+    | 'HYDRA_JAVELIN'
+    | 'SEEKER_SWARM'
+    | 'AT_SABOT'
+    | 'CLUSTER_MORTAR';
   hydraPhase: 'climb' | 'dive';
   hydraTimer: number;
   ownerId: number;
@@ -447,7 +853,8 @@ interface ProjectileRuntime {
   vel: THREE.Vector3;
   life: number;
   damage: number;
-  damagePctOfMaxHp: number; // e.g., 0.45 for Hydra Javelin (45% of Max HP!)
+  damagePctOfMaxHp: number;
+  splashRadius: number;
   color: string;
 }
 
@@ -468,6 +875,7 @@ interface RadarBlip {
   heading: number;
   color: string;
   isHuman: boolean;
+  eliminated: boolean;
 }
 
 interface CrateRadarStatus {
@@ -488,10 +896,16 @@ interface ViewportHudSnapshot {
   maxHp: number;
   speedKmh: number;
   adsActive: boolean;
+  inTunnel: boolean;
+  onBridge: boolean;
+  /** ONLY non-null when holding a guided lock-on weapon (HYDRA_JAVELIN or SEEKER_SWARM)! */
   lockedTargetName: string | null;
   score: number;
   targetScore: number;
   kills: number;
+  killStreak: number;
+  respawnsLeft: number;
+  eliminated: boolean;
   secondaryWeapon: SecondaryWeaponType | null;
   secondaryAmmo: number;
   carryingBomb: boolean;
@@ -512,7 +926,6 @@ interface FiredUpHudSnapshot {
 
 /**
  * Retro PS2 / PSP Low-Poly Military Combat Vehicle Mesh
- * Features fixed forward-mounted heavy guns/launchers, olive/desert camo plating, chunky matte tires/treads.
  */
 const RetroMilitaryVehicleMesh: React.FC<{
   spec: CombatVehicleSpec;
@@ -523,53 +936,53 @@ const RetroMilitaryVehicleMesh: React.FC<{
   const isApc = spec.chassisType === 'apc';
   const isBuggy = spec.chassisType === 'buggy';
 
-  const w = isTank ? 3.1 : isApc ? 2.75 : isBuggy ? 2.25 : 2.45;
-  const h = isTank ? 0.95 : isApc ? 1.05 : isBuggy ? 0.55 : 0.72;
-  const l = isTank ? 5.2 : isApc ? 5.4 : 4.6;
+  const w = isTank ? 3.2 : isApc ? 2.85 : isBuggy ? 2.35 : 2.55;
+  const h = isTank ? 1.0 : isApc ? 1.1 : isBuggy ? 0.58 : 0.76;
+  const l = isTank ? 5.4 : isApc ? 5.6 : 4.8;
 
   const camoTex = useMemo(
     () => createRetroPixelTexture(spec.camoPrimary, spec.camoSecondary, '#1C1917', teamColor),
     [spec.camoPrimary, spec.camoSecondary, teamColor]
   );
 
-  const wheelZOffsets = isApc ? [1.75, 0, -1.75] : [1.45, -1.45];
+  const wheelZOffsets = isApc ? [1.8, 0, -1.8] : [1.5, -1.5];
 
   return (
     <group>
-      {/* Drop Shadow Blob on Ground (Classic PS2 Ground Shadow) */}
+      {/* Drop Shadow Blob on Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.24, 0]}>
-        <planeGeometry args={[w + 0.5, l + 0.5]} />
+        <planeGeometry args={[w + 0.6, l + 0.6]} />
         <meshBasicMaterial color="#000000" transparent opacity={0.55} />
       </mesh>
 
       {/* Lower Steel Armored Hull */}
-      <mesh position={[0, 0.38, 0]}>
+      <mesh position={[0, 0.4, 0]}>
         <boxGeometry args={[w, h, l]} />
         <meshLambertMaterial map={camoTex} />
       </mesh>
 
       {/* Upper Sloped Military Armor Deck */}
-      <mesh position={[0, 0.68, -0.1]}>
+      <mesh position={[0, 0.72, -0.1]}>
         <boxGeometry args={[w * 0.88, h * 0.55, l * 0.82]} />
         <meshLambertMaterial color={spec.camoSecondary} />
       </mesh>
 
       {/* Team Identification Stripe on Roof/Rear */}
-      <mesh position={[0, 0.72, -l * 0.36]}>
-        <boxGeometry args={[w * 0.92, 0.25, 0.75]} />
+      <mesh position={[0, 0.76, -l * 0.36]}>
+        <boxGeometry args={[w * 0.92, 0.26, 0.75]} />
         <meshLambertMaterial color={teamColor} />
       </mesh>
 
       {/* Heavy Steel Bullbar / Mine Plow on Front */}
-      <mesh position={[0, 0.28, l * 0.5 + 0.25]}>
+      <mesh position={[0, 0.3, l * 0.5 + 0.25]}>
         <boxGeometry args={[w + 0.25, 0.45, 0.45]} />
         <meshLambertMaterial color="#292524" />
       </mesh>
 
       {/* Armored Slit Windshield */}
       {!isTank && (
-        <mesh position={[0, 0.92, 0.35]}>
-          <boxGeometry args={[w * 0.74, 0.42, 1.65]} />
+        <mesh position={[0, 0.96, 0.35]}>
+          <boxGeometry args={[w * 0.74, 0.44, 1.65]} />
           <meshLambertMaterial color="#1C1917" />
         </mesh>
       )}
@@ -577,35 +990,35 @@ const RetroMilitaryVehicleMesh: React.FC<{
       {/* Tank Treads OR Chunky Low-Poly Off-Road Tires */}
       {isTank ? (
         <>
-          <mesh position={[-w * 0.55, 0.2, 0]}>
-            <boxGeometry args={[0.65, 0.75, l + 0.3]} />
+          <mesh position={[-w * 0.55, 0.22, 0]}>
+            <boxGeometry args={[0.68, 0.78, l + 0.3]} />
             <meshLambertMaterial color="#1C1917" />
           </mesh>
-          <mesh position={[w * 0.55, 0.2, 0]}>
-            <boxGeometry args={[0.65, 0.75, l + 0.3]} />
+          <mesh position={[w * 0.55, 0.22, 0]}>
+            <boxGeometry args={[0.68, 0.78, l + 0.3]} />
             <meshLambertMaterial color="#1C1917" />
           </mesh>
         </>
       ) : (
         wheelZOffsets.map((wz, idx) => (
           <React.Fragment key={idx}>
-            <group position={[-w * 0.56, 0.18, wz]}>
+            <group position={[-w * 0.56, 0.2, wz]}>
               <mesh rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.54, 0.54, 0.48, 8]} />
+                <cylinderGeometry args={[0.56, 0.56, 0.5, 8]} />
                 <meshLambertMaterial color="#1C1917" />
               </mesh>
               <mesh rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.24, 0.24, 0.5, 6]} />
+                <cylinderGeometry args={[0.25, 0.25, 0.52, 6]} />
                 <meshLambertMaterial color="#57534E" />
               </mesh>
             </group>
-            <group position={[w * 0.56, 0.18, wz]}>
+            <group position={[w * 0.56, 0.2, wz]}>
               <mesh rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.54, 0.54, 0.48, 8]} />
+                <cylinderGeometry args={[0.56, 0.56, 0.5, 8]} />
                 <meshLambertMaterial color="#1C1917" />
               </mesh>
               <mesh rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.24, 0.24, 0.5, 6]} />
+                <cylinderGeometry args={[0.25, 0.25, 0.52, 6]} />
                 <meshLambertMaterial color="#57534E" />
               </mesh>
             </group>
@@ -613,13 +1026,12 @@ const RetroMilitaryVehicleMesh: React.FC<{
         ))
       )}
 
-      {/* FIXED FORWARD-FACING ROOF WEAPON POD & TWIN HEAVY BARRELS (No Free Rotation!) */}
-      <group position={[0, isTank ? 1.12 : 1.25, 0.15]}>
+      {/* FIXED FORWARD-FACING ROOF WEAPON POD & TWIN HEAVY BARRELS */}
+      <group position={[0, isTank ? 1.15 : 1.28, 0.15]}>
         <mesh>
           <boxGeometry args={[1.25, 0.45, 1.55]} />
           <meshLambertMaterial color="#292524" />
         </mesh>
-        {/* Fixed Forward Heavy Chaingun / Cannon Barrels */}
         <mesh position={[-0.36, 0.04, 1.35]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.11, 0.11, 1.85, 6]} />
           <meshLambertMaterial color="#44403C" />
@@ -628,7 +1040,6 @@ const RetroMilitaryVehicleMesh: React.FC<{
           <cylinderGeometry args={[0.11, 0.11, 1.85, 6]} />
           <meshLambertMaterial color="#44403C" />
         </mesh>
-        {/* Top Javelin / Missile Rack Box */}
         <mesh position={[0, 0.36, -0.15]}>
           <boxGeometry args={[0.95, 0.32, 1.05]} />
           <meshLambertMaterial color={teamColor} />
@@ -637,8 +1048,8 @@ const RetroMilitaryVehicleMesh: React.FC<{
 
       {/* Bomb Carrier Beacon */}
       {bombBeaconRef && (
-        <mesh ref={bombBeaconRef} position={[0, 2.7, 0]} visible={false}>
-          <octahedronGeometry args={[0.7, 0]} />
+        <mesh ref={bombBeaconRef} position={[0, 2.8, 0]} visible={false}>
+          <octahedronGeometry args={[0.75, 0]} />
           <meshBasicMaterial color="#F59E0B" />
         </mesh>
       )}
@@ -734,14 +1145,20 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
   const camerasRef = useRef<THREE.PerspectiveCamera[]>([]);
   if (camerasRef.current.length === 0) {
     for (let i = 0; i < MAX_PLAYERS; i++) {
-      camerasRef.current.push(new THREE.PerspectiveCamera(62, 16 / 9, 0.5, 680));
+      camerasRef.current.push(new THREE.PerspectiveCamera(62, 16 / 9, 0.8, 2600));
     }
   }
 
-  // Build 3D Multi-Elevation Terrain Geometry (110x110 grid across 520m x 520m) with PS2 Vertex Colors & Pixel Texture!
-  const { terrainGeo, groundTex, concreteTex, bunkerTex } = useMemo(() => {
-    const size = arenaSpec.arenaHalfSize * 2; // 520m
-    const segs = 110;
+  // Build 3D World Solid Colliders (used by both Vehicles and Weapons/Hydra Javelins!)
+  const worldColliders = useMemo(
+    () => buildArenaWorldColliders(arenaSpec),
+    [arenaSpec]
+  );
+
+  // Build 2080m x 2080m Multi-Elevation Terrain Mesh + Continuous Bridge Deck Geometry
+  const { terrainGeo, bridgeDeckGeo, groundTex, concreteTex, bunkerTex } = useMemo(() => {
+    const size = arenaSpec.arenaHalfSize * 2; // 2080m x 2080m
+    const segs = 200;
     const geo = new THREE.PlaneGeometry(size, size, segs, segs);
     geo.rotateX(-Math.PI / 2);
 
@@ -759,12 +1176,12 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       const vy = sampleGroundTerrainY(vx, vz);
       posAttr.setY(i, vy);
 
-      if (vy < -1.5) {
+      if (vy < -3.0) {
         tmp.copy(cLow);
-      } else if (vy > 4.5) {
+      } else if (vy > 9.0) {
         tmp.copy(cHigh);
       } else {
-        const t = (vy + 1.5) / 6.0;
+        const t = (vy + 3.0) / 12.0;
         tmp.copy(cLow).lerp(cMid, Math.max(0, Math.min(1, t)));
       }
       colors[i * 3] = tmp.r;
@@ -775,12 +1192,27 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
 
+    // Build C1-continuous Bridge Roadway Geometry matching `getCentralBridgeDeckY(x)` exactly!
+    const bGeo = new THREE.PlaneGeometry(
+      BRIDGE_HALF_LEN * 2,
+      BRIDGE_HALF_WIDTH * 2,
+      96,
+      4
+    );
+    bGeo.rotateX(-Math.PI / 2);
+    const bPos = bGeo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < bPos.count; i++) {
+      const bx = bPos.getX(i);
+      bPos.setY(i, getCentralBridgeDeckY(bx));
+    }
+    bGeo.computeVertexNormals();
+
     const gTex = createRetroPixelTexture(
       arenaSpec.groundMidColor,
       arenaSpec.groundLowColor,
       arenaSpec.groundHighColor
     );
-    gTex.repeat.set(48, 48);
+    gTex.repeat.set(96, 96);
 
     const cTex = createRetroPixelTexture(
       arenaSpec.concreteColor,
@@ -788,12 +1220,18 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       '#A1A1AA',
       '#F59E0B'
     );
-    cTex.repeat.set(8, 2);
+    cTex.repeat.set(18, 2);
 
     const bTex = createRetroPixelTexture(arenaSpec.bunkerColor, '#27272A', '#71717A');
-    bTex.repeat.set(4, 4);
+    bTex.repeat.set(6, 6);
 
-    return { terrainGeo: geo, groundTex: gTex, concreteTex: cTex, bunkerTex: bTex };
+    return {
+      terrainGeo: geo,
+      bridgeDeckGeo: bGeo,
+      groundTex: gTex,
+      concreteTex: cTex,
+      bunkerTex: bTex,
+    };
   }, [arenaSpec]);
 
   const vehGroupRefs = useRef<(THREE.Group | null)[]>([]);
@@ -809,80 +1247,122 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
   const targetBaseGroupRef = useRef<THREE.Group | null>(null);
 
   /**
-   * RARE LANDMARK WEAPON SPAWNS (No weapon spam!):
-   * - Crate 0: LASER 1-HIT KO -> Spawns ONLY on top of the Central High Bridge (0, 17.0, 0)!
-   * - Crate 1: HYDRA 3X JAVELIN -> Spawns ONLY inside the Northern Underground Tunnel (0, -3.0, -130)!
-   * - Crates 2..5: Distant Corner Outpost Depots (Standard Rocket & Armor Repair)
+   * STRATEGIC WEAPON & SUPPLY CRATES ACROSS THE 2080m x 2080m BATTLEFIELD:
+   * - Crate 0: LASER_1HKO -> ONLY on Central High Viaduct Bridge (0, 27.8, 0)
+   * - Crate 1: HYDRA_JAVELIN -> ONLY inside Northern Underground Bunker Tunnel (0, -8.8, -520)
+   * - Crate 2: HYDRA_JAVELIN -> ONLY inside Southern Underground Bunker Tunnel (0, -8.8, +520)
+   * - Crates 3..11: Tactical Weapons (SEEKER_SWARM, AT_CANNON, CLUSTER_MORTAR, EMP_BLAST, DUMB_ROCKET, REPAIR)
    */
   const supplyCrates = useMemo((): SupplyCrateRuntime[] => {
+    const mkPos = (x: number, z: number) =>
+      new THREE.Vector3(x, sampleGroundTerrainY(x, z) + 1.8, z);
+
     return [
       {
         id: 0,
         label: 'YÖRÜNGE LAZERİ [1-HIT KO]',
-        landmarkName: 'MERKEZ YÜKSEK KÖPRÜ ÜSTÜ',
+        landmarkName: 'MERKEZ YÜKSEK VİYADÜK KÖPRÜSÜ',
         kind: 'LASER_1HKO',
-        pos: new THREE.Vector3(0, 17.2, 0),
+        pos: new THREE.Vector3(0, BRIDGE_DECK_HEIGHT + 1.8, 0),
+        respawnTimer: 0,
+        respawnDuration: 24,
+      },
+      {
+        id: 1,
+        label: 'HYDRA 3X JAVELIN [GÜDÜMLÜ %45x3]',
+        landmarkName: 'KUZEY YERALTI SIĞINAK TÜNELİ',
+        kind: 'HYDRA_JAVELIN',
+        pos: new THREE.Vector3(0, TUNNEL_FLOOR_Y + 1.8, NORTH_TUNNEL_Z),
         respawnTimer: 0,
         respawnDuration: 22,
       },
       {
-        id: 1,
-        label: 'HYDRA 3X JAVELIN FÜZESİ',
-        landmarkName: 'KUZEY YERALTI SIĞINAK TÜNELİ',
-        kind: 'HYDRA_JAVELIN',
-        pos: new THREE.Vector3(0, -3.0, -130),
-        respawnTimer: 0,
-        respawnDuration: 20,
-      },
-      {
         id: 2,
-        label: 'ZIRH DELİCİ ROKET SANDIĞI',
-        landmarkName: 'GÜNEYBATI İKMAL TEPESİ',
-        kind: 'DUMB_ROCKET',
-        pos: new THREE.Vector3(
-          -145,
-          sampleGroundTerrainY(-145, 135) + 1.5,
-          135
-        ),
+        label: 'HYDRA 3X JAVELIN [GÜDÜMLÜ %45x3]',
+        landmarkName: 'GÜNEY YERALTI SIĞINAK TÜNELİ',
+        kind: 'HYDRA_JAVELIN',
+        pos: new THREE.Vector3(0, TUNNEL_FLOOR_Y + 1.8, SOUTH_TUNNEL_Z),
         respawnTimer: 0,
-        respawnDuration: 10,
+        respawnDuration: 22,
       },
       {
         id: 3,
-        label: 'ZIRH DELİCİ ROKET SANDIĞI',
-        landmarkName: 'GÜNEYDOĞU İKMAL TEPESİ',
-        kind: 'DUMB_ROCKET',
-        pos: new THREE.Vector3(
-          145,
-          sampleGroundTerrainY(145, 135) + 1.5,
-          135
-        ),
+        label: 'STINGER 2X GÜDÜMLÜ SÜRÜ',
+        landmarkName: 'BATI GÖZETLEME SIRTI',
+        kind: 'SEEKER_SWARM',
+        pos: mkPos(-420, -180),
         respawnTimer: 0,
-        respawnDuration: 10,
+        respawnDuration: 14,
       },
       {
         id: 4,
-        label: 'SAHA ZIRH ONARIM PAKETİ',
-        landmarkName: 'BATI KORUGAN DEPOSU',
-        kind: 'REPAIR',
-        pos: new THREE.Vector3(
-          -150,
-          sampleGroundTerrainY(-150, -60) + 1.5,
-          -60
-        ),
+        label: 'STINGER 2X GÜDÜMLÜ SÜRÜ',
+        landmarkName: 'DOĞU GÖZETLEME SIRTI',
+        kind: 'SEEKER_SWARM',
+        pos: mkPos(420, 180),
+        respawnTimer: 0,
+        respawnDuration: 14,
+      },
+      {
+        id: 5,
+        label: 'SABOT ZIRH DELİCİ TOP',
+        landmarkName: 'KUZEYDOĞU KORUGANI',
+        kind: 'AT_CANNON',
+        pos: mkPos(360, -280),
         respawnTimer: 0,
         respawnDuration: 12,
       },
       {
-        id: 5,
+        id: 6,
+        label: 'SABOT ZIRH DELİCİ TOP',
+        landmarkName: 'GÜNEYBATI KORUGANI',
+        kind: 'AT_CANNON',
+        pos: mkPos(-360, 280),
+        respawnTimer: 0,
+        respawnDuration: 12,
+      },
+      {
+        id: 7,
+        label: 'PARÇACIKLI HAVAN TOPU',
+        landmarkName: 'KUZEYBATI TOPÇU TEPESİ',
+        kind: 'CLUSTER_MORTAR',
+        pos: mkPos(-360, -280),
+        respawnTimer: 0,
+        respawnDuration: 12,
+      },
+      {
+        id: 8,
+        label: 'EMP ELEKTROMANYETİK ŞOK',
+        landmarkName: 'GÜNEYDOĞU RADAR ÜSSÜ',
+        kind: 'EMP_BLAST',
+        pos: mkPos(360, 280),
+        respawnTimer: 0,
+        respawnDuration: 12,
+      },
+      {
+        id: 9,
+        label: 'AĞIR ROKET PODU',
+        landmarkName: 'MERKEZ GÜNEY VADİSİ',
+        kind: 'DUMB_ROCKET',
+        pos: mkPos(0, 175),
+        respawnTimer: 0,
+        respawnDuration: 10,
+      },
+      {
+        id: 10,
         label: 'SAHA ZIRH ONARIM PAKETİ',
-        landmarkName: 'DOĞU KORUGAN DEPOSU',
+        landmarkName: 'BATI İKMAL KAMPI',
         kind: 'REPAIR',
-        pos: new THREE.Vector3(
-          150,
-          sampleGroundTerrainY(150, -60) + 1.5,
-          -60
-        ),
+        pos: mkPos(-380, 0),
+        respawnTimer: 0,
+        respawnDuration: 12,
+      },
+      {
+        id: 11,
+        label: 'SAHA ZIRH ONARIM PAKETİ',
+        landmarkName: 'DOĞU İKMAL KAMPI',
+        kind: 'REPAIR',
+        pos: mkPos(380, 0),
         respawnTimer: 0,
         respawnDuration: 12,
       },
@@ -899,12 +1379,12 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
     killFeedBanner: null as string | null,
     killFeedTimer: 0,
     hudTimer: 0,
-    hillPos: new THREE.Vector3(0, sampleGroundTerrainY(0, 85), 85),
-    hillRelocateTimer: 30,
-    hillRadius: 20,
-    bombPos: new THREE.Vector3(0, sampleGroundTerrainY(0, 75) + 1.5, 75),
+    hillPos: new THREE.Vector3(0, sampleGroundTerrainY(0, 180), 180),
+    hillRelocateTimer: 35,
+    hillRadius: 28,
+    bombPos: new THREE.Vector3(0, sampleGroundTerrainY(0, 150) + 1.8, 150),
     bombCarrierId: -1,
-    targetBasePos: new THREE.Vector3(0, sampleGroundTerrainY(0, -195), -195),
+    targetBasePos: new THREE.Vector3(0, sampleGroundTerrainY(0, -380), -380),
   });
 
   if (projectilesRef.current.length === 0) {
@@ -921,6 +1401,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
         life: 0,
         damage: 5,
         damagePctOfMaxHp: 0,
+        splashRadius: 0,
         color: '#F59E0B',
       });
     }
@@ -942,13 +1423,14 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
 
   const scratchVecA = useMemo(() => new THREE.Vector3(), []);
   const scratchVecB = useMemo(() => new THREE.Vector3(), []);
+  const scratchPrevPos = useMemo(() => new THREE.Vector3(), []);
 
-  // Initialize Combatants across the 520m x 520m map
+  // Initialize Combatants with 5x Respawns across the 2080m x 2080m map
   useEffect(() => {
-    const spawnRadius = 155;
+    const spawnRadius = 340;
     const list: CombatantRuntime[] = [];
     for (let i = 0; i < TOTAL_COMBATANTS; i++) {
-      const angle = (i / TOTAL_COMBATANTS) * Math.PI * 2;
+      const angle = (i / TOTAL_COMBATANTS) * Math.PI * 2 + 0.35;
       const sx = Math.cos(angle) * spawnRadius;
       const sz = Math.sin(angle) * spawnRadius;
       const sy = sampleGroundTerrainY(sx, sz);
@@ -964,22 +1446,29 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
         id: i,
         isHuman: i === 0,
         spec,
-        pos: new THREE.Vector3(sx, sy + 0.55, sz),
+        pos: new THREE.Vector3(sx, sy + 0.6, sz),
         vel: new THREE.Vector3(),
         heading,
         pitch: 0,
+        roll: 0,
         speed: 0,
-        verticalY: 0,
         verticalVel: 0,
+        airborne: false,
+        onBridge: false,
+        inTunnel: false,
         hp: spec.maxHp,
         maxHp: spec.maxHp,
-        shieldTimer: 2.0,
+        shieldTimer: 2.5,
+        empSlowTimer: 0,
         adsActive: false,
         primaryCooldown: 0,
         secondaryWeapon: 'DUMB_ROCKET',
-        secondaryAmmo: 2,
+        secondaryAmmo: 3,
         score: 0,
         kills: 0,
+        killStreak: 0,
+        respawnsLeft: INITIAL_RESPAWNS, // 5x Respawns per combatant!
+        eliminated: false,
         carryingBomb: false,
         prevB: false,
         laserBeamTimer: 0,
@@ -993,11 +1482,11 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
     ms.matchTimeSec = 0;
     ms.winnerCallsign = null;
     ms.killFeedBanner = null;
-    ms.hillPos.set(0, sampleGroundTerrainY(0, 85), 85);
-    ms.hillRelocateTimer = 30;
-    ms.bombPos.set(0, sampleGroundTerrainY(0, 75) + 1.5, 75);
+    ms.hillPos.set(0, sampleGroundTerrainY(0, 180), 180);
+    ms.hillRelocateTimer = 35;
+    ms.bombPos.set(0, sampleGroundTerrainY(0, 150) + 1.8, 150);
     ms.bombCarrierId = -1;
-    ms.targetBasePos.set(0, sampleGroundTerrainY(0, -195), -195);
+    ms.targetBasePos.set(0, sampleGroundTerrainY(0, -380), -380);
 
     projectilesRef.current.forEach((p) => {
       p.active = false;
@@ -1011,23 +1500,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
   }, [resetToken, arenaSpec, gameMode, playerVehicleIndices, supplyCrates]);
 
   const targetScoreForMode =
-    gameMode === 'deathmatch' ? 8 : gameMode === 'koth' ? 100 : 3;
-
-  const respawnCombatant = (c: CombatantRuntime) => {
-    const angle = Math.random() * Math.PI * 2;
-    const r = 135 + Math.random() * 45;
-    const rx = Math.cos(angle) * r;
-    const rz = Math.sin(angle) * r;
-    const ry = sampleGroundTerrainY(rx, rz);
-    c.pos.set(rx, ry + 0.55, rz);
-    c.speed = 0;
-    c.verticalY = 0;
-    c.verticalVel = 0;
-    c.hp = c.maxHp;
-    c.shieldTimer = 2.5;
-    c.secondaryWeapon = 'DUMB_ROCKET';
-    c.secondaryAmmo = 2;
-  };
+    gameMode === 'deathmatch' ? 12 : gameMode === 'koth' ? 100 : 3;
 
   const awardPointAndCheckWin = (c: CombatantRuntime, amount: number) => {
     const ms = matchStateRef.current;
@@ -1039,7 +1512,88 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
     }
   };
 
-  // Find target inside forward cone (for ADS lock-on & Laser aim assist)
+  /**
+   * Handles combatant death, 5x Respawn deduction, Elimination, and 8-Kill Streak Bonus Respawn (+1)!
+   */
+  const handleCombatantEliminationOrRespawn = (
+    victim: CombatantRuntime,
+    attacker: CombatantRuntime | null,
+    weaponTag: string
+  ) => {
+    const ms = matchStateRef.current;
+    SoundFX.playExplosion();
+
+    // Reset victim's consecutive kill streak on death
+    victim.killStreak = 0;
+
+    if (attacker && attacker.id !== victim.id) {
+      attacker.kills += 1;
+      attacker.killStreak += 1;
+
+      if (gameMode === 'deathmatch') {
+        awardPointAndCheckWin(attacker, 1);
+      }
+      if (gameMode === 'bombrun' && ms.bombCarrierId === victim.id) {
+        ms.bombCarrierId = attacker.id;
+      }
+
+      // Every 8 consecutive kills without dying awards +1 Bonus Respawn!
+      if (
+        attacker.killStreak > 0 &&
+        attacker.killStreak % STREAK_FOR_BONUS_RESPAWN === 0
+      ) {
+        attacker.respawnsLeft += 1;
+        SoundFX.playWaveClear();
+        ms.killFeedBanner = `${COMBATANT_CALLSIGNS[attacker.id]} 8X İMHA SERİSİ! +1 EKSTRA RESPAWN KAZANDI (${attacker.respawnsLeft}X)!`;
+        ms.killFeedTimer = 4.0;
+      } else {
+        ms.killFeedBanner = `${COMBATANT_CALLSIGNS[attacker.id]} [${weaponTag}] -> ${COMBATANT_CALLSIGNS[victim.id]}`;
+        ms.killFeedTimer = 3.0;
+      }
+    }
+
+    if (victim.isHuman && victim.id < MAX_PLAYERS) {
+      GameEngineBridge.sendFeedbackToController(victim.id, 0, 300);
+    }
+
+    // Consume 1 Respawn if available, otherwise Eliminate!
+    if (victim.respawnsLeft > 0) {
+      victim.respawnsLeft -= 1;
+      const angle = Math.random() * Math.PI * 2;
+      const r = 280 + Math.random() * 140;
+      const rx = Math.cos(angle) * r;
+      const rz = Math.sin(angle) * r;
+      const ry = sampleGroundTerrainY(rx, rz);
+      victim.pos.set(rx, ry + 0.6, rz);
+      victim.speed = 0;
+      victim.verticalVel = 0;
+      victim.airborne = false;
+      victim.hp = victim.maxHp;
+      victim.shieldTimer = 3.0;
+      victim.empSlowTimer = 0;
+      victim.secondaryWeapon = 'DUMB_ROCKET';
+      victim.secondaryAmmo = 3;
+    } else {
+      victim.hp = 0;
+      victim.eliminated = true;
+      victim.pos.set(0, -200, 0);
+      victim.speed = 0;
+      if (gameMode === 'bombrun' && ms.bombCarrierId === victim.id) {
+        ms.bombCarrierId = -1;
+      }
+      ms.killFeedBanner = `${COMBATANT_CALLSIGNS[victim.id]} TÜM RESPAWN HAKLARINI KAYBETTİ VE ELENDİ!`;
+      ms.killFeedTimer = 3.8;
+
+      // Check Last Mercenary Standing victory
+      const aliveList = combatantsRef.current.filter((cb) => !cb.eliminated);
+      if (aliveList.length === 1 && !ms.winnerCallsign) {
+        ms.winnerCallsign = COMBATANT_CALLSIGNS[aliveList[0].id];
+        SoundFX.playWaveClear();
+      }
+    }
+  };
+
+  // Find target inside forward cone (ONLY used for guided weapons or ADS aim assist)
   const findForwardConeTarget = (
     c: CombatantRuntime,
     maxAngleRad: number,
@@ -1052,7 +1606,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
 
     for (let i = 0; i < combatantsRef.current.length; i++) {
       const other = combatantsRef.current[i];
-      if (other.id === c.id) continue;
+      if (other.id === c.id || other.eliminated) continue;
       const dx = other.pos.x - c.pos.x;
       const dz = other.pos.z - c.pos.z;
       const dist = Math.hypot(dx, dz);
@@ -1068,7 +1622,85 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
   };
 
   /**
-   * Fire Special / Secondary Weapon (Fixed Forward Direction, except Hydra Javelin which launches UP then dives!)
+   * Resolves 3D solid collisions between a Vehicle and all WorldColliderBoxes + Guardrails + Other Vehicles!
+   */
+  const resolveVehicleCollisions3D = (c: CombatantRuntime) => {
+    const vehRadius = 2.6;
+    const vehMinY = c.pos.y - 0.3;
+    const vehMaxY = c.pos.y + 2.1;
+
+    // 1. If Vehicle is ON the Central Bridge/Ramp, keep it within the Bridge Guardrails (z in [-19.5..19.5])
+    if (c.onBridge && Math.abs(c.pos.x) <= BRIDGE_HALF_LEN - 4) {
+      const guardrailZ = BRIDGE_HALF_WIDTH - 2.2;
+      if (Math.abs(c.pos.z) > guardrailZ) {
+        c.pos.z = Math.sign(c.pos.z) * guardrailZ;
+        c.speed *= 0.88;
+      }
+    }
+
+    // 2. Check all 3D Solid WorldColliderBoxes (Bunkers, Tunnel Walls, Tunnel Roofs, Bridge Pillars, Ramp Embankments, Borders)
+    for (let i = 0; i < worldColliders.length; i++) {
+      const box = worldColliders[i];
+      // Vertical overlap check
+      if (vehMaxY < box.minY || vehMinY > box.maxY) continue;
+
+      const closestX = Math.max(box.minX, Math.min(c.pos.x, box.maxX));
+      const closestZ = Math.max(box.minZ, Math.min(c.pos.z, box.maxZ));
+      const dx = c.pos.x - closestX;
+      const dz = c.pos.z - closestZ;
+      const distSq = dx * dx + dz * dz;
+
+      if (distSq < vehRadius * vehRadius) {
+        if (distSq > 0.0001) {
+          const dist = Math.sqrt(distSq);
+          const push = vehRadius - dist;
+          const nx = dx / dist;
+          const nz = dz / dist;
+          c.pos.x += nx * push;
+          c.pos.z += nz * push;
+        } else {
+          // Inside box bounds: push out via nearest face
+          const penLeft = Math.abs(c.pos.x - box.minX);
+          const penRight = Math.abs(box.maxX - c.pos.x);
+          const penNorth = Math.abs(c.pos.z - box.minZ);
+          const penSouth = Math.abs(box.maxZ - c.pos.z);
+          const minPen = Math.min(penLeft, penRight, penNorth, penSouth);
+          if (minPen === penLeft) c.pos.x = box.minX - vehRadius;
+          else if (minPen === penRight) c.pos.x = box.maxX + vehRadius;
+          else if (minPen === penNorth) c.pos.z = box.minZ - vehRadius;
+          else c.pos.z = box.maxZ + vehRadius;
+        }
+        c.speed *= 0.78;
+      }
+    }
+
+    // 3. Vehicle-to-Vehicle Solid Collisions
+    const combatants = combatantsRef.current;
+    for (let j = 0; j < combatants.length; j++) {
+      if (j === c.id) continue;
+      const other = combatants[j];
+      if (other.eliminated) continue;
+      if (Math.abs(c.pos.y - other.pos.y) > 3.2) continue;
+
+      const dx = c.pos.x - other.pos.x;
+      const dz = c.pos.z - other.pos.z;
+      const dSq = dx * dx + dz * dz;
+      const minDist = 4.8;
+      if (dSq < minDist * minDist && dSq > 0.001) {
+        const d = Math.sqrt(dSq);
+        const overlap = (minDist - d) * 0.5;
+        const nx = dx / d;
+        const nz = dz / d;
+        c.pos.x += nx * overlap;
+        c.pos.z += nz * overlap;
+        other.pos.x -= nx * overlap;
+        other.pos.z -= nz * overlap;
+      }
+    }
+  };
+
+  /**
+   * Fire Secondary / Special Weapon
    */
   const fireSecondaryWeapon = (c: CombatantRuntime) => {
     if (!c.secondaryWeapon || c.secondaryAmmo <= 0) return;
@@ -1078,26 +1710,61 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       c.secondaryWeapon = null;
     }
 
-    const ms = matchStateRef.current;
     const fwdX = Math.sin(c.heading);
     const fwdZ = Math.cos(c.heading);
 
     if (wType === 'LASER_1HKO') {
-      // 1-HIT KO ORBITAL RAIL LASER! Fires straight ahead (with slight ADS lock-on snap within 12 deg cone)
-      const coneTarget = findForwardConeTarget(
-        c,
-        c.adsActive ? 0.24 : 0.14,
-        240
+      // S-TIER 1: ORBITAL LASER [1-HIT KO]! Straight forward beam, blocked by terrain & 3D walls!
+      c.laserBeamTimer = 0.5;
+      c.laserStart.set(c.pos.x + fwdX * 2.8, c.pos.y + 1.3, c.pos.z + fwdZ * 2.8);
+
+      const maxRange = 550;
+      const rawEnd = new THREE.Vector3(
+        c.pos.x + fwdX * maxRange,
+        c.pos.y + 1.3 + Math.sin(c.pitch) * maxRange,
+        c.pos.z + fwdZ * maxRange
       );
 
-      c.laserBeamTimer = 0.45;
-      c.laserStart.set(c.pos.x + fwdX * 2.5, c.pos.y + 1.2, c.pos.z + fwdZ * 2.5);
+      // Step along beam to see if terrain or a bunker/tunnel wall blocks the laser first
+      let blockedDist = maxRange;
+      const raySteps = 55;
+      const testPt = new THREE.Vector3();
+      for (let s = 1; s <= raySteps; s++) {
+        testPt.lerpVectors(c.laserStart, rawEnd, s / raySteps);
+        const gy = sampleGroundTerrainY(testPt.x, testPt.z);
+        if (testPt.y <= gy + 0.2) {
+          blockedDist = (s / raySteps) * maxRange;
+          rawEnd.copy(testPt);
+          break;
+        }
+        let hitBox = false;
+        for (let b = 0; b < worldColliders.length; b++) {
+          const box = worldColliders[b];
+          if (
+            testPt.x >= box.minX &&
+            testPt.x <= box.maxX &&
+            testPt.y >= box.minY &&
+            testPt.y <= box.maxY &&
+            testPt.z >= box.minZ &&
+            testPt.z <= box.maxZ
+          ) {
+            blockedDist = (s / raySteps) * maxRange;
+            rawEnd.copy(testPt);
+            hitBox = true;
+            break;
+          }
+        }
+        if (hitBox) break;
+      }
 
-      if (coneTarget) {
+      const coneTarget = findForwardConeTarget(
+        c,
+        c.adsActive ? 0.16 : 0.09,
+        blockedDist
+      );
+
+      if (coneTarget && Math.abs(coneTarget.pos.y - c.pos.y) < 35) {
         c.laserEnd.copy(coneTarget.pos).add(new THREE.Vector3(0, 1.0, 0));
-        // 1-HIT KO! Deals 100% of target's Max HP immediately!
-        coneTarget.hp = 0;
-        SoundFX.playExplosion();
         SoundFX.playShuntLaunch();
 
         const sw = shockwavesRef.current.find((s) => !s.active);
@@ -1105,42 +1772,24 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
           sw.active = true;
           sw.pos.copy(coneTarget.pos);
           sw.radius = 2;
-          sw.maxRadius = 24;
+          sw.maxRadius = 28;
           sw.life = 0.5;
           sw.maxLife = 0.5;
           sw.color = '#EF4444';
         }
 
-        c.kills += 1;
-        if (gameMode === 'deathmatch') awardPointAndCheckWin(c, 1);
-        ms.killFeedBanner = `${COMBATANT_CALLSIGNS[c.id]} [LAZER 1-HIT KO!] -> ${COMBATANT_CALLSIGNS[coneTarget.id]}`;
-        ms.killFeedTimer = 3.2;
-
-        if (coneTarget.isHuman && coneTarget.id < MAX_PLAYERS) {
-          GameEngineBridge.sendFeedbackToController(coneTarget.id, 0, 300);
-        }
-        respawnCombatant(coneTarget);
+        // Instant 1-Hit KO (100% Max HP)!
+        coneTarget.hp = 0;
+        handleCombatantEliminationOrRespawn(coneTarget, c, 'LAZER 1-HIT KO!');
       } else {
-        c.laserEnd.set(
-          c.pos.x + fwdX * 210,
-          c.pos.y + 1.2 + Math.sin(c.pitch) * 210,
-          c.pos.z + fwdZ * 210
-        );
+        c.laserEnd.copy(rawEnd);
         SoundFX.playShuntLaunch();
       }
-
-      if (c.isHuman && c.id < MAX_PLAYERS) {
-        GameEngineBridge.sendFeedbackToController(
-          c.id,
-          Math.round((c.hp / c.maxHp) * 100),
-          140
-        );
-      }
     } else if (wType === 'HYDRA_JAVELIN') {
-      // HYDRA JAVELIN: Launches 3 missiles straight UP into the sky first, then dives onto the nearest target(s)!
-      // Each missile deals 45% of the target's Max HP (3 x 45% = 135% total)!
+      // S-TIER 2: HYDRA 3X JAVELIN! Launches 3 missiles straight UP into the sky first, then dives onto nearest target(s).
+      // Each missile deals 45% of Target's Max HP (3 x 45% = 135%)! Blocked by Tunnel Roofs & Bridge Decks!
       const sortedEnemies = combatantsRef.current
-        .filter((other) => other.id !== c.id)
+        .filter((other) => other.id !== c.id && !other.eliminated)
         .sort(
           (a, b) => a.pos.distanceToSquared(c.pos) - b.pos.distanceToSquared(c.pos)
         );
@@ -1154,32 +1803,94 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
         proj.active = true;
         proj.kind = 'HYDRA_JAVELIN';
         proj.hydraPhase = 'climb';
-        proj.hydraTimer = 0.52 + m * 0.1; // Climbs straight up for ~0.55s before top-attack dive!
+        proj.hydraTimer = 0.65 + m * 0.12; // Climbs high into the sky (~55m+) before diving!
         proj.ownerId = c.id;
         proj.targetId = assignedTarget ? assignedTarget.id : -1;
         proj.pos.set(
-          c.pos.x + (m - 1) * 1.1,
-          c.pos.y + 2.2,
-          c.pos.z + (m - 1) * 1.1
+          c.pos.x + (m - 1) * 1.3,
+          c.pos.y + 2.4,
+          c.pos.z + (m - 1) * 1.3
         );
-        // Launch steeply UPWARD into the sky first!
-        proj.vel.set(fwdX * 14 + (m - 1) * 5, 48 + m * 4, fwdZ * 14);
-        proj.life = 5.5;
+        proj.vel.set(fwdX * 18 + (m - 1) * 6, 68 + m * 6, fwdZ * 18);
+        proj.life = 7.5;
         proj.damage = 0;
-        proj.damagePctOfMaxHp = 0.45; // Exact 45% of Target's Max HP per Javelin!
+        proj.damagePctOfMaxHp = 0.45; // Exact 45% of Max HP per missile!
+        proj.splashRadius = 0;
         proj.color = '#F59E0B';
       }
+      if (c.isHuman) SoundFX.playRocketLaunch();
+    } else if (wType === 'SEEKER_SWARM') {
+      // A-TIER GUIDED: 2x Low-Altitude Guided Stinger Missiles (22% Max HP each)
+      const locked =
+        findForwardConeTarget(c, 0.45, 480) ||
+        combatantsRef.current.find((o) => o.id !== c.id && !o.eliminated) ||
+        null;
 
-      if (c.isHuman) {
-        SoundFX.playRocketLaunch();
-        GameEngineBridge.sendFeedbackToController(
-          c.id,
-          Math.round((c.hp / c.maxHp) * 100),
-          120
+      for (let m = 0; m < 2; m++) {
+        const proj = projectilesRef.current.find((p) => !p.active);
+        if (!proj) continue;
+        proj.active = true;
+        proj.kind = 'SEEKER_SWARM';
+        proj.hydraPhase = 'dive';
+        proj.hydraTimer = 0;
+        proj.ownerId = c.id;
+        proj.targetId = locked ? locked.id : -1;
+        proj.pos.set(
+          c.pos.x + fwdX * 2.5 + (m === 0 ? -0.9 : 0.9),
+          c.pos.y + 1.4,
+          c.pos.z + fwdZ * 2.5
         );
+        const spd = 155;
+        proj.vel.set(fwdX * spd, Math.sin(c.pitch) * spd + 4, fwdZ * spd);
+        proj.life = 4.2;
+        proj.damage = 0;
+        proj.damagePctOfMaxHp = 0.22;
+        proj.splashRadius = 0;
+        proj.color = '#FB923C';
       }
+      if (c.isHuman) SoundFX.playRocketLaunch();
+    } else if (wType === 'AT_CANNON') {
+      // A-TIER UNGUIDED: High-Velocity Armor-Piercing Sabot Shell (55% Max HP)
+      const proj = projectilesRef.current.find((p) => !p.active);
+      if (proj) {
+        proj.active = true;
+        proj.kind = 'AT_SABOT';
+        proj.hydraPhase = 'dive';
+        proj.hydraTimer = 0;
+        proj.ownerId = c.id;
+        proj.targetId = -1;
+        proj.pos.set(c.pos.x + fwdX * 3.0, c.pos.y + 1.3, c.pos.z + fwdZ * 3.0);
+        const spd = 250;
+        proj.vel.set(fwdX * spd, Math.sin(c.pitch) * spd, fwdZ * spd);
+        proj.life = 2.8;
+        proj.damage = 0;
+        proj.damagePctOfMaxHp = 0.55;
+        proj.splashRadius = 0;
+        proj.color = '#38BDF8';
+      }
+      if (c.isHuman) SoundFX.playExplosion();
+    } else if (wType === 'CLUSTER_MORTAR') {
+      // B-TIER UNGUIDED: Ballistic Arching Artillery Shell with 24m Splash Damage (42% Max HP)
+      const proj = projectilesRef.current.find((p) => !p.active);
+      if (proj) {
+        proj.active = true;
+        proj.kind = 'CLUSTER_MORTAR';
+        proj.hydraPhase = 'dive';
+        proj.hydraTimer = 0;
+        proj.ownerId = c.id;
+        proj.targetId = -1;
+        proj.pos.set(c.pos.x + fwdX * 2.5, c.pos.y + 1.8, c.pos.z + fwdZ * 2.5);
+        const spd = 125;
+        proj.vel.set(fwdX * spd, 36 + Math.sin(c.pitch) * 45, fwdZ * spd);
+        proj.life = 4.5;
+        proj.damage = 0;
+        proj.damagePctOfMaxHp = 0.42;
+        proj.splashRadius = 24;
+        proj.color = '#A855F7';
+      }
+      if (c.isHuman) SoundFX.playRocketLaunch();
     } else if (wType === 'DUMB_ROCKET') {
-      // Fixed Forward Heavy Unguided Rocket (35% HP damage)
+      // B-TIER UNGUIDED: Standard Heavy Rocket (32% Max HP)
       const proj = projectilesRef.current.find((p) => !p.active);
       if (proj) {
         proj.active = true;
@@ -1188,19 +1899,40 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
         proj.hydraTimer = 0;
         proj.ownerId = c.id;
         proj.targetId = -1;
-        proj.pos.set(c.pos.x + fwdX * 2.6, c.pos.y + 1.2, c.pos.z + fwdZ * 2.6);
-        const speed = 115;
-        proj.vel.set(
-          fwdX * speed,
-          Math.sin(c.pitch) * speed,
-          fwdZ * speed
-        );
-        proj.life = 2.6;
+        proj.pos.set(c.pos.x + fwdX * 2.8, c.pos.y + 1.3, c.pos.z + fwdZ * 2.8);
+        const spd = 175;
+        proj.vel.set(fwdX * spd, Math.sin(c.pitch) * spd, fwdZ * spd);
+        proj.life = 3.2;
         proj.damage = 0;
-        proj.damagePctOfMaxHp = 0.35;
+        proj.damagePctOfMaxHp = 0.32;
+        proj.splashRadius = 0;
         proj.color = '#10B981';
       }
       if (c.isHuman) SoundFX.playRocketLaunch();
+    } else if (wType === 'EMP_BLAST') {
+      // B-TIER TACTICAL: 55m Electromagnetic Pulse (28% Max HP + 4s Speed Slow)
+      SoundFX.playEmpShockwave();
+      const sw = shockwavesRef.current.find((s) => !s.active);
+      if (sw) {
+        sw.active = true;
+        sw.pos.copy(c.pos);
+        sw.radius = 2;
+        sw.maxRadius = 55;
+        sw.life = 0.55;
+        sw.maxLife = 0.55;
+        sw.color = '#06B6D4';
+      }
+      combatantsRef.current.forEach((other) => {
+        if (other.id === c.id || other.eliminated) return;
+        if (other.pos.distanceTo(c.pos) <= 55) {
+          other.hp -= other.maxHp * 0.28;
+          other.empSlowTimer = 4.0;
+          other.speed *= 0.35;
+          if (other.hp <= 0) {
+            handleCombatantEliminationOrRespawn(other, c, 'EMP ŞOK DALGASI');
+          }
+        }
+      });
     }
   };
 
@@ -1248,16 +1980,16 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
     if (gameMode === 'koth') {
       ms.hillRelocateTimer -= dt;
       if (ms.hillRelocateTimer <= 0) {
-        ms.hillRelocateTimer = 30;
+        ms.hillRelocateTimer = 35;
         const hillSpots: [number, number][] = [
-          [0, 85],
-          [-95, 0],
-          [95, 0],
-          [0, -55],
-          [0, 145],
+          [0, 180],
+          [-220, 0],
+          [220, 0],
+          [0, -160],
+          [0, 320],
         ];
         const pick = hillSpots[Math.floor(Math.random() * hillSpots.length)];
-        ms.hillPos.set(pick[0], sampleGroundTerrainY(pick[0], pick[1]) + 0.2, pick[1]);
+        ms.hillPos.set(pick[0], sampleGroundTerrainY(pick[0], pick[1]) + 0.3, pick[1]);
       }
       if (hillRingRef.current) {
         hillRingRef.current.visible = true;
@@ -1279,7 +2011,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
         pickupBombMeshRef.current.visible = ms.bombCarrierId === -1;
         pickupBombMeshRef.current.position.set(
           ms.bombPos.x,
-          ms.bombPos.y + Math.sin(ms.matchTimeSec * 4) * 0.35,
+          ms.bombPos.y + Math.sin(ms.matchTimeSec * 4) * 0.4,
           ms.bombPos.z
         );
         pickupBombMeshRef.current.rotation.y += 2.5 * dt;
@@ -1294,9 +2026,12 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
     for (let i = 0; i < combatants.length; i++) {
       const c = combatants[i];
       c.isHuman = i < MAX_PLAYERS && humanSlots.includes(i);
+      if (c.eliminated) continue;
+
       c.carryingBomb = gameMode === 'bombrun' && ms.bombCarrierId === c.id;
 
       if (c.shieldTimer > 0) c.shieldTimer = Math.max(0, c.shieldTimer - dt);
+      if (c.empSlowTimer > 0) c.empSlowTimer = Math.max(0, c.empSlowTimer - dt);
       if (c.primaryCooldown > 0)
         c.primaryCooldown = Math.max(0, c.primaryCooldown - dt);
       if (c.laserBeamTimer > 0)
@@ -1327,33 +2062,26 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
           adsHeld = inp.buttons.L1 || inp.buttons.X;
           // [R1] fires FIXED forward-facing Heavy Chaingun
           firePrimary = inp.buttons.R1;
-          // [B] fires Secondary / Special Weapon (Laser 1HKO / Hydra Javelin / Rocket)
+          // [B] fires Secondary / Special Weapon
           fireSecondary = inp.buttons.B && !c.prevB;
           c.prevB = inp.buttons.B;
         } else {
-          // AI Resistance / Republic Mercenary Logic
+          // AI Mercenary Logic
           let goalPos = scratchVecA.set(0, 0, 0);
-          // AI prioritizes picking up the Bridge Laser or Tunnel Hydra if nearby and empty-handed!
-          if (!c.secondaryWeapon && supplyCrates[0].respawnTimer <= 0 && i % 2 === 0) {
-            goalPos.copy(supplyCrates[0].pos);
-          } else if (
-            !c.secondaryWeapon &&
-            supplyCrates[1].respawnTimer <= 0 &&
-            i % 2 === 1
-          ) {
+          if (!c.secondaryWeapon && supplyCrates[1].respawnTimer <= 0 && i % 2 === 1) {
             goalPos.copy(supplyCrates[1].pos);
           } else if (gameMode === 'koth') {
             goalPos.copy(ms.hillPos);
           } else if (gameMode === 'bombrun') {
             if (c.carryingBomb) goalPos.copy(ms.targetBasePos);
-            else if (ms.bombCarrierId >= 0)
+            else if (ms.bombCarrierId >= 0 && !combatants[ms.bombCarrierId]?.eliminated)
               goalPos.copy(combatants[ms.bombCarrierId].pos);
             else goalPos.copy(ms.bombPos);
           } else {
-            let nearest = combatants[(i + 1) % combatants.length];
+            let nearest = combatants[0];
             let minD = Infinity;
             for (let k = 0; k < combatants.length; k++) {
-              if (k === i) continue;
+              if (k === i || combatants[k].eliminated) continue;
               const d = combatants[k].pos.distanceToSquared(c.pos);
               if (d < minD) {
                 minD = d;
@@ -1372,10 +2100,9 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
           steerInput = Math.max(-1, Math.min(1, -diff * 2.4));
           throttleInput = 0.92;
 
-          // AI only fires when enemy is lined up in front of its nose!
-          if (Math.abs(diff) < 0.28 && toGoal.lengthSq() < 12000) {
-            firePrimary = Math.random() < 0.45;
-            if (c.secondaryWeapon && Math.random() < 0.025) {
+          if (Math.abs(diff) < 0.26 && toGoal.lengthSq() < 45000) {
+            firePrimary = Math.random() < 0.42;
+            if (c.secondaryWeapon && Math.random() < 0.022) {
               fireSecondary = true;
             }
           }
@@ -1386,23 +2113,11 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
 
       // Fire Fixed Forward Primary Chaingun
       if (firePrimary && c.primaryCooldown <= 0) {
-        c.primaryCooldown = 0.13;
+        c.primaryCooldown = 0.12;
         const proj = projectilesRef.current.find((p) => !p.active);
         if (proj) {
           const fwdX = Math.sin(c.heading);
           const fwdZ = Math.cos(c.heading);
-          // Slight vertical pitch assistance if ADS is locked onto a target ahead
-          let aimPitch = c.pitch;
-          if (c.adsActive) {
-            const locked = findForwardConeTarget(c, 0.22, 180);
-            if (locked) {
-              const dist = Math.hypot(
-                locked.pos.x - c.pos.x,
-                locked.pos.z - c.pos.z
-              );
-              aimPitch = Math.atan2(locked.pos.y - c.pos.y, Math.max(1, dist));
-            }
-          }
 
           proj.active = true;
           proj.kind = 'CHAINGUN';
@@ -1411,15 +2126,16 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
           proj.ownerId = c.id;
           proj.targetId = -1;
           proj.pos.set(
-            c.pos.x + fwdX * 2.4,
-            c.pos.y + 1.15,
-            c.pos.z + fwdZ * 2.4
+            c.pos.x + fwdX * 2.6,
+            c.pos.y + 1.2,
+            c.pos.z + fwdZ * 2.6
           );
-          const spd = 135;
-          proj.vel.set(fwdX * spd, Math.sin(aimPitch) * spd, fwdZ * spd);
-          proj.life = 1.4;
+          const spd = 220;
+          proj.vel.set(fwdX * spd, Math.sin(c.pitch) * spd, fwdZ * spd);
+          proj.life = 1.6;
           proj.damage = c.spec.chaingunDamage;
           proj.damagePctOfMaxHp = 0;
+          proj.splashRadius = 0;
           proj.color = '#FBBF24';
         }
         if (c.isHuman) SoundFX.playAutocannon();
@@ -1429,97 +2145,104 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
         fireSecondaryWeapon(c);
       }
 
-      // Driving Physics (ADS precision steering slows turnRate slightly for accurate aiming)
-      const maxSpd = c.adsActive ? c.spec.topSpeed * 0.78 : c.spec.topSpeed;
-      if (throttleInput > 0) {
-        c.speed += c.spec.accel * throttleInput * dt;
-      } else if (throttleInput < 0) {
-        c.speed += 32 * throttleInput * dt;
-      } else {
-        c.speed *= 1 - 1.6 * dt;
-      }
-      c.speed = Math.max(-22, Math.min(maxSpd, c.speed));
+      // Driving Physics + Slope Gravity Assistance
+      const empFactor = c.empSlowTimer > 0 ? 0.55 : 1.0;
+      const maxSpd =
+        c.spec.topSpeed * (c.adsActive ? 0.76 : 1.0) * empFactor;
 
-      const effectiveTurnRate = c.spec.turnRate * (c.adsActive ? 0.52 : 1.0);
+      // Downhill gravity acceleration / uphill drag based on vehicle's actual pitch!
+      const slopeGravityAccel = -Math.sin(c.pitch) * 28;
+
+      if (throttleInput > 0) {
+        c.speed += (c.spec.accel * throttleInput + slopeGravityAccel) * dt;
+      } else if (throttleInput < 0) {
+        c.speed += (45 * throttleInput + slopeGravityAccel) * dt;
+      } else {
+        c.speed += slopeGravityAccel * dt;
+        c.speed *= 1 - 1.5 * dt;
+      }
+      c.speed = Math.max(-35, Math.min(maxSpd, c.speed));
+
+      const effectiveTurnRate = c.spec.turnRate * (c.adsActive ? 0.5 : 1.0);
       c.heading -= steerInput * effectiveTurnRate * dt;
 
-      c.vel.set(
-        Math.sin(c.heading) * c.speed,
-        0,
-        Math.cos(c.heading) * c.speed
-      );
-      c.pos.addScaledVector(c.vel, dt);
+      // Sub-stepped Horizontal Movement + Solid 3D Structure Collisions (prevents tunneling through walls!)
+      const subSteps = 2;
+      const subDt = dt / subSteps;
+      for (let step = 0; step < subSteps; step++) {
+        c.vel.set(
+          Math.sin(c.heading) * c.speed,
+          0,
+          Math.cos(c.heading) * c.speed
+        );
+        c.pos.addScaledVector(c.vel, subDt);
+        resolveVehicleCollisions3D(c);
+      }
 
-      // Resolve Multi-Layer Terrain / Bridge / Tunnel Elevation beneath Vehicle!
-      const surf = resolveVehicleSurface(c.pos.x, c.pos.z, c.pos.y);
-      const targetY = surf.y + 0.55;
-      if (c.pos.y > targetY + 0.4) {
-        // Airborne off a hill or bridge edge
-        c.verticalVel -= 32 * dt;
+      // 4-Wheel Surface Elevation & True Slope Pitch/Roll Alignment!
+      const pose = resolveVehicleFourWheelPose(
+        c.pos.x,
+        c.pos.z,
+        c.pos.y - 0.6,
+        c.heading
+      );
+      const targetY = pose.y + 0.6;
+      c.onBridge = pose.layer === 'bridge';
+      c.inTunnel = pose.layer === 'tunnel_inside';
+
+      // Smooth suspension & airborne ballistic arc
+      if (c.pos.y > targetY + 0.65 && c.airborne) {
+        c.verticalVel -= 38 * dt;
         c.pos.y += c.verticalVel * dt;
         if (c.pos.y <= targetY) {
           c.pos.y = targetY;
           c.verticalVel = 0;
+          c.airborne = false;
         }
+        // In mid-air, pitch follows flight trajectory smoothly
+        const airPitch = Math.atan2(c.verticalVel, Math.max(20, Math.abs(c.speed)));
+        c.pitch = THREE.MathUtils.lerp(c.pitch, airPitch, 8 * dt);
+        c.roll = THREE.MathUtils.lerp(c.roll, 0, 6 * dt);
+      } else if (c.pos.y > targetY + 2.4) {
+        // Drove off a high ledge (e.g. off the end of a roof or cliff)
+        c.airborne = true;
+        c.verticalVel = Math.sin(c.pitch) * c.speed * 0.35;
       } else {
-        c.pos.y = THREE.MathUtils.lerp(c.pos.y, targetY, 16 * dt);
+        // Firmly on the ground/ramp/bridge: smooth suspension tracks surface height, pitch, and roll!
+        c.airborne = false;
         c.verticalVel = 0;
-      }
-      c.pitch = THREE.MathUtils.lerp(c.pitch, surf.pitch, 10 * dt);
-
-      // Outer 520m x 520m Battlefield Perimeter Walls
-      const limit = arenaSpec.arenaHalfSize - 4;
-      if (Math.abs(c.pos.x) > limit) {
-        c.pos.x = Math.sign(c.pos.x) * limit;
-        c.heading = -c.heading;
-      }
-      if (Math.abs(c.pos.z) > limit) {
-        c.pos.z = Math.sign(c.pos.z) * limit;
-        c.heading = Math.PI - c.heading;
+        c.pos.y = THREE.MathUtils.lerp(c.pos.y, targetY, Math.min(1, 22 * dt));
+        c.pitch = THREE.MathUtils.lerp(c.pitch, pose.pitch, Math.min(1, 16 * dt));
+        c.roll = THREE.MathUtils.lerp(c.roll, pose.roll, Math.min(1, 16 * dt));
       }
 
-      // Bunker & Tunnel Side-Wall Collisions
-      for (let b = 0; b < arenaSpec.bunkers.length; b++) {
-        const [bx, bz, bw, bd] = arenaSpec.bunkers[b];
-        const halfW = bw * 0.5 + 2.0;
-        const halfD = bd * 0.5 + 2.0;
-        const dx = c.pos.x - bx;
-        const dz = c.pos.z - bz;
-        if (Math.abs(dx) < halfW && Math.abs(dz) < halfD) {
-          const overlapX = halfW - Math.abs(dx);
-          const overlapZ = halfD - Math.abs(dz);
-          if (overlapX < overlapZ) c.pos.x += Math.sign(dx) * overlapX;
-          else c.pos.z += Math.sign(dz) * overlapZ;
-          c.speed *= 0.85;
-        }
-      }
-
-      // Check Rare Landmark Supply Crate Pickups (Requires matching 3D elevation so driving under the bridge doesn't pick up the bridge top Laser!)
+      // Check Landmark & Tactical Supply Crate Pickups (with 3D elevation check!)
       for (let sc = 0; sc < supplyCrates.length; sc++) {
         const crate = supplyCrates[sc];
         if (crate.respawnTimer > 0) continue;
         const dx = c.pos.x - crate.pos.x;
         const dy = c.pos.y - crate.pos.y;
         const dz = c.pos.z - crate.pos.z;
-        if (dx * dx + dz * dz < 16 && Math.abs(dy) < 4.5) {
+        if (dx * dx + dz * dz < 28 && Math.abs(dy) < 4.5) {
           if (crate.kind === 'REPAIR') {
-            c.hp = Math.min(c.maxHp, c.hp + c.maxHp * 0.55);
+            c.hp = Math.min(c.maxHp, c.hp + c.maxHp * 0.6);
             c.shieldTimer = 4.0;
             if (c.isHuman) SoundFX.playShieldActivate();
           } else {
             c.secondaryWeapon = crate.kind;
-            // Laser 1HKO & Hydra Javelin give 1 devastating salvo; Dumb Rocket gives 3 shots
             c.secondaryAmmo =
               crate.kind === 'LASER_1HKO' || crate.kind === 'HYDRA_JAVELIN'
                 ? 1
-                : 3;
+                : crate.kind === 'DUMB_ROCKET'
+                ? 3
+                : 2;
             if (c.isHuman) SoundFX.playPowerupPickup();
             if (
               crate.kind === 'LASER_1HKO' ||
               crate.kind === 'HYDRA_JAVELIN'
             ) {
-              ms.killFeedBanner = `${COMBATANT_CALLSIGNS[c.id]} ÖZEL SİLAH ALDI: ${crate.label}!`;
-              ms.killFeedTimer = 3.0;
+              ms.killFeedBanner = `${COMBATANT_CALLSIGNS[c.id]} SÜPER SİLAH ALDI: ${crate.label}!`;
+              ms.killFeedTimer = 3.2;
             }
           }
           crate.respawnTimer = crate.respawnDuration;
@@ -1541,7 +2264,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
             c.pos.x - ms.bombPos.x,
             c.pos.z - ms.bombPos.z
           );
-          if (dBomb < 6.0) {
+          if (dBomb < 8.0) {
             ms.bombCarrierId = c.id;
             if (c.isHuman) SoundFX.playPowerupPickup();
           }
@@ -1550,12 +2273,12 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
             c.pos.x - ms.targetBasePos.x,
             c.pos.z - ms.targetBasePos.z
           );
-          if (dTarget < 12.0) {
+          if (dTarget < 16.0) {
             awardPointAndCheckWin(c, 1);
             SoundFX.playExplosion();
             ms.bombCarrierId = -1;
-            ms.bombPos.set(0, sampleGroundTerrainY(0, 75) + 1.5, 75);
-            ms.targetBasePos.z = ms.targetBasePos.z < 0 ? 195 : -195;
+            ms.bombPos.set(0, sampleGroundTerrainY(0, 150) + 1.8, 150);
+            ms.targetBasePos.z = ms.targetBasePos.z < 0 ? 380 : -380;
             ms.targetBasePos.y = sampleGroundTerrainY(0, ms.targetBasePos.z);
           }
         }
@@ -1577,7 +2300,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       }
     }
 
-    // Update Projectiles (including HYDRA 3x Top-Attack Javelin climb -> dive trajectory!)
+    // Update Projectiles + 3D World/Tunnel/Terrain Collisions!
     for (let i = 0; i < MAX_PROJECTILES; i++) {
       const proj = projectilesRef.current[i];
       const mesh = projMeshRefs.current[i];
@@ -1596,43 +2319,123 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       if (proj.kind === 'HYDRA_JAVELIN') {
         if (proj.hydraPhase === 'climb') {
           proj.hydraTimer -= dt;
-          // Decelerate vertical climb slightly near apex
-          proj.vel.y = Math.max(12, proj.vel.y - 35 * dt);
+          proj.vel.y = Math.max(16, proj.vel.y - 42 * dt);
           if (proj.hydraTimer <= 0) {
             proj.hydraPhase = 'dive';
           }
         } else {
-          // Top-Attack Dive Phase: lock onto nearest / assigned enemy from high above!
+          // Top-Attack Dive onto assigned target!
           let target =
             proj.targetId >= 0 ? combatants[proj.targetId] : null;
-          if (!target) {
-            target = combatants.find((c) => c.id !== proj.ownerId) || null;
+          if (!target || target.eliminated) {
+            target =
+              combatants.find((cb) => cb.id !== proj.ownerId && !cb.eliminated) ||
+              null;
           }
           if (target) {
             const desired = scratchVecA
               .subVectors(target.pos, proj.pos)
               .normalize()
-              .multiplyScalar(105);
-            proj.vel.lerp(desired, 9.5 * dt);
+              .multiplyScalar(155);
+            proj.vel.lerp(desired, 10.0 * dt);
           }
         }
+      } else if (proj.kind === 'SEEKER_SWARM') {
+        // Low-altitude homing missile
+        const target =
+          proj.targetId >= 0 ? combatants[proj.targetId] : null;
+        if (target && !target.eliminated) {
+          const desired = scratchVecA
+            .subVectors(target.pos, proj.pos)
+            .add(new THREE.Vector3(0, 1.2, 0))
+            .normalize()
+            .multiplyScalar(155);
+          proj.vel.lerp(desired, 6.5 * dt);
+        }
+      } else if (proj.kind === 'CLUSTER_MORTAR') {
+        // Ballistic gravity arc
+        proj.vel.y -= 36 * dt;
       }
 
+      scratchPrevPos.copy(proj.pos);
       proj.pos.addScaledVector(proj.vel, dt);
 
-      // Check collision against combatants
+      // 1. Check 3D Collision against Terrain, Tunnel Roofs, Tunnel Walls, Bridge Deck, and Bunkers!
+      const envHit = checkProjectileWorldCollision(
+        scratchPrevPos,
+        proj.pos,
+        worldColliders
+      );
+      if (envHit.hit) {
+        proj.active = false;
+        if (mesh) mesh.visible = false;
+
+        if (proj.kind !== 'CHAINGUN') {
+          SoundFX.playExplosion();
+          const sw = shockwavesRef.current.find((s) => !s.active);
+          if (sw) {
+            sw.active = true;
+            sw.pos.copy(envHit.hitPoint);
+            sw.radius = 2;
+            sw.maxRadius =
+              proj.splashRadius > 0
+                ? proj.splashRadius
+                : proj.kind === 'HYDRA_JAVELIN'
+                ? 16
+                : 10;
+            sw.life = 0.4;
+            sw.maxLife = 0.4;
+            sw.color = proj.color;
+          }
+
+          // If a Hydra Javelin hit the Tunnel Roof or Bridge Deck while diving toward a sheltered player, announce the block!
+          if (
+            proj.kind === 'HYDRA_JAVELIN' &&
+            (envHit.hitTag === 'tunnel_roof' || envHit.hitTag === 'bridge_deck')
+          ) {
+            ms.killFeedBanner =
+              envHit.hitTag === 'tunnel_roof'
+                ? 'HYDRA JAVELIN FÜZESİ SIĞINAK TÜNELİ TAVANINA ÇARPTI!'
+                : 'HYDRA JAVELIN FÜZESİ VİYADÜK KÖPRÜSÜNE ÇARPTI!';
+            ms.killFeedTimer = 2.8;
+          }
+
+          // Cluster Mortar splash damage on ground impact
+          if (proj.splashRadius > 0) {
+            const attacker = combatants[proj.ownerId];
+            for (let k = 0; k < combatants.length; k++) {
+              const victim = combatants[k];
+              if (victim.id === proj.ownerId || victim.eliminated) continue;
+              const d = victim.pos.distanceTo(envHit.hitPoint);
+              if (d <= proj.splashRadius) {
+                const falloff = 1 - (d / proj.splashRadius) * 0.5;
+                victim.hp -= victim.maxHp * proj.damagePctOfMaxHp * falloff;
+                if (victim.hp <= 0) {
+                  handleCombatantEliminationOrRespawn(
+                    victim,
+                    attacker,
+                    'PARÇACIKLI HAVAN'
+                  );
+                }
+              }
+            }
+          }
+        }
+        continue;
+      }
+
+      // 2. Check Direct Hit against Combatants
       for (let k = 0; k < combatants.length; k++) {
         const target = combatants[k];
-        if (target.id === proj.ownerId) continue;
+        if (target.id === proj.ownerId || target.eliminated) continue;
         const dx = target.pos.x - proj.pos.x;
-        const dy = target.pos.y + 0.8 - proj.pos.y;
+        const dy = target.pos.y + 0.9 - proj.pos.y;
         const dz = target.pos.z - proj.pos.z;
-        const hitR = proj.kind === 'HYDRA_JAVELIN' ? 3.8 : 2.8;
+        const hitR = proj.kind === 'HYDRA_JAVELIN' ? 4.2 : 3.2;
         if (dx * dx + dy * dy + dz * dz < hitR * hitR) {
           proj.active = false;
-          const attacker = combatants[proj.ownerId];
+          const attacker = combatants[proj.ownerId] || null;
 
-          // Calculate exact damage (45% of target's Max HP for each Hydra Javelin missile!)
           const rawDmg =
             proj.damagePctOfMaxHp > 0
               ? target.maxHp * proj.damagePctOfMaxHp
@@ -1651,9 +2454,9 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
               sw.active = true;
               sw.pos.copy(target.pos);
               sw.radius = 1.5;
-              sw.maxRadius = proj.kind === 'HYDRA_JAVELIN' ? 14 : 9;
-              sw.life = 0.36;
-              sw.maxLife = 0.36;
+              sw.maxRadius = proj.kind === 'HYDRA_JAVELIN' ? 16 : 11;
+              sw.life = 0.38;
+              sw.maxLife = 0.38;
               sw.color = proj.color;
             }
           }
@@ -1667,21 +2470,19 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
           }
 
           if (target.hp <= 0) {
-            SoundFX.playExplosion();
-            if (attacker) {
-              attacker.kills += 1;
-              if (gameMode === 'deathmatch') {
-                awardPointAndCheckWin(attacker, 1);
-              }
-              if (gameMode === 'bombrun' && ms.bombCarrierId === target.id) {
-                ms.bombCarrierId = attacker.id;
-              }
-              if (proj.kind === 'HYDRA_JAVELIN') {
-                ms.killFeedBanner = `${COMBATANT_CALLSIGNS[attacker.id]} [HYDRA JAVELIN] -> ${COMBATANT_CALLSIGNS[target.id]}`;
-                ms.killFeedTimer = 3.0;
-              }
-            }
-            respawnCombatant(target);
+            const wLabel =
+              proj.kind === 'HYDRA_JAVELIN'
+                ? 'HYDRA JAVELIN'
+                : proj.kind === 'SEEKER_SWARM'
+                ? 'STINGER SÜRÜSÜ'
+                : proj.kind === 'AT_SABOT'
+                ? 'SABOT TOPU'
+                : proj.kind === 'CLUSTER_MORTAR'
+                ? 'HAVAN TOPU'
+                : proj.kind === 'ROCKET'
+                ? 'AĞIR ROKET'
+                : 'AĞIR MAKİNELİ';
+            handleCombatantEliminationOrRespawn(target, attacker, wLabel);
           }
           break;
         }
@@ -1690,7 +2491,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       if (mesh) {
         mesh.visible = proj.active;
         mesh.position.copy(proj.pos);
-        const scale = proj.kind === 'HYDRA_JAVELIN' ? 1.45 : 0.85;
+        const scale = proj.kind === 'HYDRA_JAVELIN' ? 1.6 : 0.95;
         mesh.scale.set(scale, scale, scale);
         const mat = mesh.material as THREE.MeshBasicMaterial;
         mat.color.set(proj.color);
@@ -1723,7 +2524,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       }
     }
 
-    // Sync 3D Vehicle Transforms & 1-Hit KO Laser Beam Visuals
+    // Sync 3D Vehicle Transforms (with full 4-Wheel Pitch & Roll!)
     for (let i = 0; i < combatants.length; i++) {
       const c = combatants[i];
       const grp = vehGroupRefs.current[i];
@@ -1732,16 +2533,18 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       const lzr = laserLineRefs.current[i];
 
       if (grp) {
+        grp.visible = !c.eliminated;
         grp.position.copy(c.pos);
         grp.rotation.order = 'YXZ';
         grp.rotation.y = c.heading;
         grp.rotation.x = -c.pitch;
+        grp.rotation.z = c.roll;
       }
       if (shd) {
-        shd.visible = c.shieldTimer > 0;
+        shd.visible = !c.eliminated && c.shieldTimer > 0;
       }
       if (bcn) {
-        bcn.visible = c.carryingBomb;
+        bcn.visible = !c.eliminated && c.carryingBomb;
         if (bcn.visible) bcn.rotation.y += 4 * dt;
       }
       if (lzr) {
@@ -1760,7 +2563,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       }
     }
 
-    // Multi-Viewport Split-Screen Render Pass (with ADS Zoom Camera!)
+    // Multi-Viewport Split-Screen Render Pass
     const { gl, scene, size } = state;
     const width = size.width;
     const height = size.height;
@@ -1793,26 +2596,25 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       }
 
       cam.aspect = Math.max(0.1, vw / Math.max(1, vh));
-      // ADS (Aim Down Sights): Zoom FOV from 62° to 33° over the hood!
-      const targetFov = c.adsActive ? 33 : 62;
+      const targetFov = c.adsActive ? 32 : 62;
       cam.fov = THREE.MathUtils.lerp(cam.fov, targetFov, 12 * dt);
       cam.updateProjectionMatrix();
 
       const fwdX = Math.sin(c.heading);
       const fwdZ = Math.cos(c.heading);
 
-      // In ADS mode, move camera closer over the roof turret looking far downrange
-      const camDist = c.adsActive ? 5.2 : 14.5;
-      const camHeight = c.adsActive ? 2.65 : 6.2;
+      const camDist = c.adsActive ? 5.2 : 15.0;
+      // Keep camera low enough inside tunnels so it stays below the +10.5m tunnel ceiling!
+      const camHeight = c.adsActive ? 2.6 : c.inTunnel ? 4.4 : 6.4;
       const desiredCamX = c.pos.x - fwdX * camDist;
       const desiredCamZ = c.pos.z - fwdZ * camDist;
-      const desiredCamY = c.pos.y + camHeight;
+      const desiredCamY = c.pos.y + camHeight - Math.sin(c.pitch) * (camDist * 0.45);
 
-      cam.position.x = THREE.MathUtils.lerp(cam.position.x, desiredCamX, 12 * dt);
-      cam.position.z = THREE.MathUtils.lerp(cam.position.z, desiredCamZ, 12 * dt);
-      cam.position.y = THREE.MathUtils.lerp(cam.position.y, desiredCamY, 12 * dt);
+      cam.position.x = THREE.MathUtils.lerp(cam.position.x, desiredCamX, 14 * dt);
+      cam.position.z = THREE.MathUtils.lerp(cam.position.z, desiredCamZ, 14 * dt);
+      cam.position.y = THREE.MathUtils.lerp(cam.position.y, desiredCamY, 14 * dt);
 
-      const lookDist = c.adsActive ? 45 : 16;
+      const lookDist = c.adsActive ? 55 : 20;
       cam.lookAt(
         c.pos.x + fwdX * lookDist,
         c.pos.y + 1.3 + Math.sin(c.pitch) * lookDist,
@@ -1826,7 +2628,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
 
     gl.setScissorTest(false);
 
-    // Throttled HUD & Radar Minimap Sync
+    // Throttled HUD & 2080m Radar Minimap Sync
     ms.hudTimer += dt;
     if (ms.hudTimer >= 0.14) {
       ms.hudTimer = 0;
@@ -1839,7 +2641,20 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
             gameMode === 'koth' &&
             Math.hypot(c.pos.x - ms.hillPos.x, c.pos.z - ms.hillPos.z) <
               ms.hillRadius;
-          const lockedTarget = findForwardConeTarget(c, 0.22, 220);
+
+          // STRICT RULE: Target Lock-On UI ("HEDEF KİLİTLENDİ") ONLY appears when holding a guided weapon!
+          let lockedTargetName: string | null = null;
+          if (isGuidedLockOnWeapon(c.secondaryWeapon) && c.secondaryAmmo > 0) {
+            const lockedTarget =
+              c.secondaryWeapon === 'HYDRA_JAVELIN'
+                ? findForwardConeTarget(c, 0.65, 650)
+                : findForwardConeTarget(c, 0.45, 480);
+            if (lockedTarget) {
+              lockedTargetName = `${COMBATANT_CALLSIGNS[lockedTarget.id]} (${Math.round(
+                lockedTarget.hp
+              )} HP)`;
+            }
+          }
 
           return {
             slotIdx,
@@ -1849,16 +2664,17 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
             isHuman: c.isHuman,
             hp: Math.max(0, Math.round(c.hp)),
             maxHp: c.maxHp,
-            speedKmh: Math.round(Math.abs(c.speed) * 3.6),
+            speedKmh: Math.round(Math.abs(c.speed) * 2.4),
             adsActive: c.adsActive,
-            lockedTargetName: lockedTarget
-              ? `${COMBATANT_CALLSIGNS[lockedTarget.id]} (${Math.round(
-                  lockedTarget.hp
-                )} HP)`
-              : null,
+            inTunnel: c.inTunnel,
+            onBridge: c.onBridge,
+            lockedTargetName,
             score: Math.floor(c.score),
             targetScore: targetScoreForMode,
             kills: c.kills,
+            killStreak: c.killStreak,
+            respawnsLeft: c.respawnsLeft,
+            eliminated: c.eliminated,
             secondaryWeapon: c.secondaryWeapon,
             secondaryAmmo: c.secondaryAmmo,
             carryingBomb: c.carryingBomb,
@@ -1878,6 +2694,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
         heading: c.heading,
         color: COMBATANT_COLORS[c.id],
         isHuman: c.isHuman,
+        eliminated: c.eliminated,
       }));
 
       const crateStatuses: CrateRadarStatus[] = supplyCrates.map((cr) => ({
@@ -1898,60 +2715,49 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
     }
   }, 1);
 
-  const half = arenaSpec.arenaHalfSize;
+  const half = arenaSpec.arenaHalfSize; // 1040m (2080m x 2080m map)
 
   return (
     <group>
-      {/* PS2 / PSP Dusty Military Sky & Fog */}
+      {/* PS2 / PSP Dusty Military Sky & Long-Range Fog */}
       <color attach="background" args={[arenaSpec.skyColor]} />
-      <fog attach="fog" args={[arenaSpec.fogColor, 110, 460]} />
+      <fog attach="fog" args={[arenaSpec.fogColor, 380, 1950]} />
 
       <ambientLight intensity={0.95} color="#FFFBEB" />
-      <directionalLight position={[120, 220, 90]} intensity={1.55} color="#FEF3C7" />
+      <directionalLight position={[320, 520, 240]} intensity={1.55} color="#FEF3C7" />
 
-      {/* 520m x 520m 3D Multi-Elevation Terrain Mesh (Hills, Valleys, Trenches) */}
+      {/* 2080m x 2080m 3D Multi-Elevation Terrain Mesh */}
       <mesh geometry={terrainGeo}>
         <meshLambertMaterial map={groundTex} vertexColors />
       </mesh>
 
       {/* =================================================================== */}
-      {/* LANDMARK 1: CENTRAL HIGH OVERPASS BRIDGE (y = +15.5m, spans valley) */}
-      {/* Players can drive ON TOP (for LASER 1-HIT KO) or UNDERNEATH!        */}
+      {/* LANDMARK 1: CENTRAL HIGH VIADUCT BRIDGE (x in [-320..320], y=+26m)  */}
+      {/* Smooth C1 Cosine Ramps + Solid Guardrails + Support Pillars         */}
       {/* =================================================================== */}
       <group>
-        {/* Flat High Bridge Deck (x in [-52..52], y = 15.1m) */}
-        <mesh position={[0, 15.1, 0]}>
-          <boxGeometry args={[104, 1.0, 22]} />
-          <meshLambertMaterial map={concreteTex} />
+        {/* Continuous Curved Bridge Deck + Ramps */}
+        <mesh geometry={bridgeDeckGeo} position={[0, -0.1, 0]}>
+          <meshLambertMaterial map={concreteTex} side={THREE.DoubleSide} />
         </mesh>
-        {/* Bridge Side Guardrails */}
-        <mesh position={[0, 16.3, -10.5]}>
-          <boxGeometry args={[104, 1.4, 1.0]} />
+        {/* Bridge Flat Span Guardrails (x in [-130..130]) */}
+        <mesh position={[0, BRIDGE_DECK_HEIGHT + 1.2, -BRIDGE_HALF_WIDTH + 0.6]}>
+          <boxGeometry args={[BRIDGE_FLAT_HALF_LEN * 2, 2.4, 1.2]} />
           <meshLambertMaterial color="#D97706" />
         </mesh>
-        <mesh position={[0, 16.3, 10.5]}>
-          <boxGeometry args={[104, 1.4, 1.0]} />
+        <mesh position={[0, BRIDGE_DECK_HEIGHT + 1.2, BRIDGE_HALF_WIDTH - 0.6]}>
+          <boxGeometry args={[BRIDGE_FLAT_HALF_LEN * 2, 2.4, 1.2]} />
           <meshLambertMaterial color="#D97706" />
         </mesh>
-        {/* West Bridge Approach Ramp (x in [-100..-52]) */}
-        <mesh position={[-76, 7.6, 0]} rotation={[0, 0, Math.atan2(15.5, 48)]}>
-          <boxGeometry args={[50.5, 1.0, 22]} />
-          <meshLambertMaterial map={concreteTex} />
-        </mesh>
-        {/* East Bridge Approach Ramp (x in [52..100]) */}
-        <mesh position={[76, 7.6, 0]} rotation={[0, 0, -Math.atan2(15.5, 48)]}>
-          <boxGeometry args={[50.5, 1.0, 22]} />
-          <meshLambertMaterial map={concreteTex} />
-        </mesh>
-        {/* Massive Bridge Support Pillars down into the valley floor */}
-        {[-38, 38].map((px, idx) => (
+        {/* Massive Concrete Bridge Support Pillars down into the valley floor */}
+        {[-105, -38, 38, 105].map((px, idx) => (
           <React.Fragment key={idx}>
-            <mesh position={[px, 4.5, -8.5]}>
-              <boxGeometry args={[4.5, 22, 3.5]} />
+            <mesh position={[px, 6, -16]}>
+              <boxGeometry args={[8.0, 42, 7.0]} />
               <meshLambertMaterial map={bunkerTex} />
             </mesh>
-            <mesh position={[px, 4.5, 8.5]}>
-              <boxGeometry args={[4.5, 22, 3.5]} />
+            <mesh position={[px, 6, 16]}>
+              <boxGeometry args={[8.0, 42, 7.0]} />
               <meshLambertMaterial map={bunkerTex} />
             </mesh>
           </React.Fragment>
@@ -1959,37 +2765,46 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       </group>
 
       {/* =================================================================== */}
-      {/* LANDMARK 2: NORTHERN UNDERGROUND BUNKER TUNNEL (z in [-165..-95])   */}
-      {/* Houses the HYDRA 3X JAVELIN Super-Weapon inside!                    */}
+      {/* LANDMARK 2 & 3: NORTH (z=-520) & SOUTH (z=+520) UNDERGROUND TUNNELS */}
+      {/* Solid Concrete Walls & Overhead Ceiling (Blocks Hydra Javelins!)    */}
       {/* =================================================================== */}
-      <group position={[0, 0, -130]}>
-        {/* Left & Right Reinforced Concrete Tunnel Walls */}
-        <mesh position={[-15, 2.5, 0]}>
-          <boxGeometry args={[4, 14, 70]} />
-          <meshLambertMaterial map={bunkerTex} />
-        </mesh>
-        <mesh position={[15, 2.5, 0]}>
-          <boxGeometry args={[4, 14, 70]} />
-          <meshLambertMaterial map={bunkerTex} />
-        </mesh>
-        {/* Concrete Tunnel Roof Overpass (y = +9.2m) */}
-        <mesh position={[0, 9.2, 0]}>
-          <boxGeometry args={[34, 2.0, 70]} />
-          <meshLambertMaterial map={concreteTex} />
-        </mesh>
-        {/* Tunnel Floor Roadway (y = -4.6m) */}
-        <mesh position={[0, -4.6, 0]}>
-          <boxGeometry args={[28, 0.4, 72]} />
-          <meshLambertMaterial color="#27272A" />
-        </mesh>
-      </group>
+      {[NORTH_TUNNEL_Z, SOUTH_TUNNEL_Z].map((tz, idx) => (
+        <group key={idx} position={[0, 0, tz]}>
+          {/* North Reinforced Concrete Tunnel Wall */}
+          <mesh position={[0, 1.5, -TUNNEL_INNER_HALF_W - 3]}>
+            <boxGeometry args={[TUNNEL_HALF_LEN * 2, 27, 6]} />
+            <meshLambertMaterial map={bunkerTex} />
+          </mesh>
+          {/* South Reinforced Concrete Tunnel Wall */}
+          <mesh position={[0, 1.5, TUNNEL_INNER_HALF_W + 3]}>
+            <boxGeometry args={[TUNNEL_HALF_LEN * 2, 27, 6]} />
+            <meshLambertMaterial map={bunkerTex} />
+          </mesh>
+          {/* Solid Concrete Tunnel Roof Slab (y in [10.5..16.0]) */}
+          <mesh position={[0, (TUNNEL_ROOF_BOTTOM_Y + TUNNEL_ROOF_TOP_Y) * 0.5, 0]}>
+            <boxGeometry
+              args={[
+                TUNNEL_HALF_LEN * 2,
+                TUNNEL_ROOF_TOP_Y - TUNNEL_ROOF_BOTTOM_Y,
+                (TUNNEL_INNER_HALF_W + 6) * 2,
+              ]}
+            />
+            <meshLambertMaterial map={concreteTex} />
+          </mesh>
+          {/* Tunnel Interior Asphalt Roadway */}
+          <mesh position={[0, TUNNEL_FLOOR_Y + 0.15, 0]}>
+            <boxGeometry args={[TUNNEL_HALF_LEN * 2, 0.4, TUNNEL_INNER_HALF_W * 2]} />
+            <meshLambertMaterial color="#27272A" />
+          </mesh>
+        </group>
+      ))}
 
-      {/* Perimeter Fortified Concrete Border Walls */}
+      {/* Perimeter 2080m x 2080m Fortified Concrete Border Walls */}
       {[
-        [0, 6, -half, half * 2, 14, 4],
-        [0, 6, half, half * 2, 14, 4],
-        [-half, 6, 0, 4, 14, half * 2],
-        [half, 6, 0, 4, 14, half * 2],
+        [0, 12, -half, half * 2, 32, 8],
+        [0, 12, half, half * 2, 32, 8],
+        [-half, 12, 0, 8, 32, half * 2],
+        [half, 12, 0, 8, 32, half * 2],
       ].map(([x, y, z, w, h, d], idx) => (
         <mesh key={idx} position={[x, y, z]}>
           <boxGeometry args={[w, h, d]} />
@@ -1997,17 +2812,17 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
         </mesh>
       ))}
 
-      {/* Concrete Military Bunkers & Watchtowers */}
-      {arenaSpec.bunkers.map(([bx, bz, bw, bd], idx) => {
+      {/* Solid Concrete Military Bunkers & Watchtowers */}
+      {arenaSpec.bunkers.map(([bx, bz, bw, bd, bh], idx) => {
         const by = sampleGroundTerrainY(bx, bz);
         return (
-          <group key={idx} position={[bx, by + 4, bz]}>
+          <group key={idx} position={[bx, by + bh * 0.5 - 2, bz]}>
             <mesh>
-              <boxGeometry args={[bw, 9, bd]} />
+              <boxGeometry args={[bw, bh, bd]} />
               <meshLambertMaterial map={bunkerTex} />
             </mesh>
-            <mesh position={[0, 4.7, 0]}>
-              <boxGeometry args={[bw + 0.6, 0.6, bd + 0.6]} />
+            <mesh position={[0, bh * 0.5 + 0.4, 0]}>
+              <boxGeometry args={[bw + 1.2, 0.8, bd + 1.2]} />
               <meshLambertMaterial color={arenaSpec.accentColor} />
             </mesh>
           </group>
@@ -2017,24 +2832,24 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       {/* King of the Hill Radar Zone */}
       <group ref={hillRingRef} visible={false}>
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[18, 20, 32]} />
+          <ringGeometry args={[25, 28, 32]} />
           <meshBasicMaterial color="#10B981" side={THREE.DoubleSide} />
         </mesh>
       </group>
 
       {/* Bomb Run: Pickup Bomb & Target Enemy Base */}
       <mesh ref={pickupBombMeshRef} visible={false}>
-        <octahedronGeometry args={[2.2, 0]} />
+        <octahedronGeometry args={[3.0, 0]} />
         <meshBasicMaterial color="#F59E0B" />
       </mesh>
       <group ref={targetBaseGroupRef} visible={false}>
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[10, 12, 24]} />
+          <ringGeometry args={[14, 16, 24]} />
           <meshBasicMaterial color="#EF4444" side={THREE.DoubleSide} />
         </mesh>
       </group>
 
-      {/* 6 Landmark Weapon & Supply Crates (Bridge Laser, Tunnel Hydra, 4 Outpost Crates) */}
+      {/* 12 Landmark & Tactical Supply Crates */}
       {supplyCrates.map((crate, idx) => {
         const cColor =
           crate.kind === 'REPAIR' ? '#10B981' : WEAPON_COLORS[crate.kind];
@@ -2048,16 +2863,19 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
               }}
             >
               {isSuper ? (
-                <octahedronGeometry args={[2.2, 0]} />
+                <octahedronGeometry args={[2.8, 0]} />
               ) : (
-                <boxGeometry args={[2.2, 2.2, 2.2]} />
+                <boxGeometry args={[2.6, 2.6, 2.6]} />
               )}
-              <meshLambertMaterial color={cColor} emissive={cColor} emissiveIntensity={0.6} />
+              <meshLambertMaterial
+                color={cColor}
+                emissive={cColor}
+                emissiveIntensity={0.65}
+              />
             </mesh>
-            {/* Vertical Beacon Pillar for Super-Weapons so players can spot Bridge Laser & Tunnel Hydra */}
             {isSuper && (
-              <mesh position={[0, 14, 0]}>
-                <cylinderGeometry args={[0.25, 0.25, 28, 6]} />
+              <mesh position={[0, 24, 0]}>
+                <cylinderGeometry args={[0.45, 0.45, 48, 6]} />
                 <meshBasicMaterial color={cColor} transparent opacity={0.35} />
               </mesh>
             )}
@@ -2095,26 +2913,25 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
                 position={[0, 0.8, 0]}
                 visible={false}
               >
-                <sphereGeometry args={[3.2, 10, 8]} />
+                <sphereGeometry args={[3.4, 10, 8]} />
                 <meshBasicMaterial color="#10B981" wireframe transparent opacity={0.45} />
               </mesh>
             </group>
 
-            {/* 1-HIT KO Laser Beam Cylinder */}
             <mesh
               ref={(el) => {
                 laserLineRefs.current[cIdx] = el;
               }}
               visible={false}
             >
-              <boxGeometry args={[0.55, 0.55, 1]} />
+              <boxGeometry args={[0.7, 0.7, 1]} />
               <meshBasicMaterial color="#EF4444" />
             </mesh>
           </React.Fragment>
         );
       })}
 
-      {/* Projectiles Pool (Chaingun Tracers, Rockets, Hydra Top-Attack Javelins) */}
+      {/* Projectiles Pool */}
       {projectilesRef.current.map((_, idx) => (
         <mesh
           key={idx}
@@ -2123,7 +2940,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
           }}
           visible={false}
         >
-          <boxGeometry args={[0.6, 0.6, 1.4]} />
+          <boxGeometry args={[0.7, 0.7, 1.6]} />
           <meshBasicMaterial color="#F59E0B" />
         </mesh>
       ))}
@@ -2179,7 +2996,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
   const [voteResultBanner, setVoteResultBanner] = useState<string | null>(null);
 
   const [splitMode, setSplitMode] = useState<SplitMode>('auto');
-  const [autoThrottle, setAutoThrottle] = useState<boolean>(false);
+  const [autoThrottle] = useState<boolean>(false);
   const [resetToken, setResetToken] = useState<number>(0);
   const [muted, setMuted] = useState<boolean>(SoundFX.muted);
 
@@ -2195,12 +3012,17 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
         maxHp: 100,
         speedKmh: 0,
         adsActive: false,
+        inTunnel: false,
+        onBridge: false,
         lockedTargetName: null,
         score: 0,
-        targetScore: 8,
+        targetScore: 12,
         kills: 0,
+        killStreak: 0,
+        respawnsLeft: INITIAL_RESPAWNS,
+        eliminated: false,
         secondaryWeapon: 'DUMB_ROCKET',
-        secondaryAmmo: 2,
+        secondaryAmmo: 3,
         carryingBomb: false,
         inHill: false,
         rank: 1,
@@ -2373,6 +3195,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
   const isMultiplayerVote = activeHumanSlots.length > 1;
   const currentArenaSpec = FIRED_UP_ARENAS[selectedArenaIdx] || FIRED_UP_ARENAS[0];
   const numViews = hud.viewports.length;
+  const mapSpan = currentArenaSpec.arenaHalfSize * 2; // 2080m
 
   // ============================================================================
   // RENDER 1: RESISTANCE HANGAR (RETRO PS2/PSP MILITARY UI)
@@ -2399,7 +3222,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
             </button>
             <div>
               <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
-                FIRED UP // PSP 2005 ASKERİ HANGAR
+                FIRED UP // PSP 2005 ASKERİ HANGAR (2080M CEPHE)
               </div>
               <h1 className="font-mono text-xl sm:text-2xl font-black tracking-tight text-[#F5F5F4]">
                 DİRENİŞ ZIRHLI ARAÇ SEÇİMİ
@@ -2435,12 +3258,12 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
         <div className="relative z-10 mx-auto w-full max-w-[1400px] px-4 sm:px-8 pb-6 pt-auto">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-l-4 border-amber-500 bg-[#292524]/90 px-3 py-2 font-mono text-xs text-stone-300">
             <span>
-              <strong className="text-amber-400">SOL ANALOG (Sol/Sağ)</strong> ile aracı seçin,{' '}
-              <strong className="text-amber-400">[A]</strong> ile onaylayın. Tüm silahlar aracın
-              baktığı yöne sabittir (<strong className="text-amber-400">[L1] ADS Dürbün</strong>).
+              <strong className="text-amber-400">5X RESPAWN HAKKI:</strong> Ard arda 8 imha
+              yaptığınızda <strong className="text-emerald-400">+1 Ekstra Respawn</strong>{' '}
+              kazanırsınız!
             </span>
             <span className="text-amber-400 font-bold">
-              ÖZEL SİLAHLAR: KÖPRÜ ÜSTÜ = LAZER (1-HIT KO) // TÜNEL İÇİ = HYDRA 3X JAVELIN
+              HYDRA JAVELIN FÜZESİNDEN KORUNMAK İÇİN YERALTI TÜNELLERİNE GİRİN!
             </span>
           </div>
 
@@ -2603,7 +3426,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
               <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
                 {isMultiplayerVote
                   ? `ÇOK OYUNCULU CEPHE OYLAMASI (${activeHumanSlots.length} OYUNCU)`
-                  : '520x520M CEPHE & MOD SEÇİMİ'}
+                  : '2080x2080M CEPHE & MOD SEÇİMİ'}
               </div>
               <h1 className="font-mono text-2xl sm:text-3xl font-black tracking-tight text-[#F5F5F4]">
                 SAVAŞ BÖLGESİNİ OYLA
@@ -2679,7 +3502,8 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                     </div>
                     <div className="space-y-1 font-mono text-[11px] text-stone-200">
                       <div>● MERKEZ KÖPRÜ ÜSTÜ: LAZER [1-HIT KO]</div>
-                      <div>● KUZEY YERALTI TÜNELİ: HYDRA 3X JAVELIN</div>
+                      <div>● KUZEY & GÜNEY TÜNELİ: HYDRA 3X JAVELIN</div>
+                      <div>● TAKTİK SİLAHLAR: STINGER, SABOT, HAVAN, EMP</div>
                     </div>
                   </div>
 
@@ -2728,8 +3552,8 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
           <div className="flex items-center gap-2">
             <Users size={16} className="text-amber-400" />
             <span>
-              [L1] Basılı Tut: ADS Dürbün & Hassas Nişan • [R1]: İleri Sabit Makineli • [B]:
-              Özel Silah Ateşle
+              [L1] Basılı Tut: ADS Dürbün • [R1]: İleri Sabit Makineli • [B]: Özel Silah
+              Ateşle • 5X Respawn (+1 / 8 Seri İmha)
             </span>
           </div>
           <button
@@ -2749,7 +3573,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
   }
 
   // ============================================================================
-  // RENDER 3: ACTIVE 3D VEHICULAR COMBAT (RETRO PS2/PSP MILITARY OSD + RADAR)
+  // RENDER 3: ACTIVE 3D VEHICULAR COMBAT (2080M MAP + RETRO PSP HUD)
   // ============================================================================
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-[#1C1917] text-[#F5F5F4] select-none">
@@ -2878,7 +3702,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
         </div>
       </div>
 
-      {/* Kill-Feed / Landmark Super-Weapon Alert Banner */}
+      {/* Kill-Feed / Streak / Super-Weapon Alert Banner */}
       {hud.killFeedBanner && (
         <div className="pointer-events-none absolute inset-x-0 top-12 z-30 flex justify-center px-4">
           <div className="border-2 border-amber-400 bg-[#1C1917]/95 px-5 py-1.5 font-mono text-xs font-black tracking-wider text-amber-400 shadow-lg">
@@ -2887,7 +3711,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
         </div>
       )}
 
-      {/* Per-Viewport Retro PSP Military HUD + Center ADS Scope + Corner Tactical Radar */}
+      {/* Per-Viewport Retro PSP Military HUD + Center ADS Scope + 2080m Radar */}
       <div
         className={`pointer-events-none absolute inset-0 z-10 grid ${
           numViews === 1
@@ -2899,6 +3723,9 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
       >
         {hud.viewports.map((vp) => {
           const hpPercent = Math.round((vp.hp / Math.max(1, vp.maxHp)) * 100);
+          const hasGuidedWeapon =
+            isGuidedLockOnWeapon(vp.secondaryWeapon) && vp.secondaryAmmo > 0;
+
           return (
             <div
               key={vp.slotIdx}
@@ -2906,40 +3733,52 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
             >
               {/* CENTER FIXED FORWARD RETICLE & [L1] ADS SNIPER SCOPE OVERLAY */}
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div
-                  className={`relative flex items-center justify-center transition-all duration-150 ${
-                    vp.adsActive ? 'h-44 w-44 sm:h-56 sm:w-56' : 'h-16 w-16'
-                  }`}
-                >
-                  {/* Outer Tactical Bracket */}
+                {vp.eliminated ? (
+                  <div className="border-2 border-red-500 bg-black/85 px-6 py-4 text-center font-mono">
+                    <ShieldWarning size={32} className="mx-auto mb-1 text-red-500" />
+                    <div className="text-base font-black text-red-400">
+                      ARAÇ İMHA EDİLDİ // 0X RESPAWN KALDI
+                    </div>
+                  </div>
+                ) : (
                   <div
-                    className={`absolute inset-0 border-2 ${
-                      vp.lockedTargetName
-                        ? 'border-red-500'
-                        : vp.adsActive
-                        ? 'border-emerald-400'
-                        : 'border-amber-400/55'
+                    className={`relative flex items-center justify-center transition-all duration-150 ${
+                      vp.adsActive ? 'h-44 w-44 sm:h-56 sm:w-56' : 'h-16 w-16'
                     }`}
-                  />
-                  {/* Crosshair ticks */}
-                  <div className="h-0.5 w-5 bg-amber-400/80" />
-                  <div className="absolute h-5 w-0.5 bg-amber-400/80" />
-                  {vp.adsActive && (
-                    <div className="absolute -top-6 bg-[#1C1917]/90 px-2 py-0.5 font-mono text-[10px] font-black text-emerald-400">
-                      ADS DÜRBÜN AKTİF [2.0X ZOOM]
-                    </div>
-                  )}
-                  {vp.lockedTargetName && (
-                    <div className="absolute -bottom-6 bg-red-950/90 border border-red-500 px-2 py-0.5 font-mono text-[10px] font-black text-red-300">
-                      HEDEF KİLİTLİ: {vp.lockedTargetName}
-                    </div>
-                  )}
-                </div>
+                  >
+                    <div
+                      className={`absolute inset-0 border-2 ${
+                        hasGuidedWeapon && vp.lockedTargetName
+                          ? 'border-red-500'
+                          : vp.adsActive
+                          ? 'border-emerald-400'
+                          : 'border-amber-400/55'
+                      }`}
+                    />
+                    <div className="h-0.5 w-5 bg-amber-400/80" />
+                    <div className="absolute h-5 w-0.5 bg-amber-400/80" />
+                    {vp.adsActive && (
+                      <div className="absolute -top-6 bg-[#1C1917]/90 px-2 py-0.5 font-mono text-[10px] font-black text-emerald-400">
+                        ADS DÜRBÜN AKTİF [2.0X ZOOM]
+                      </div>
+                    )}
+                    {/* STRICT LOCK-ON DISPLAY: ONLY WHEN HOLDING A GUIDED WEAPON! */}
+                    {hasGuidedWeapon && vp.lockedTargetName && (
+                      <div className="absolute -bottom-6 bg-red-950/90 border border-red-500 px-2 py-0.5 font-mono text-[10px] font-black text-red-300">
+                        GÜDÜMLÜ KİLİT: {vp.lockedTargetName}
+                      </div>
+                    )}
+                    {vp.inTunnel && (
+                      <div className="absolute -top-12 bg-emerald-950/90 border border-emerald-500 px-2.5 py-0.5 font-mono text-[10px] font-black text-emerald-300">
+                        SIĞINAK TÜNELİ KORUMASI [HYDRA KORUMALI]
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Top Row: Armor Bar + Radar Minimap */}
+              {/* Top Row: Armor Bar + Respawn Counter + 2080m Radar Minimap */}
               <div className="flex items-start justify-between gap-2">
-                {/* Left: Retro PSP Stencil Armor & Vehicle Status */}
                 <div className="border-2 border-stone-600 bg-[#1C1917]/90 px-3 py-2 font-mono">
                   <div className="flex items-center gap-2">
                     <span
@@ -2967,33 +3806,45 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                       {vp.hp}/{vp.maxHp} HP
                     </span>
                   </div>
-                  <div className="mt-1 text-[10px] font-bold text-amber-300">
-                    SKOR: {vp.score}/{vp.targetScore} • İMHA: {vp.kills}
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold">
+                    <span className="bg-amber-500/20 border border-amber-500/50 px-1.5 py-0.5 text-amber-300">
+                      RESPAWN: {vp.respawnsLeft}X
+                    </span>
+                    <span className="bg-emerald-500/20 border border-emerald-500/50 px-1.5 py-0.5 text-emerald-300">
+                      SERİ: {vp.killStreak}/{STREAK_FOR_BONUS_RESPAWN}
+                    </span>
+                    <span className="text-stone-300">
+                      SKOR: {vp.score}/{vp.targetScore} • İMHA: {vp.kills}
+                    </span>
                   </div>
                 </div>
 
-                {/* Right: 520m x 520m Tactical Radar Minimap */}
+                {/* Right: 2080m x 2080m Tactical Radar Minimap */}
                 <div className="border-2 border-stone-600 bg-[#141812]/90 p-1.5 font-mono">
                   <div className="mb-1 flex items-center justify-between text-[9px] font-bold text-emerald-400">
-                    <span>RADAR (520M)</span>
+                    <span>RADAR (2080M)</span>
                     <span>{vp.speedKmh} KM/S</span>
                   </div>
                   <div className="relative h-24 w-24 border border-emerald-500/40 bg-[#0B1009] overflow-hidden">
-                    {/* Center High Bridge Indicator on Radar */}
+                    {/* Center High Bridge on Radar */}
                     <div
-                      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-2 w-9 border border-amber-500/60 bg-amber-500/20"
-                      title="Merkez Yüksek Köprü (Lazer 1-Hit KO)"
+                      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-8 border border-red-500/60 bg-red-500/20"
+                      title="Merkez Viyadük Köprüsü (Lazer 1-Hit KO)"
                     />
-                    {/* North Underground Tunnel Indicator on Radar */}
+                    {/* North & South Underground Tunnels on Radar */}
                     <div
-                      className="absolute left-1/2 top-[22%] -translate-x-1/2 h-4 w-2.5 border border-amber-400/60 bg-amber-400/20"
+                      className="absolute left-1/2 top-[25%] -translate-x-1/2 h-1.5 w-6 border border-amber-400/60 bg-amber-400/20"
                       title="Kuzey Yeraltı Tüneli (Hydra Javelin)"
                     />
-                    {/* Special Weapon Crate Dots */}
+                    <div
+                      className="absolute left-1/2 top-[75%] -translate-x-1/2 h-1.5 w-6 border border-amber-400/60 bg-amber-400/20"
+                      title="Güney Yeraltı Tüneli (Hydra Javelin)"
+                    />
+                    {/* Supply Crate Dots */}
                     {hud.crateStatuses.map((cr) => {
                       if (!cr.ready) return null;
-                      const rx = ((cr.x + 260) / 520) * 100;
-                      const rz = ((cr.z + 260) / 520) * 100;
+                      const rx = ((cr.x + currentArenaSpec.arenaHalfSize) / mapSpan) * 100;
+                      const rz = ((cr.z + currentArenaSpec.arenaHalfSize) / mapSpan) * 100;
                       const isSuper =
                         cr.kind === 'LASER_1HKO' || cr.kind === 'HYDRA_JAVELIN';
                       return (
@@ -3006,19 +3857,18 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                             left: `${rx}%`,
                             top: `${rz}%`,
                             backgroundColor:
-                              cr.kind === 'LASER_1HKO'
-                                ? '#EF4444'
-                                : cr.kind === 'HYDRA_JAVELIN'
-                                ? '#F59E0B'
-                                : '#10B981',
+                              cr.kind === 'REPAIR'
+                                ? '#10B981'
+                                : WEAPON_COLORS[cr.kind],
                           }}
                         />
                       );
                     })}
                     {/* Combatant Radar Blips */}
                     {hud.radarBlips.map((b) => {
-                      const bx = ((b.x + 260) / 520) * 100;
-                      const bz = ((b.z + 260) / 520) * 100;
+                      if (b.eliminated) return null;
+                      const bx = ((b.x + currentArenaSpec.arenaHalfSize) / mapSpan) * 100;
+                      const bz = ((b.z + currentArenaSpec.arenaHalfSize) / mapSpan) * 100;
                       const isSelf = b.id === vp.slotIdx;
                       return (
                         <div
@@ -3062,7 +3912,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                     </div>
                   ) : (
                     <div className="mt-0.5 text-[11px] font-bold text-stone-400">
-                      KÖPRÜ (LAZER 1HKO) VEYA TÜNEL (HYDRA JAVELIN) SANDIĞI ALIN
+                      KÖPRÜ (LAZER 1HKO), TÜNEL (HYDRA) VEYA TAKTİK SANDIK ALIN
                     </div>
                   )}
                 </div>
@@ -3071,7 +3921,9 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                   <div className="font-bold text-amber-400">
                     [L1] BASILI TUT: ADS DÜRBÜN • [R1]: İLERİ SABİT ATEŞ
                   </div>
-                  <div>[A] GAZ • [B] ÖZEL SİLAH (HYDRA / LAZER / ROKET)</div>
+                  <div>
+                    [A] GAZ • [B] ÖZEL SİLAH • TÜNELE GİREREK HYDRA FÜZESİNDEN KORUNUN!
+                  </div>
                 </div>
               </div>
             </div>
