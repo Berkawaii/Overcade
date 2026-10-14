@@ -15,6 +15,7 @@ rules_version = '2';
 //   - updatedAt: timestamp | number | string (optional) - Last signaling update timestamp
 //   - hostUid: string | null (optional, <= 128 chars, immutable once set) - Optional Firebase Auth UID of Host
 //   - status: string (optional, <= 32 chars) - Room signaling state (e.g., 'waiting', 'connected', 'closed')
+//   - expireAt: timestamp | number | string (optional) - TTL expiration timestamp for automated or stale room cleanup
 //
 // Subcollections:
 //   - /rooms/{roomId}/callerCandidates/{candidateId}
@@ -146,11 +147,12 @@ service cloud.firestore {
 
     // Validate ephemeral WebRTC signaling room document
     function isValidRoom(data) {
-      return hasOnlyAllowedFields(['offer', 'answer', 'createdAt', 'updatedAt', 'hostUid', 'status']) &&
+      return hasOnlyAllowedFields(['offer', 'answer', 'createdAt', 'updatedAt', 'hostUid', 'status', 'expireAt']) &&
         (!('offer' in data) || data.offer == null || isValidSessionDescription(data.offer, 'offer')) &&
         (!('answer' in data) || data.answer == null || isValidSessionDescription(data.answer, 'answer')) &&
         (!('createdAt' in data) || data.createdAt == null || isValidTimestampOrTime(data.createdAt)) &&
         (!('updatedAt' in data) || data.updatedAt == null || isValidTimestampOrTime(data.updatedAt)) &&
+        (!('expireAt' in data) || data.expireAt == null || isValidTimestampOrTime(data.expireAt)) &&
         isValidOptionalString('hostUid', 1, 128) &&
         isValidOptionalString('status', 1, 32);
     }
@@ -183,10 +185,10 @@ service cloud.firestore {
 
     // Ephemeral WebRTC Signaling Rooms
     // Allows unauthenticated/QR-joined mobile controllers and hosts to exchange SDP offers,
-    // answers, and ICE candidates by exact roomId, while blocking room enumeration (no list on /rooms).
+    // answers, and ICE candidates by exact roomId, and allows collection listing for host-side stale room cleanup.
     match /rooms/{roomId} {
       allow get: if isValidRoomId(roomId);
-      allow list: if false;
+      allow list: if true;
 
       allow create: if isValidRoomId(roomId) &&
         isValidRoom(request.resource.data) &&
@@ -204,7 +206,7 @@ service cloud.firestore {
 
       // Host ICE Candidates
       match /callerCandidates/{candidateId} {
-        allow get, list: if isValidRoomId(roomId);
+        allow read: if isValidRoomId(roomId);
         allow create: if isValidRoomId(roomId) &&
           candidateId.size() <= 64 &&
           isValidIceCandidate(request.resource.data);
@@ -214,7 +216,7 @@ service cloud.firestore {
 
       // Mobile Controller ICE Candidates
       match /calleeCandidates/{candidateId} {
-        allow get, list: if isValidRoomId(roomId);
+        allow read: if isValidRoomId(roomId);
         allow create: if isValidRoomId(roomId) &&
           candidateId.size() <= 64 &&
           isValidIceCandidate(request.resource.data);

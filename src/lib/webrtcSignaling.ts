@@ -7,6 +7,10 @@ import {
   collection,
   addDoc,
   getDocs,
+  query,
+  where,
+  limit,
+  Timestamp,
   onSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore';
@@ -50,6 +54,43 @@ interface PeerSlotEntry {
 }
 
 /**
+ * Prunes stale abandoned rooms and their candidate subcollections older than 30 minutes.
+ * Prevents Firestore database bloat from aborted sessions.
+ */
+export async function pruneStaleRooms(): Promise<void> {
+  try {
+    const cutoffTime = Date.now() - 30 * 60 * 1000;
+    const roomsCol = collection(db, 'rooms');
+    const staleQuery = query(
+      roomsCol,
+      where('createdAt', '<', cutoffTime),
+      limit(20)
+    );
+    const snap = await getDocs(staleQuery);
+    if (snap.empty) return;
+
+    for (const d of snap.docs) {
+      const roomRef = d.ref;
+      try {
+        const [callerSnap, calleeSnap] = await Promise.all([
+          getDocs(collection(roomRef, 'callerCandidates')),
+          getDocs(collection(roomRef, 'calleeCandidates')),
+        ]);
+        const subDeletions: Promise<void>[] = [];
+        callerSnap.forEach((c) => subDeletions.push(deleteDoc(c.ref)));
+        calleeSnap.forEach((c) => subDeletions.push(deleteDoc(c.ref)));
+        await Promise.allSettled(subDeletions);
+        await deleteDoc(roomRef);
+      } catch {
+        // Ignore single doc deletion errors
+      }
+    }
+  } catch (err) {
+    console.debug('Bayat oda temizleme kontrolü tamamlandı:', err);
+  }
+}
+
+/**
  * Multi-Slot Host Session Manager (PC / Smart TV Browser)
  * Supports 1 to 4 simultaneous Mobile Controllers over the SAME 6-character roomId!
  * Whenever a controller finishes its handshake and opens its P2P DataChannel,
@@ -77,11 +118,24 @@ export class HostSignalingSession {
     GameEngineBridge.registerFeedbackSender((slot, hpPercent, vibrateMs = 0) => {
       this.sendFeedbackToSlot(slot, hpPercent, vibrateMs);
     });
+
+    if (typeof window !== 'undefined') {
+      const onWindowClose = () => {
+        if (this.roomId) {
+          this.garbageCollectRoom(this.roomId).catch(() => {});
+        }
+      };
+      window.addEventListener('beforeunload', onWindowClose);
+      window.addEventListener('pagehide', onWindowClose);
+    }
   }
 
   public async startNewRoom(): Promise<string> {
     await this.cleanup();
     GameEngineBridge.resetSession();
+
+    // Proactively clean up any stale abandoned rooms from previous sessions
+    pruneStaleRooms().catch(() => {});
 
     const store = useConsoleConnectionStore.getState();
     store.setPhase('creating_room');
@@ -194,6 +248,7 @@ export class HostSignalingSession {
         answer: null,
         createdAt: this.roomCreatedAt,
         updatedAt: Date.now(),
+        expireAt: Timestamp.fromMillis(Date.now() + 30 * 60 * 1000),
         hostUid: this.hostUid,
         status: `waiting_p${targetSlot + 1}`,
       });
@@ -325,6 +380,11 @@ export class HostSignalingSession {
 
   public async cleanup(): Promise<void> {
     this.detachFirestoreListeners();
+    if (this.roomId) {
+      const oldRoomId = this.roomId;
+      this.roomId = '';
+      await this.garbageCollectRoom(oldRoomId);
+    }
     for (let i = 0; i < MAX_PLAYERS; i++) {
       this.slots[i].dc?.close();
       this.slots[i].pc?.close();
@@ -461,6 +521,7 @@ export class ControllerSignalingClient {
           sdp: answerDescription.sdp || '',
         },
         updatedAt: Date.now(),
+        expireAt: Timestamp.fromMillis(Date.now() + 30 * 60 * 1000),
         status: 'connected',
       });
 
