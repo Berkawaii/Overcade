@@ -79,6 +79,20 @@
       "skillPath": "skills/redesign-skill/SKILL.md",
       "computedHash": "52f2ade5449b7005942ebd221e53808a245b3e088ff096c44a374e1e481e9f6b"
     },
+    "rpgjs": {
+      "source": "RSamaium/RPG-JS",
+      "ref": "v5",
+      "sourceType": "github",
+      "skillPath": "skills/rpgjs/SKILL.md",
+      "computedHash": "cd2d1015a90d89ae7aa24eb8797ee47085d3923bd7adbbdb9806b7026d62513e"
+    },
+    "rpgjs-studio": {
+      "source": "RSamaium/RPG-JS",
+      "ref": "v5",
+      "sourceType": "github",
+      "skillPath": "skills/rpgjs-studio/SKILL.md",
+      "computedHash": "41435fe1f63d2a40a87f2418b646c8979d88c7188b075dd86a1f83f707cb9e52"
+    },
     "stitch-design-taste": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",

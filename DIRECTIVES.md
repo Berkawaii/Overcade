@@ -98,3 +98,55 @@ Mobil kumandadan Host ekrana giden her girdi paketi sabit **8 Bayt** uzunluğund
    - Sahne kapatıldığında tüm Three.js kaynakları temizlenir.
 3. **Uzamsal Gezinme (`spatial-navigation`):**
    - Oyun kataloğunda hem klavye yön tuşları hem de bağlı telefonun Sol Analogu / D-Pad'i ile kartlar arasında canlı geometri (`getBoundingClientRect`) ve Roving Tabindex prensibiyle odak hareket ettirilir.
+
+---
+
+## 6. RPG-JS v5 & 2D Çok Oyunculu Konsol Direktifleri
+
+1. **Dokümantasyon ve Kaynak Referansı:**
+   - Resmi Depo: `https://github.com/RSamaium/RPG-JS` (dal: `v5`).
+   - Canlı Dokümantasyon İndeksi: `https://v5.rpgjs.dev/llms.txt`.
+   - Proje İçi Skill Dosyaları: `.agents/skills/rpgjs` ve `.agents/skills/rpgjs-studio`.
+   - Geliştirme öncesinde bellekten varsayımda bulunulmaz; ilgili modül için daima resmi dokümantasyon (`quick-start.md`, `synchronization.md`, `battle-ai.md`, `physic/README.md`) referans alınır.
+
+2. **Konsol Çok Oyunculu Modeli (1-4 Oyuncu Shared-Screen Couch Co-op ARPG):**
+   - **Birincil Konsol Ekranı (Host - PC/TV):** Tek bir PixiJS / RPGJS canvas üzerinde ortak zindan/harita dünyasını 60 FPS hızında render eder.
+   - **Mobil Kumandalar (Client - 1-4 Akıllı Telefon):** WebRTC DataChannel üzerinden 8-bayt ikili paketlerle (`binaryProtocol.ts`) sıfır gecikmeli girdi akışı sağlar. Telefonlar ağır grafik render etmez; dokunsal kumanda ve canlı durum ekranı olarak işlev görür.
+   - **4 Oyunculu Kahraman Slotları:**
+     - Slot 0 (P1): Savaşçı / Knight (Mavi Tema)
+     - Slot 1 (P2): Büyücü / Mage (Kırmızı Tema)
+     - Slot 2 (P3): Okçu / Ranger (Yeşil Tema)
+     - Slot 3 (P4): Şifacı / Cleric (Sarı Tema)
+   - **Dinamik Kamera (Bounding Box Camera):** Tüm aktif oyuncuları kadrajda tutan, grup dağıldığında yumuşak şekilde uzaklaşan (Secret of Mana / Gauntlet / Diablo tarzı) ortak kamera sistemi.
+
+3. **Standart Kumanda Buton Eşlemesi:**
+   - **Sol Analog / D-Pad:** 8 yönlü serbest hareket (`player.moveRoutes` / `moveTo`).
+   - **A Butonu:** Birincil Eylem / Temel Saldırı (Kılıç Kesmesi / Büyü Mermisi) ve NPC etkileşimi.
+   - **B Butonu:** İkincil Eylem / Sınıf Yeteneği 1 (Alev Topu / Kasırga / Ok Yağmuru).
+   - **X Butonu:** Üçüncül Eylem / Savunma veya Dash (Hızlı Sıçrama / Kalkan Kilidi).
+   - **Y Butonu:** Nihai Yetenek (Ultimate AOE) veya Özel Eşya Kullanımı.
+   - **L1 Butonu:** Acil Durum İksiri (Anlık HP Yenileme).
+   - **R1 Butonu:** Ağır / Şarjlı Vuruş (Heavy Charged Attack).
+   - **START:** Duraklatma / Parti Menüsü.
+   - **SELECT:** Mini-Harita ve Görev İlerlemesi.
+
+4. **Çift Yönlü Dokunsal & Telemetri Geri Bildirim Hattı:**
+   - Host ekranında oyuncu hasar aldığında, zehirlendiğinde veya kritik vuruş yaptığında `GameEngineBridge.sendFeedbackToController(slotIndex, hpPercent, vibrateMs)` aracılığıyla yalnızca o oyuncunun telefonuna haptik titreşim ve can gösterge güncellemesi iletilir.
+
+5. **Durum ve Senkronizasyon Prensipleri:**
+   - Kalıcı oyuncu verileri (Seviye, EXP, Envanter, Altın) için RPGJS `props` sistemi kullanılır.
+   - Geçici harita efektleri ve animasyon tetikleyicileri için `map.broadcast(type, data)` tercih edilir.
+   - Sıfır Em-Dash kuralı (`—` veya `–` kullanılmaz) ve Phosphor ikonları bu modülde de geçerlidir.
+
+---
+
+## 7. Dil Standardı: Tüm Oyunlar İngilizce (Language Standard: All Games in English)
+
+1. **Evrensel İngilizce Kuralı:**
+   - Mevcut tüm oyunlar (`Fired Up // Overdrive`, `Vortex // Drift 09`, `Ironclad Protocol`, `Telemetry Arena`), yeni geliştirilecek RPG oyunu (`Chrono Knights // Aethelvale`) ve bundan sonra eklenecek tüm gelecek oyunların arayüzleri, menüleri, diyalogları, silah/yetenek isimleri, HUD göstergeleri ve katalog metinleri **İngilizce** olacaktır.
+2. **Katalog ve Oyun İçi Metinler:**
+   - `gamesCatalog.ts`, oyun içi HUD'lar, diyalog pencereleri, hata/durum mesajları, kumanda yardım metinleri ve oyun sonu skor tabloları İngilizce hazırlanacaktır.
+3. **Geliştirici İletişimi:**
+   - Kullanıcı ile sohbet Türkçe yürütülse dahi üretilen tüm oyun bileşenleri, UI metinleri ve oyun içi varlıklar istisnasız İngilizce dilinde üretilecektir.
+
+
