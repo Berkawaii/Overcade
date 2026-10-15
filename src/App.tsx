@@ -23,6 +23,10 @@ const FiredUpGame = lazy(() =>
   import('./components/FiredUpGame').then((m) => ({ default: m.FiredUpGame }))
 );
 
+const ChronoKnightsGame = lazy(() =>
+  import('./components/ChronoKnightsGame').then((m) => ({ default: m.ChronoKnightsGame }))
+);
+
 function isControllerRoute(): boolean {
   const rootEl = document.getElementById('root');
   if (rootEl?.getAttribute('data-mode') === 'controller') return true;
@@ -39,7 +43,7 @@ export const App: React.FC = () => {
   const [authReady, setAuthReady] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
   const [activeView, setActiveView] = useState<
-    'catalog' | 'firedup' | 'vortex' | 'ironclad' | 'arena'
+    'catalog' | 'chronoknights' | 'firedup' | 'vortex' | 'ironclad' | 'arena'
   >('catalog');
   const [isPairingOpen, setIsPairingOpen] = useState(false);
 
@@ -129,7 +133,8 @@ export const App: React.FC = () => {
         setActiveView('catalog');
       } else if (
         btn === 'SELECT' &&
-        (activeView === 'firedup' ||
+        (activeView === 'chronoknights' ||
+          activeView === 'firedup' ||
           activeView === 'vortex' ||
           activeView === 'ironclad' ||
           activeView === 'arena')
@@ -145,18 +150,20 @@ export const App: React.FC = () => {
 
   const handleRegenerateRoom = () => {
     hostSessionRef.current?.startNewRoom().catch((err) => {
-      console.warn('Yeni oda oluşturulamadı:', err);
+      console.warn('Failed to regenerate room:', err);
     });
   };
 
   const handleLockRoom = () => {
     hostSessionRef.current?.lockRoomAndStopSignaling().catch((err) => {
-      console.warn('Oda kilitleme uyarısı:', err);
+      console.warn('Room lock warning:', err);
     });
   };
 
   const handleLaunchGame = (gameId: string) => {
-    if (gameId === 'fired-up-overdrive') {
+    if (gameId === 'chrono-knights') {
+      setActiveView('chronoknights');
+    } else if (gameId === 'fired-up-overdrive') {
       setActiveView('firedup');
     } else if (gameId === 'vortex-drift-09') {
       setActiveView('vortex');
@@ -179,18 +186,31 @@ export const App: React.FC = () => {
     <>
       {!authReady ? (
         <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#A1A1AA]">
-          OVERCADE SİSTEM ÇEKİRDEĞİ YÜKLENİYOR...
+          OVERCADE SYSTEM CORE INITIALIZING...
         </div>
       ) : !isAuthenticatedOrGuest ? (
         <LoginScreen
           onGuestContinue={() => setGuestMode(true)}
           onOpenPairing={() => setIsPairingOpen(true)}
         />
+      ) : activeView === 'chronoknights' ? (
+        <Suspense
+          fallback={
+            <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#3B82F6]">
+              CHRONO KNIGHTS // AETHELVALE ENGINE LOADING...
+            </div>
+          }
+        >
+          <ChronoKnightsGame
+            onExitGame={() => setActiveView('catalog')}
+            onOpenPairing={() => setIsPairingOpen(true)}
+          />
+        </Suspense>
       ) : activeView === 'firedup' ? (
         <Suspense
           fallback={
             <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
-              FIRED UP // OVERDRIVE SAVAŞ ARENASI YÜKLENİYOR...
+              FIRED UP // OVERDRIVE COMBAT ARENA LOADING...
             </div>
           }
         >
@@ -203,7 +223,7 @@ export const App: React.FC = () => {
         <Suspense
           fallback={
             <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
-              VORTEX // DRIFT 09: BLUR YARIŞ MOTORU YÜKLENİYOR...
+              VORTEX // DRIFT 09: BLUR RACING ENGINE LOADING...
             </div>
           }
         >
@@ -216,7 +236,7 @@ export const App: React.FC = () => {
         <Suspense
           fallback={
             <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
-              IRONCLAD PROTOCOL // 3D MEKA ARENASI YÜKLENİYOR...
+              IRONCLAD PROTOCOL // 3D MECH ARENA LOADING...
             </div>
           }
         >
@@ -229,7 +249,7 @@ export const App: React.FC = () => {
         <Suspense
           fallback={
             <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
-              3D TELEMETRİ MOTORU YÜKLENİYOR...
+              3D TELEMETRY SIMULATION LOADING...
             </div>
           }
         >
