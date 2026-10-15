@@ -66,16 +66,67 @@ Bu belge, oyunun Faz 1'den Faz 5'e kadar olan adım adım geliştirme sürecini,
 ---
 
 ### [FAZ 3] İlk İki Zindan & Boss Karşılaşmaları (The Forgotten Crypt & Arachnid Caverns)
+- **Durum:** TAMAMLANDI (COMPLETED)
+- **Tarih:** 2026-10-15
+
+#### Tamamlanan İlerlemeler:
+1. **Zindan 1: Unutulmuş Mahzen (The Forgotten Crypt):**
+   - **Görsel Tasarım & Ortam:** Gotik taş duvarlar, lahitler (sarcophagi), defile edilmiş lahit kalıntıları ve güney çıkış kemeri.
+   - **Eşli Bulmaca Mekaniği (Dual Pressure Plates & Iron Portcullis):**
+     - Koridorun iki ucunda Batı Rünik Plakası ve Doğu Rünik Plakası.
+     - Oyuncular plakalara bastığında parlayan neon mavi rün halkaları.
+     - İki plaka aynı anda aktifleştiğinde mekanik dişli sesiyle (`playGateClick`) yukarı kayarak açılan Ağır Demir Parmaklık (Portcullis).
+   - **Düşman Hiyerarşisi:** Skeleton Warrior (yakın dövüş kılıçlı iskeletler), Crypt Necromancer (uzaktan gölge büyü mermisi atan büyücüler), Tomb Wraith (hızlı süzülen mezar hayaletleri).
+   - **Boss 1: Skeleton Warlord Malakor (İskelet Savaş Lordu):**
+     - Max HP: 2600. Özel çift kavisli kan kılıçları ve mor nekromantik büyü aurası.
+     - **Faz 1:** Kemik Hortumu (Whirlwind) saldırısı; her 7 saniyede etrafındaki 90px alana 45 hasar vuran dönme saldırısı.
+     - **Faz 2 (Tomb Aegis & 4 Minion, <%50 HP):** Merkeze çekilerek kırılmaz mor kristal kalkanla korunur ve etrafına 4 adet Skeleton Warrior çağırır. Kalkan ancak bu 4 minyon öldürüldüğünde kırılır!
+     - **Faz 3 (Öfke Modu, <%25 HP):** Hızı 220'ye fırlar, kırmızı parlayan gözlerle partiye amansız saldırır.
+     - **Boss Zaferi:** Özel zafer fanfarı (`playFanfare`), 350 Gold, 500 EXP ve Boss Zafer Ekran Bildirimi.
+   - **Kadim Hazine Sandığı (Ancestral Golden Chest):**
+     - Boss kesildiğinde açılabilen altın sandık.
+     - `[A]` basıldığında +450G, +600 EXP ve partiye kalıcı **Ancestral Runed Greatsword (+25 Taban ATK)** buff'ı verir.
+
+2. **Zindan 2: Zehirli Örümcek Mağaraları (Arachnid Caverns):**
+   - **Görsel Tasarım & Ortam:** Biyolüminesans yeşil yosunlu mağara kayaları, dikitler (stalagmites), zehirli zemin göletleri ve güney mağara ağzı.
+   - **Eşli Bulmaca Mekaniği (Ancient Braziers & Web Wall):**
+     - Mağara koridorunun iki yanında sönük Kadim Meşaleler (Braziers).
+     - Oyuncular yanına gidip `[A]` bastığında veya vurduğunda zümrüt aleviyle tutuşan meşaleler.
+     - İki meşale de yakıldığında veya doğrudan vurulduğunda canı eriyip yanan Yapışkan Zehir Ağı Bariyeri (Web Wall).
+   - **Düşman Hiyerarşisi:** Cavern Web Spinner (vuruşunda oyuncuyu yavaşlatan örümcekler), Acid Spitter Spider (yeşil asit püskürten ve yere asit göleti bırakan örümcekler), Corrupted Hatchling (hızlı sürü yavru örümcekler).
+   - **Boss 2: Broodmother Vespera (Kuluçka Anası):**
+     - Max HP: 3400. 6 eklemli örümcek bacağı, parlayan yeşil zehir kesesi.
+     - **Faz 1:** Kostik Asit Yaylımı (Caustic Acid Volley); 3 yönlü asit mermileri fırlatır, yere çarptığında 6 saniye süren yakıcı Asit Göletleri (HazardPool) oluşturur.
+     - **Faz 2 (Tavana Tırmanış & Yavru Yağmuru, <%50 HP):** Tavana tırmanarak gözden kaybolur; arenaya 3 zehir göleti bırakır ve 4 adet Corrupted Hatchling yavrusu yumurtlatır!
+     - **Faz 3 (Kuduz / Enraged, <%25 HP):** Gözleri ve gövdesi kor kırmızısına döner, hareket hızı 240'a çıkarak çılgınca hücum eder.
+     - **Boss Zaferi:** Zümrüt rengi patlama, 500 Gold, 750 EXP ve özel zafer fanfarı.
+   - **Kuluçka Kadim Sandığı (Broodmother Ancient Chest):**
+     - Boss odasında açılan altın sandık.
+     - `[A]` basıldığında +600G, +900 EXP ve partiye kalıcı **Venomous Chitin Bow & Relic (+35 ATK & +60 Max HP)** buff'ı verir.
+
+3. **Çevre Tehlikeleri & Asit Göletleri (Hazard Pools):**
+   - Asit mermileri patladığında yerde yeşil baloncuklar çıkaran zehirli göletler oluşur.
+   - İçinde duran oyuncular saniyede 16 hasar alır ve haptic titreşim üretir.
+
+4. **Elit Boss Bar & Bildirim Arayüzü (`ChronoKnightsGame.tsx`):**
+   - Ekranda Boss varken üst kısımda Boss Portresi, Boss Ünvanı, Can Çubuğu, `[TOMB SHIELD]` ve `[ENRAGED]` dinamik rozetleri gösterilir.
+   - Zindan ve bulmaca geçişlerinde ekranın üstünde şık cam görünümlü bildirim bantları (`dungeonNoticeBanner`).
+
+---
+
+### [FAZ 4] Büyük Başkent (Aethelgard) & Oyun Sonu Zindanları (The Molten Forge & The Citadel of Shadows)
 - **Durum:** SIRADAKİ ADIM (NEXT IN PROGRESS)
 - **Planlanan Kapsam:**
-  - **Zindan 1: Unutulmuş Mahzen (The Forgotten Crypt):**
-    - Karanlık mezarlık girişi, labirent koridorlar, meşaleler, kırılabilir lahitler.
-    - Düşmanlar: Skeleton Warriors, Crypt Ghouls, Cursed Necromancers.
-    - Eşli Bulmaca: Aynı anda iki oyuncunun basması gereken İkili Basınç Plakası (Dual Pressure Plate) ile açılan demir parmaklıklar.
-    - Boss 1: İskelet Savaş Lordu Malakor (Skeleton Warlord Malakor) - Çift kılıçlı hortum kasırgası, minyon çağırma ve mezar taşları kalkanı fazları.
-  - **Zindan 2: Zehirli Örümcek Mağaraları (Arachnid Caverns):**
-    - Yapışkan örümcek ağları (oyuncuyu yavaşlatan tuzaklar), zehirli yeşil sis gayzerleri.
-    - Düşmanlar: Acid Spitters, Web Spinners, Cavern Crawlers.
-    - Eşli Bulmaca: Meşale yakma sırası (Torch-lighting order) veya ağları yakarak gizli geçidi açma.
-    - Boss 2: Kuluçka Anası Vespera (Broodmother Vespera) - Tavandan asit püskürtme, örümcek yavruları yumurtlatma ve kuduz (Enrage) fazı.
-  - **Ortak Hazine Sandıkları (Shared Treasure Chests):** Her iki zindan sonunda altın, ekipman yükseltmeleri ve nadir zindan anahtarları.
+  - **Kraliyet Başkenti: Aethelgard:**
+    - Beyaz granit surlar, kraliyet bayrakları, şövalye muhafızları ve devasa katedral.
+    - Maceracılar Loncası (Bounty avları, EXP takasları).
+    - Büyük Çarşı (Grand Bazaar) ve Işınlanma Rün Çemberi (keşfedilen zindanlara hızlı seyahat).
+  - **Zindan 3: Dövme Ocağı & Lav Krateri (The Molten Forge):**
+    - Buhar kapakları, yükselen lav seviyesi bulmacası.
+    - Düşmanlar: Magma Golems, Fire Imps, Obsidian Scorpians.
+    - Boss 3: Dövme Muhafızı Ignis (Forgekeeper Ignis) - Dev döküm çekici şok dalgaları, erimiş lav odası ve meteor yağmuru fazları.
+  - **Zindan 4: Gölge Kalesi (The Citadel of Shadows - Endgame Raid):**
+    - Astral gotik kuleler, mor yerçekimsiz boşluklar.
+    - Eşli Bulmaca: 4 Köşe Mührü (Güneş, Ay, Yıldız, Boşluk kristallerine aynı anda basma).
+    - Final Boss: Karanlık Astral Hükümdar Malakor (3 fazlı kozmik raid bossu, kopyalara bölünme, merkez karadelik).
+  - Krallığın Kurtarıcısı Epik Zafer Ekranı ve Sonsuzluk Rünleri.

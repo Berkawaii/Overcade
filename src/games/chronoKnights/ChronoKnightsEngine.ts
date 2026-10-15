@@ -17,15 +17,32 @@ import {
   type NpcEntity,
   type WorldObstacle,
 } from './WorldData';
+import {
+  CRYPT_CHEST,
+  CRYPT_OBSTACLES,
+  CRYPT_PORTCULLIS,
+  CRYPT_PRESSURE_PLATES,
+  CAVERNS_BRAZIERS,
+  CAVERNS_CHEST,
+  CAVERNS_OBSTACLES,
+  CAVERNS_WEB_WALL,
+} from './DungeonData';
 import { createEnemy, type EnemyEntity, type EnemyKind } from './EnemyData';
 import type {
   AttackState,
+  BrazierTorch,
+  DungeonChest,
   FacingDirection,
   FloatingText,
+  HazardPool,
   HeroClassId,
   ParticleEffect,
   PlayerEntity,
+  PortcullisGate,
+  PressurePlate,
   Projectile,
+  WebWall,
+  WorldZone,
 } from './types';
 
 export interface DummyTarget {
@@ -39,7 +56,7 @@ export interface DummyTarget {
   hurtTimer: number;
 }
 
-export type WorldZone = 'oakhaven' | 'whispering_plains';
+export { type WorldZone };
 
 export class ChronoKnightsEngine {
   public canvas: HTMLCanvasElement | null = null;
@@ -56,6 +73,17 @@ export class ChronoKnightsEngine {
   public dummies: DummyTarget[] = [];
   public enemies: EnemyEntity[] = [];
   public npcs: NpcEntity[] = OAKHAVEN_NPCS;
+
+  // Phase 3: Dungeon Puzzles, Bosses, Hazards & Chests
+  public cryptPlates: PressurePlate[] = CRYPT_PRESSURE_PLATES.map((p) => ({ ...p }));
+  public cryptGate: PortcullisGate = { ...CRYPT_PORTCULLIS };
+  public cryptChest: DungeonChest = { ...CRYPT_CHEST };
+  public cavernsBraziers: BrazierTorch[] = CAVERNS_BRAZIERS.map((b) => ({ ...b }));
+  public cavernsWebWall: WebWall = { ...CAVERNS_WEB_WALL };
+  public cavernsChest: DungeonChest = { ...CAVERNS_CHEST };
+  public hazardPools: HazardPool[] = [];
+  public activeBoss: EnemyEntity | null = null;
+  public dungeonNotice: { title: string; subtitle: string; timer: number; color: string } | null = null;
 
   // Progression & Team Stats
   public teamGold = 250;
@@ -78,6 +106,8 @@ export class ChronoKnightsEngine {
   public onNpcInteract?: (npc: NpcEntity) => void;
   public onQuestUpdate?: (kills: number, goal: number, completed: boolean) => void;
   public onTeamStatsUpdate?: (gold: number, exp: number, level: number, expToNext: number) => void;
+  public onBossUpdate?: (boss: EnemyEntity | null) => void;
+  public onDungeonNotice?: (title: string, subtitle: string, color: string) => void;
 
   constructor() {
     this.initPlayers();
@@ -324,9 +354,24 @@ export class ChronoKnightsEngine {
     // Update Projectiles
     this.updateProjectiles(delta);
 
-    // Update Enemies (in Whispering Plains)
-    if (this.currentZone === 'whispering_plains') {
+    // Update Enemies, Puzzles & Hazards (in Wilderness and Dungeons)
+    if (this.currentZone !== 'oakhaven') {
       this.updateEnemies(delta);
+      this.updateDungeonPuzzles(delta);
+      this.updateHazardPools(delta);
+    }
+
+    // Decrement Dungeon Notification Timer
+    if (this.dungeonNotice) {
+      this.dungeonNotice.timer -= delta;
+      if (this.dungeonNotice.timer <= 0) {
+        this.dungeonNotice = null;
+      }
+    }
+
+    // Push live boss telemetry to game UI
+    if (this.onBossUpdate) {
+      this.onBossUpdate(this.activeBoss);
     }
 
     // Update Particles
@@ -408,18 +453,44 @@ export class ChronoKnightsEngine {
   }
 
   private checkZoneTransitions(): void {
+    const leader = this.players.find((p) => p.connected && !p.isDowned);
+    if (!leader) return;
+
     if (this.currentZone === 'oakhaven') {
-      // Check North Road gate: y < 640 && Math.abs(x - 1400) < 120
-      const leader = this.players.find((p) => p.connected && !p.isDowned);
-      if (leader && leader.y < 640 && Math.abs(leader.x - 1400) < 110) {
+      // North Road gate: y < 640 && Math.abs(x - 1400) < 110 -> Whispering Plains
+      if (leader.y < 640 && Math.abs(leader.x - 1400) < 110) {
         this.transitionToZone('whispering_plains', 1400, 560);
       }
     } else if (this.currentZone === 'whispering_plains') {
-      // Check South Road gate: y > 600 && Math.abs(x - 1400) < 120
-      const leader = this.players.find((p) => p.connected && !p.isDowned);
-      if (leader && leader.y > 610 && Math.abs(leader.x - 1400) < 110) {
+      // South Gate: y > 610 && Math.abs(x - 1400) < 110 -> Oakhaven Village
+      if (leader.y > 610 && Math.abs(leader.x - 1400) < 110) {
         this.transitionToZone('oakhaven', 1400, 720);
       }
+      // North Archway: y < 190 && Math.abs(x - 1400) < 110 -> The Forgotten Crypt
+      else if (leader.y < 190 && Math.abs(leader.x - 1400) < 110) {
+        this.transitionToZone('forgotten_crypt', 1400, 1520);
+      }
+      // East Chasm: x > 1840 && Math.abs(leader.y - 380) < 110 -> Arachnid Caverns
+      else if (leader.x > 1840 && Math.abs(leader.y - 380) < 110) {
+        this.transitionToZone('arachnid_caverns', 1400, 1520);
+      }
+    } else if (this.currentZone === 'forgotten_crypt') {
+      // South Archway: y > 1580 && Math.abs(x - 1400) < 110 -> Whispering Plains
+      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
+        this.transitionToZone('whispering_plains', 1400, 260);
+      }
+    } else if (this.currentZone === 'arachnid_caverns') {
+      // South Cavern Mouth: y > 1580 && Math.abs(x - 1400) < 110 -> Whispering Plains
+      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
+        this.transitionToZone('whispering_plains', 1780, 400);
+      }
+    }
+  }
+
+  public showDungeonNotice(title: string, subtitle: string, color: string = '#38BDF8'): void {
+    this.dungeonNotice = { title, subtitle, timer: 4.0, color };
+    if (this.onDungeonNotice) {
+      this.onDungeonNotice(title, subtitle, color);
     }
   }
 
@@ -443,9 +514,55 @@ export class ChronoKnightsEngine {
     this.camera.targetX = spawnX;
     this.camera.targetY = spawnY;
 
-    const zoneName =
-      zone === 'whispering_plains' ? 'WHISPERING PLAINS' : 'OAKHAVEN VILLAGE';
-    this.spawnFloatingText(spawnX, spawnY - 60, `ENTERING: ${zoneName}`, '#38BDF8');
+    this.enemies = [];
+    this.hazardPools = [];
+    this.activeBoss = null;
+
+    if (zone === 'oakhaven') {
+      this.showDungeonNotice('OAKHAVEN VILLAGE', 'Safe Haven // Fountain of Vitality', '#10B981');
+    } else if (zone === 'whispering_plains') {
+      this.spawnWildernessEnemies();
+      this.showDungeonNotice('WHISPERING PLAINS', 'Wild Beast Steppe // Path to Ancient Dungeons', '#F59E0B');
+    } else if (zone === 'forgotten_crypt') {
+      this.spawnCryptEnemies();
+      this.showDungeonNotice('THE FORGOTTEN CRYPT', 'Catacombs of Malakor // Dual Plates Seal the Gate', '#818CF8');
+    } else if (zone === 'arachnid_caverns') {
+      this.spawnCavernsEnemies();
+      this.showDungeonNotice('ARACHNID CAVERNS', 'Broodmother Nest // Ignite Braziers to Clear Web', '#34D399');
+    }
+  }
+
+  public spawnCryptEnemies(): void {
+    this.enemies = [
+      createEnemy('crypt-skel-1', 'skeleton_warrior', 1220, 1280),
+      createEnemy('crypt-skel-2', 'skeleton_warrior', 1580, 1280),
+      createEnemy('crypt-necro-1', 'crypt_necromancer', 1400, 1180),
+      createEnemy('crypt-wraith-1', 'tomb_wraith', 1150, 750),
+      createEnemy('crypt-wraith-2', 'tomb_wraith', 1650, 750),
+    ];
+
+    // Spawn Dungeon 1 Boss: Skeleton Warlord Malakor in Boss Chamber
+    const boss = createEnemy('boss-malakor', 'boss_malakor', 1400, 480);
+    this.enemies.push(boss);
+    this.activeBoss = boss;
+  }
+
+  public spawnCavernsEnemies(): void {
+    this.enemies = [
+      createEnemy('cav-spin-1', 'spider_spinner', 1220, 1300),
+      createEnemy('cav-spin-2', 'spider_spinner', 1580, 1300),
+      createEnemy('cav-spit-1', 'spider_spitter', 1200, 1150),
+      createEnemy('cav-spit-2', 'spider_spitter', 1600, 1150),
+      createEnemy('cav-hatch-1', 'spider_hatchling', 1350, 1200),
+      createEnemy('cav-hatch-2', 'spider_hatchling', 1450, 1200),
+      createEnemy('cav-hatch-3', 'spider_hatchling', 1300, 800),
+      createEnemy('cav-hatch-4', 'spider_hatchling', 1500, 800),
+    ];
+
+    // Spawn Dungeon 2 Boss: Broodmother Vespera in Nest Sanctum
+    const boss = createEnemy('boss-vespera', 'boss_vespera', 1400, 480);
+    this.enemies.push(boss);
+    this.activeBoss = boss;
   }
 
   private handlePlayerInput(
@@ -717,14 +834,21 @@ export class ChronoKnightsEngine {
       }
     }
 
-    // Hit test against enemies in Whispering Plains
-    if (this.currentZone === 'whispering_plains') {
+    // Hit test against enemies in Wilderness and Dungeons
+    if (this.currentZone !== 'oakhaven') {
       for (let i = this.enemies.length - 1; i >= 0; i--) {
         const enemy = this.enemies[i];
         if (enemy.hp <= 0) continue;
 
         const dist = Math.hypot(enemy.x - hitX, enemy.y - hitY);
         if (dist <= enemy.radius + reach * 0.55) {
+          if (enemy.isShielded) {
+            SoundFX.playShieldActivate();
+            this.spawnFloatingText(enemy.x, enemy.y - 25, 'TOMB SHIELD (IMMUNE)', '#A855F7');
+            this.spawnHitSparks(enemy.x, enemy.y, '#A855F7');
+            continue;
+          }
+
           const isCrit = Math.random() < classDef.critChance;
           const rawDmg = classDef.baseAtk * damageMultiplier * (isCrit ? 2.2 : 1.0);
           const dmg = Math.floor(rawDmg * (0.9 + Math.random() * 0.2));
@@ -744,6 +868,21 @@ export class ChronoKnightsEngine {
 
           if (enemy.hp <= 0) {
             this.handleEnemyDefeat(enemy, i);
+          }
+        }
+      }
+
+      // Check striking Web Wall in Arachnid Caverns
+      if (this.currentZone === 'arachnid_caverns' && !this.cavernsWebWall.isBurned) {
+        const wall = this.cavernsWebWall;
+        if (Math.abs(hitX - (wall.x + wall.width / 2)) < wall.width / 2 + 20 && Math.abs(hitY - wall.y) < wall.height + 25) {
+          wall.hp -= 45;
+          this.spawnHitSparks(hitX, hitY, '#10B981');
+          SoundFX.playHit();
+          if (wall.hp <= 0) {
+            wall.isBurned = true;
+            SoundFX.playExplosion();
+            this.showDungeonNotice('WEB BARRIER INCINERATED', 'The path to the Queen is open!', '#10B981');
           }
         }
       }
@@ -770,12 +909,17 @@ export class ChronoKnightsEngine {
       }
     }
 
-    if (this.currentZone === 'whispering_plains') {
+    if (this.currentZone !== 'oakhaven') {
       for (let i = this.enemies.length - 1; i >= 0; i--) {
         const enemy = this.enemies[i];
         if (enemy.hp <= 0) continue;
         const dist = Math.hypot(enemy.x - cx, enemy.y - cy);
         if (dist <= radius + enemy.radius) {
+          if (enemy.isShielded) {
+            this.spawnFloatingText(enemy.x, enemy.y - 25, 'TOMB SHIELD (IMMUNE)', '#A855F7');
+            continue;
+          }
+
           const dmg = Math.floor(baseDamage * (0.85 + Math.random() * 0.3));
           enemy.hp -= dmg;
           enemy.hurtTimer = 0.3;
@@ -792,7 +936,7 @@ export class ChronoKnightsEngine {
 
   private handleEnemyDefeat(enemy: EnemyEntity, index: number): void {
     SoundFX.playExplosion();
-    this.spawnAuraParticles(enemy.x, enemy.y, enemy.color, 30);
+    this.spawnAuraParticles(enemy.x, enemy.y, enemy.color, 35);
 
     // Gain Gold & EXP
     this.teamGold += enemy.goldValue;
@@ -825,12 +969,45 @@ export class ChronoKnightsEngine {
       this.notifyTeamStats();
     }
 
+    // Check Boss Defeat or Minion Defeat
+    if (enemy.isBoss) {
+      this.activeBoss = null;
+      SoundFX.playFanfare();
+      if (enemy.kind === 'boss_malakor') {
+        this.showDungeonNotice(
+          'MALAKOR VANQUISHED!',
+          'The Crypt Warlord falls! Unlock the Ancestral Greatsword from the Golden Chest.',
+          '#F59E0B'
+        );
+      } else if (enemy.kind === 'boss_vespera') {
+        this.showDungeonNotice(
+          'BROODMOTHER EXTERMINATED!',
+          'Queen Vespera is slain! Unlock the Venom Relic from the Golden Chest.',
+          '#10B981'
+        );
+      }
+    } else {
+      // Check if Malakor is shielded in this room and awaiting minion clears
+      const malakor = this.enemies.find((e) => e.kind === 'boss_malakor' && e.isShielded);
+      if (malakor && malakor.minionsRemaining !== undefined && malakor.minionsRemaining > 0) {
+        malakor.minionsRemaining -= 1;
+        this.spawnFloatingText(malakor.x, malakor.y - 35, `MINIONS LEFT: ${malakor.minionsRemaining}`, '#A855F7');
+        if (malakor.minionsRemaining <= 0) {
+          malakor.isShielded = false;
+          SoundFX.playExplosion();
+          this.showDungeonNotice('TOMB SHIELD SHATTERED!', 'Malakor aegis has shattered! Attack now!', '#38BDF8');
+          this.spawnAuraParticles(malakor.x, malakor.y, '#A855F7', 50);
+        }
+      }
+    }
+
     // Remove defeated enemy
     this.enemies.splice(index, 1);
 
-    // Respawn after delay if pool is depleted
-    if (this.enemies.length < 3) {
+    // Respawn after delay if pool is depleted in Whispering Plains
+    if (this.currentZone === 'whispering_plains' && this.enemies.length < 3) {
       setTimeout(() => {
+        if (this.currentZone !== 'whispering_plains') return;
         const kinds: EnemyKind[] = ['wolf', 'boar', 'bandit'];
         const randomKind = kinds[Math.floor(Math.random() * kinds.length)];
         const rx = 1100 + Math.random() * 600;
@@ -945,44 +1122,105 @@ export class ChronoKnightsEngine {
 
       let hit = false;
 
-      // Check hit against dummies in Oakhaven
-      if (this.currentZone === 'oakhaven') {
-        for (const d of this.dummies) {
-          const dist = Math.hypot(d.x - p.x, d.y - p.y);
-          if (dist <= d.radius + p.radius) {
+      // Hostile Enemy Projectile hitting players
+      if (p.ownerSlot === -1) {
+        for (const player of this.players) {
+          if (!player.connected || player.isDowned) continue;
+          const dist = Math.hypot(player.x - p.x, player.y - p.y);
+          if (dist <= 22 + p.radius) {
             hit = true;
-            d.hp = Math.max(0, d.hp - p.damage);
-            d.hurtTimer = 0.2;
-
-            this.spawnFloatingText(d.x, d.y - 20, `${Math.floor(p.damage)}`, p.color);
-            this.spawnHitSparks(d.x, d.y, p.color);
+            player.hp = Math.max(0, player.hp - p.damage);
+            this.spawnFloatingText(player.x, player.y - 25, `-${Math.floor(p.damage)}`, '#EF4444');
+            this.spawnHitSparks(player.x, player.y, '#EF4444');
             SoundFX.playHit();
-            if (!p.piercing) break;
+
+            if (p.element === 'poison') {
+              this.hazardPools.push({
+                id: `pool-${Date.now()}-${Math.random()}`,
+                x: p.x,
+                y: p.y,
+                radius: 42,
+                type: 'acid',
+                duration: 6,
+                maxDuration: 6,
+                damagePerSec: 16,
+                color: '#84CC16',
+              });
+            }
+
+            if (player.hp <= 0 && !player.isDowned) {
+              player.isDowned = true;
+              player.downedTimer = 25.0;
+              this.spawnFloatingText(player.x, player.y - 35, 'DOWNED!', '#EF4444');
+              SoundFX.playBargeBlast();
+            }
+            break;
           }
         }
-      }
+      } else {
+        // Player Projectile hitting Dummies in Oakhaven
+        if (this.currentZone === 'oakhaven') {
+          for (const d of this.dummies) {
+            const dist = Math.hypot(d.x - p.x, d.y - p.y);
+            if (dist <= d.radius + p.radius) {
+              hit = true;
+              d.hp = Math.max(0, d.hp - p.damage);
+              d.hurtTimer = 0.2;
 
-      // Check hit against enemies in Whispering Plains
-      if (this.currentZone === 'whispering_plains') {
-        for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
-          const enemy = this.enemies[eIdx];
-          if (enemy.hp <= 0) continue;
-
-          const dist = Math.hypot(enemy.x - p.x, enemy.y - p.y);
-          if (dist <= enemy.radius + p.radius) {
-            hit = true;
-            enemy.hp -= p.damage;
-            enemy.hurtTimer = 0.25;
-            enemy.state = 'hurt';
-
-            this.spawnFloatingText(enemy.x, enemy.y - 25, `${Math.floor(p.damage)}`, p.color);
-            this.spawnHitSparks(enemy.x, enemy.y, p.color);
-            SoundFX.playHit();
-
-            if (enemy.hp <= 0) {
-              this.handleEnemyDefeat(enemy, eIdx);
+              this.spawnFloatingText(d.x, d.y - 20, `${Math.floor(p.damage)}`, p.color);
+              this.spawnHitSparks(d.x, d.y, p.color);
+              SoundFX.playHit();
+              if (!p.piercing) break;
             }
-            if (!p.piercing) break;
+          }
+        }
+
+        // Player Projectile hitting Enemies (Whispering Plains & Dungeons)
+        if (this.currentZone !== 'oakhaven') {
+          for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
+            const enemy = this.enemies[eIdx];
+            if (enemy.hp <= 0) continue;
+
+            const dist = Math.hypot(enemy.x - p.x, enemy.y - p.y);
+            if (dist <= enemy.radius + p.radius) {
+              hit = true;
+
+              if (enemy.isShielded) {
+                SoundFX.playShieldActivate();
+                this.spawnFloatingText(enemy.x, enemy.y - 25, 'TOMB SHIELD (IMMUNE)', '#A855F7');
+                this.spawnHitSparks(enemy.x, enemy.y, '#A855F7');
+                break;
+              }
+
+              enemy.hp -= p.damage;
+              enemy.hurtTimer = 0.25;
+              enemy.state = 'hurt';
+
+              this.spawnFloatingText(enemy.x, enemy.y - 25, `${Math.floor(p.damage)}`, p.color);
+              this.spawnHitSparks(enemy.x, enemy.y, p.color);
+              SoundFX.playHit();
+
+              if (enemy.hp <= 0) {
+                this.handleEnemyDefeat(enemy, eIdx);
+              }
+              if (!p.piercing) break;
+            }
+          }
+
+          // Player Projectile hitting Web Wall in Arachnid Caverns
+          if (this.currentZone === 'arachnid_caverns' && !this.cavernsWebWall.isBurned) {
+            const wall = this.cavernsWebWall;
+            if (Math.abs(p.x - (wall.x + wall.width / 2)) < wall.width / 2 && Math.abs(p.y - wall.y) < wall.height) {
+              hit = true;
+              wall.hp -= p.element === 'fire' ? 70 : 30;
+              this.spawnHitSparks(p.x, p.y, '#10B981');
+              SoundFX.playHit();
+              if (wall.hp <= 0) {
+                wall.isBurned = true;
+                SoundFX.playExplosion();
+                this.showDungeonNotice('WEB BARRIER INCINERATED', 'The path to the Queen is open!', '#10B981');
+              }
+            }
           }
         }
       }
@@ -1033,9 +1271,34 @@ export class ChronoKnightsEngine {
 
       if (!nearestPlayer) continue;
 
+      // Handle Boss special behaviors & phases
+      if (enemy.isBoss) {
+        this.updateBossMechanics(enemy, nearestPlayer, delta);
+      }
+
+      // Handle Ranged attacks (Necromancer & Acid Spitter)
+      if (enemy.shootCooldown !== undefined) {
+        enemy.shootCooldown -= delta;
+        if (enemy.shootCooldown <= 0 && nearestDist < 360) {
+          enemy.shootCooldown = enemy.kind === 'crypt_necromancer' ? 2.5 : 2.2;
+          const angle = Math.atan2(nearestPlayer.y - enemy.y, nearestPlayer.x - enemy.x);
+          const isNecro = enemy.kind === 'crypt_necromancer';
+          this.fireEnemyProjectile(
+            enemy.x,
+            enemy.y,
+            angle,
+            isNecro ? 280 : 310,
+            isNecro ? 14 : 12,
+            isNecro ? 28 : 25,
+            isNecro ? '#8B5CF6' : '#84CC16',
+            enemy.kind === 'spider_spitter'
+          );
+        }
+      }
+
       // Aggro radius
-      const aggroRange = 280;
-      const attackRange = enemy.kind === 'boar' ? 85 : 45;
+      const aggroRange = enemy.isBoss ? 480 : 290;
+      const attackRange = enemy.isBoss ? 75 : enemy.kind === 'boar' ? 85 : 45;
 
       if (nearestDist <= aggroRange) {
         const dx = nearestPlayer.x - enemy.x;
@@ -1049,15 +1312,16 @@ export class ChronoKnightsEngine {
         if (nearestDist > attackRange) {
           // Chase state
           enemy.state = 'chase';
-          enemy.vx = normX * enemy.speed;
-          enemy.vy = normY * enemy.speed;
+          const curSpeed = enemy.enraged ? enemy.speed * 1.3 : enemy.speed;
+          enemy.vx = normX * curSpeed;
+          enemy.vy = normY * curSpeed;
         } else {
           // In attack range
           enemy.vx = 0;
           enemy.vy = 0;
 
           if (enemy.attackCooldown <= 0) {
-            enemy.attackCooldown = enemy.kind === 'boar' ? 2.2 : 1.4;
+            enemy.attackCooldown = enemy.isBoss ? 1.6 : enemy.kind === 'boar' ? 2.2 : 1.4;
             this.executeEnemyAttack(enemy, nearestPlayer);
           }
         }
@@ -1072,9 +1336,13 @@ export class ChronoKnightsEngine {
       enemy.x += enemy.vx * delta;
       enemy.y += enemy.vy * delta;
 
-      // Keep inside bounds
-      enemy.x = Math.max(900, Math.min(1900, enemy.x));
-      enemy.y = Math.max(120, Math.min(620, enemy.y));
+      // Keep inside bounds according to active zone
+      const minX = this.currentZone === 'whispering_plains' ? 900 : 1060;
+      const maxX = this.currentZone === 'whispering_plains' ? 1900 : 1740;
+      const minY = this.currentZone === 'whispering_plains' ? 120 : 380;
+      const maxY = this.currentZone === 'whispering_plains' ? 620 : 1540;
+      enemy.x = Math.max(minX, Math.min(maxX, enemy.x));
+      enemy.y = Math.max(minY, Math.min(maxY, enemy.y));
     }
   }
 
@@ -1085,6 +1353,13 @@ export class ChronoKnightsEngine {
 
     target.hp = Math.max(0, target.hp - actualDmg);
     SoundFX.playHit();
+
+    // Web Spinner slow debuff
+    if (enemy.kind === 'spider_spinner') {
+      target.vx *= 0.45;
+      target.vy *= 0.45;
+      this.spawnFloatingText(target.x, target.y - 15, 'SLOWED BY WEB', '#10B981');
+    }
 
     // Haptic feedback to the targeted player's mobile controller!
     const hpPct = Math.max(0, target.hp / target.maxHp);
@@ -1116,11 +1391,281 @@ export class ChronoKnightsEngine {
     player.x = Math.max(pad, Math.min(WORLD_BOUNDS.width - pad, player.x));
     player.y = Math.max(pad, Math.min(WORLD_BOUNDS.height - pad, player.y));
 
+    // Collision blocking for closed Portcullis in Forgotten Crypt
+    if (this.currentZone === 'forgotten_crypt' && this.cryptGate.openRatio < 0.85) {
+      if (player.y < 940 && player.y > 900 && player.x > 1240 && player.x < 1560) {
+        player.y = 940;
+      }
+    }
+
+    // Collision blocking for intact Web Wall in Arachnid Caverns
+    if (this.currentZone === 'arachnid_caverns' && !this.cavernsWebWall.isBurned) {
+      if (player.y < 980 && player.y > 940 && player.x > 1240 && player.x < 1560) {
+        player.y = 980;
+      }
+    }
+
     if (player.attackState.isAttacking) {
       player.attackState.timer += delta;
       if (player.attackState.timer >= player.attackState.duration) {
         player.attackState.isAttacking = false;
         player.attackState.hitboxActive = false;
+      }
+    }
+  }
+
+  private updateBossMechanics(boss: EnemyEntity, nearestPlayer: PlayerEntity, delta: number): void {
+    if (boss.specialTimer !== undefined) {
+      boss.specialTimer -= delta;
+    }
+
+    if (boss.kind === 'boss_malakor') {
+      // Phase 2 Transition: Tomb Shield & 4 Minions at 50% HP
+      if (boss.bossPhase === 1 && boss.hp <= boss.maxHp * 0.5) {
+        boss.bossPhase = 2;
+        boss.isShielded = true;
+        boss.x = 1400;
+        boss.y = 480;
+        boss.vx = 0;
+        boss.vy = 0;
+        SoundFX.playExplosion();
+        this.showDungeonNotice('TOMB AEGIS SHIELD ACTIVATED', 'Slay the 4 Necrotic Skeletons to shatter Malakor shield!', '#A855F7');
+        boss.minionsRemaining = 4;
+        this.enemies.push(
+          createEnemy(`skel-minion-1-${Date.now()}`, 'skeleton_warrior', 1300, 480),
+          createEnemy(`skel-minion-2-${Date.now()}`, 'skeleton_warrior', 1500, 480),
+          createEnemy(`skel-minion-3-${Date.now()}`, 'skeleton_warrior', 1400, 400),
+          createEnemy(`skel-minion-4-${Date.now()}`, 'skeleton_warrior', 1400, 560)
+        );
+      }
+
+      // Phase 3 Transition: Enraged Whirlwind at 25% HP
+      if (boss.bossPhase === 2 && !boss.isShielded && boss.hp <= boss.maxHp * 0.25) {
+        boss.bossPhase = 3;
+        boss.enraged = true;
+        boss.speed = 220;
+        this.showDungeonNotice('MALAKOR ENRAGED', 'The Warlord enters frantic berserk combat!', '#EF4444');
+      }
+
+      // Whirlwind Special Attack every 7s
+      if (boss.specialTimer !== undefined && boss.specialTimer <= 0 && !boss.isShielded) {
+        boss.specialTimer = 7.0;
+        boss.specialAttack = 'whirlwind';
+        SoundFX.playSwordSlash();
+        // AOE damage to players in 90px
+        for (const p of this.players) {
+          if (!p.connected || p.isDowned) continue;
+          if (Math.hypot(p.x - boss.x, p.y - boss.y) <= 90) {
+            p.hp = Math.max(0, p.hp - 45);
+            this.spawnFloatingText(p.x, p.y - 25, '-45 WHIRLWIND', '#EF4444');
+            this.spawnHitSparks(p.x, p.y, '#EF4444');
+          }
+        }
+      }
+    } else if (boss.kind === 'boss_vespera') {
+      // Phase 2 Transition: Ceiling Acid Rain at 50% HP
+      if (boss.bossPhase === 1 && boss.hp <= boss.maxHp * 0.5) {
+        boss.bossPhase = 2;
+        SoundFX.playExplosion();
+        this.showDungeonNotice('VESPERA RETREATS TO CEILING', 'Dodge falling venom pools and exterminate the brood swarm!', '#10B981');
+        // Spawn 3 acid pools
+        this.hazardPools.push(
+          { id: `acid-${Date.now()}-1`, x: 1300, y: 550, radius: 45, type: 'acid', duration: 7, maxDuration: 7, damagePerSec: 15, color: '#84CC16' },
+          { id: `acid-${Date.now()}-2`, x: 1500, y: 550, radius: 45, type: 'acid', duration: 7, maxDuration: 7, damagePerSec: 15, color: '#84CC16' },
+          { id: `acid-${Date.now()}-3`, x: 1400, y: 650, radius: 45, type: 'acid', duration: 7, maxDuration: 7, damagePerSec: 15, color: '#84CC16' }
+        );
+        // Spawn hatchlings
+        this.enemies.push(
+          createEnemy(`hatch-${Date.now()}-1`, 'spider_hatchling', 1320, 500),
+          createEnemy(`hatch-${Date.now()}-2`, 'spider_hatchling', 1480, 500),
+          createEnemy(`hatch-${Date.now()}-3`, 'spider_hatchling', 1350, 600),
+          createEnemy(`hatch-${Date.now()}-4`, 'spider_hatchling', 1450, 600)
+        );
+      }
+
+      // Phase 3 Transition: Enraged Frenzy at 25% HP
+      if (boss.bossPhase === 2 && boss.hp <= boss.maxHp * 0.25) {
+        boss.bossPhase = 3;
+        boss.enraged = true;
+        boss.speed = 240;
+        this.showDungeonNotice('QUEEN ENRAGED', 'Broodmother strikes with frantic venom surges!', '#EF4444');
+      }
+
+      // Acid Volley Special Attack every 6s
+      if (boss.specialTimer !== undefined && boss.specialTimer <= 0) {
+        boss.specialTimer = 6.0;
+        SoundFX.playRocketLaunch();
+        const baseAngle = Math.atan2(nearestPlayer.y - boss.y, nearestPlayer.x - boss.x);
+        for (let a = -1; a <= 1; a++) {
+          const angle = baseAngle + (a * Math.PI) / 6;
+          this.fireEnemyProjectile(boss.x, boss.y, angle, 330, 14, 30, '#84CC16', true);
+        }
+      }
+    }
+  }
+
+  private fireEnemyProjectile(
+    x: number,
+    y: number,
+    angle: number,
+    speed: number,
+    radius: number,
+    damage: number,
+    color: string,
+    isAcidGlob: boolean
+  ): void {
+    this.projectiles.push({
+      id: `proj-enemy-${Date.now()}-${Math.random()}`,
+      ownerSlot: -1,
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius,
+      damage,
+      element: isAcidGlob ? 'poison' : 'physical',
+      lifeTimer: 2.2,
+      piercing: false,
+      color,
+    });
+  }
+
+  private checkChestInteract(player: PlayerEntity): boolean {
+    if (this.currentZone === 'forgotten_crypt') {
+      const dist = Math.hypot(player.x - this.cryptChest.x, player.y - this.cryptChest.y);
+      if (dist <= 75 && !this.cryptChest.isOpen) {
+        this.cryptChest.isOpen = true;
+        SoundFX.playChestOpen();
+        this.teamGold += this.cryptChest.gold;
+        this.teamExp += this.cryptChest.exp;
+        for (const p of this.players) {
+          const def = HERO_CLASSES[p.classId];
+          def.baseAtk += this.cryptChest.bonusAtk;
+        }
+        this.spawnAuraParticles(this.cryptChest.x, this.cryptChest.y, '#F59E0B', 50);
+        this.showDungeonNotice(
+          'ANCESTRAL CHEST OPENED',
+          `+${this.cryptChest.gold}G, +${this.cryptChest.exp} EXP, Party +25 ATK!`,
+          '#F59E0B'
+        );
+        this.notifyTeamStats();
+        return true;
+      }
+    } else if (this.currentZone === 'arachnid_caverns') {
+      const dist = Math.hypot(player.x - this.cavernsChest.x, player.y - this.cavernsChest.y);
+      if (dist <= 75 && !this.cavernsChest.isOpen) {
+        this.cavernsChest.isOpen = true;
+        SoundFX.playChestOpen();
+        this.teamGold += this.cavernsChest.gold;
+        this.teamExp += this.cavernsChest.exp;
+        for (const p of this.players) {
+          const def = HERO_CLASSES[p.classId];
+          def.baseAtk += this.cavernsChest.bonusAtk;
+          p.maxHp += 60;
+          p.hp = p.maxHp;
+        }
+        this.spawnAuraParticles(this.cavernsChest.x, this.cavernsChest.y, '#10B981', 50);
+        this.showDungeonNotice(
+          'BROODMOTHER CHEST OPENED',
+          `+${this.cavernsChest.gold}G, +${this.cavernsChest.exp} EXP, Party +35 ATK!`,
+          '#10B981'
+        );
+        this.notifyTeamStats();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private updateDungeonPuzzles(delta: number): void {
+    if (this.currentZone === 'forgotten_crypt') {
+      // 1. Dual Pressure Plates
+      for (const plate of this.cryptPlates) {
+        const isOccupied = this.players.some(
+          (p) => p.connected && !p.isDowned && Math.hypot(p.x - plate.x, p.y - plate.y) < plate.radius + 15
+        );
+        plate.isPressed = isOccupied;
+      }
+
+      // If playing solo (only 1 player connected), one plate pressed activates the gate!
+      const activePlayersCount = this.players.filter((p) => p.connected).length;
+      const requiredPlatesPressed =
+        activePlayersCount <= 1
+          ? this.cryptPlates.some((p) => p.isPressed)
+          : this.cryptPlates.every((p) => p.isPressed);
+
+      if (requiredPlatesPressed && !this.cryptGate.isOpen) {
+        this.cryptGate.isOpen = true;
+        SoundFX.playGateClick();
+        this.showDungeonNotice('PORTCULLIS UNLOCKED', 'Dual runic plates activated! Inner sanctum gate has risen.', '#38BDF8');
+        this.spawnAuraParticles(this.cryptGate.x + 80, this.cryptGate.y, '#38BDF8', 40);
+      }
+
+      if (this.cryptGate.isOpen) {
+        this.cryptGate.openRatio = Math.min(1, this.cryptGate.openRatio + delta * 1.5);
+      }
+    } else if (this.currentZone === 'arachnid_caverns') {
+      // 2. Ancient Braziers & Web Wall
+      for (const brazier of this.cavernsBraziers) {
+        if (!brazier.isLit) {
+          const isNear = this.players.some(
+            (p) => p.connected && !p.isDowned && Math.hypot(p.x - brazier.x, p.y - brazier.y) < brazier.radius + 35
+          );
+          if (isNear) {
+            brazier.isLit = true;
+            SoundFX.playRocketLaunch();
+            this.spawnAuraParticles(brazier.x, brazier.y, '#10B981', 30);
+            this.spawnFloatingText(brazier.x, brazier.y - 25, 'BRAZIER IGNITED!', '#10B981');
+          }
+        }
+      }
+
+      const allLit = this.cavernsBraziers.every((b) => b.isLit);
+      if (allLit && !this.cavernsWebWall.isBurned) {
+        this.cavernsWebWall.hp -= delta * 90;
+        if (Math.random() < 0.3) {
+          this.spawnHitSparks(
+            this.cavernsWebWall.x + Math.random() * this.cavernsWebWall.width,
+            this.cavernsWebWall.y + Math.random() * this.cavernsWebWall.height,
+            '#10B981'
+          );
+        }
+        if (this.cavernsWebWall.hp <= 0) {
+          this.cavernsWebWall.isBurned = true;
+          SoundFX.playExplosion();
+          this.showDungeonNotice('WEB BARRIER INCINERATED', 'The toxic web has burned away! Broodmother Nest breached.', '#10B981');
+          this.spawnAuraParticles(this.cavernsWebWall.x + 80, this.cavernsWebWall.y, '#10B981', 50);
+        }
+      }
+    }
+  }
+
+  private updateHazardPools(delta: number): void {
+    for (let i = this.hazardPools.length - 1; i >= 0; i--) {
+      const pool = this.hazardPools[i];
+      pool.duration -= delta;
+
+      // Check player damage
+      for (const p of this.players) {
+        if (!p.connected || p.isDowned) continue;
+        const dist = Math.hypot(p.x - pool.x, p.y - pool.y);
+        if (dist <= pool.radius) {
+          const dmg = pool.damagePerSec * delta;
+          p.hp = Math.max(0, p.hp - dmg);
+          if (Math.random() < 0.08) {
+            this.spawnFloatingText(p.x, p.y - 20, '-12 ACID', '#84CC16');
+            SoundFX.playHit();
+          }
+          if (p.hp <= 0 && !p.isDowned) {
+            p.isDowned = true;
+            p.downedTimer = 25.0;
+            this.spawnFloatingText(p.x, p.y - 35, 'DOWNED BY ACID!', '#EF4444');
+          }
+        }
+      }
+
+      if (pool.duration <= 0) {
+        this.hazardPools.splice(i, 1);
       }
     }
   }
@@ -1260,9 +1805,21 @@ export class ChronoKnightsEngine {
       this.renderOakhavenScenery(ctx);
       this.renderDummies(ctx);
       this.renderNpcs(ctx);
-    } else {
+    } else if (this.currentZone === 'whispering_plains') {
       this.renderWhisperingPlainsGround(ctx);
       this.renderWhisperingPlainsScenery(ctx);
+      this.renderEnemies(ctx);
+    } else if (this.currentZone === 'forgotten_crypt') {
+      this.renderCryptGround(ctx);
+      this.renderCryptPuzzlesAndGates(ctx);
+      this.renderHazardPools(ctx);
+      this.renderDungeonChests(ctx);
+      this.renderEnemies(ctx);
+    } else if (this.currentZone === 'arachnid_caverns') {
+      this.renderCavernsGround(ctx);
+      this.renderCavernsPuzzlesAndGates(ctx);
+      this.renderHazardPools(ctx);
+      this.renderDungeonChests(ctx);
       this.renderEnemies(ctx);
     }
 
@@ -1279,6 +1836,11 @@ export class ChronoKnightsEngine {
     this.renderFloatingText(ctx);
 
     ctx.restore();
+
+    // 6. Screen-Space Overlay: Dungeon Notification Banner
+    if (this.dungeonNotice && this.dungeonNotice.timer > 0) {
+      this.renderDungeonNoticeBanner(ctx, canvas.width, canvas.height);
+    }
   }
 
   private renderOakhavenGround(ctx: CanvasRenderingContext2D): void {
@@ -1484,9 +2046,10 @@ export class ChronoKnightsEngine {
       ctx.stroke();
     }
 
-    // Dirt trail from south gate to ancient ruins
+    // Dirt trail from south gate to northern archways
     ctx.fillStyle = '#292524';
     ctx.fillRect(cx - 40, 100, 80, 560);
+    ctx.fillRect(cx, 340, 600, 60);
 
     // South Exit Gate (Back to Village)
     ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
@@ -1494,11 +2057,30 @@ export class ChronoKnightsEngine {
     ctx.strokeStyle = '#10B981';
     ctx.lineWidth = 2;
     ctx.strokeRect(cx - 75, 590, 150, 45);
-
     ctx.fillStyle = '#6EE7B7';
     ctx.font = '700 11px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('▼ SOUTH GATE: OAKHAVEN VILLAGE ▼', cx, 615);
+
+    // North Gate: The Forgotten Crypt
+    ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+    ctx.fillRect(cx - 85, 115, 170, 45);
+    ctx.strokeStyle = '#6366F1';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 85, 115, 170, 45);
+    ctx.fillStyle = '#A5B4FC';
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.fillText('▲ NORTH GATE: THE FORGOTTEN CRYPT ▲', cx, 140);
+
+    // East Gate: Arachnid Caverns
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+    ctx.fillRect(1820, 310, 45, 140);
+    ctx.strokeStyle = '#10B981';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1820, 310, 45, 140);
+    ctx.fillStyle = '#6EE7B7';
+    ctx.font = '700 10px "JetBrains Mono", monospace';
+    ctx.fillText('▶ ARACHNID CAVERNS ▶', 1842, 385);
   }
 
   private renderWhisperingPlainsScenery(ctx: CanvasRenderingContext2D): void {
@@ -1525,6 +2107,350 @@ export class ChronoKnightsEngine {
     }
   }
 
+  // -----------------------------------------------------------------
+  // DUNGEON 1 RENDERING: THE FORGOTTEN CRYPT
+  // -----------------------------------------------------------------
+  private renderCryptGround(ctx: CanvasRenderingContext2D): void {
+    const cx = 1400;
+
+    // Dark gothic tomb flagstone floor
+    ctx.fillStyle = '#0F1117';
+    ctx.fillRect(960, 260, 880, 1400);
+
+    ctx.strokeStyle = 'rgba(99, 102, 241, 0.07)';
+    ctx.lineWidth = 1;
+    const tileSize = 64;
+    for (let x = 960; x <= 1840; x += tileSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 260);
+      ctx.lineTo(x, 1660);
+      ctx.stroke();
+    }
+    for (let y = 260; y <= 1660; y += tileSize) {
+      ctx.beginPath();
+      ctx.moveTo(960, y);
+      ctx.lineTo(1840, y);
+      ctx.stroke();
+    }
+
+    // Outer stone tomb walls
+    ctx.fillStyle = '#1E1B2E';
+    ctx.fillRect(920, 220, 40, 1480);
+    ctx.fillRect(1840, 220, 40, 1480);
+    ctx.fillRect(920, 220, 960, 40);
+
+    // Crypt Obstacles & Sarcophagi
+    for (const obs of CRYPT_OBSTACLES) {
+      ctx.fillStyle = '#262338';
+      ctx.beginPath();
+      ctx.roundRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#4338CA';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      if (obs.label) {
+        ctx.fillStyle = '#A5B4FC';
+        ctx.font = '700 9px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(obs.label, obs.x, obs.y + 3);
+      }
+    }
+
+    // South Exit Gate (Back to Plains)
+    ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+    ctx.fillRect(cx - 85, 1610, 170, 45);
+    ctx.strokeStyle = '#6366F1';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 85, 1610, 170, 45);
+    ctx.fillStyle = '#C7D2FE';
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('▼ SOUTH ARCHWAY: WHISPERING PLAINS ▼', cx, 1635);
+  }
+
+  private renderCryptPuzzlesAndGates(ctx: CanvasRenderingContext2D): void {
+    // 1. Dual Pressure Plates
+    for (let i = 0; i < this.cryptPlates.length; i++) {
+      const plate = this.cryptPlates[i];
+      const isPressed = plate.isPressed;
+
+      // Base Disk
+      ctx.fillStyle = isPressed ? '#1E3A8A' : '#1E293B';
+      ctx.beginPath();
+      ctx.arc(plate.x, plate.y, plate.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = isPressed ? '#38BDF8' : '#475569';
+      ctx.lineWidth = isPressed ? 3 : 2;
+      if (isPressed) {
+        ctx.shadowColor = '#38BDF8';
+        ctx.shadowBlur = 15;
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Inner Runic Glyph
+      ctx.strokeStyle = isPressed ? '#E0F2FE' : '#64748B';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(plate.x, plate.y, plate.radius * 0.55, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = isPressed ? '#38BDF8' : '#94A3B8';
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`PLATE ${i === 0 ? 'I' : 'II'}: ${isPressed ? 'ACTIVE' : 'STAND HERE'}`, plate.x, plate.y - plate.radius - 8);
+    }
+
+    // 2. Iron Portcullis
+    const gate = this.cryptGate;
+    const gateOpen = gate.openRatio >= 0.85;
+    const h = gate.height * (1 - gate.openRatio * 0.9);
+
+    ctx.fillStyle = gateOpen ? 'rgba(56, 189, 248, 0.15)' : 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(gate.x, gate.y, gate.width, h);
+
+    // Vertical Iron Bars
+    ctx.strokeStyle = gateOpen ? '#38BDF8' : '#94A3B8';
+    ctx.lineWidth = 3;
+    const barCount = 8;
+    for (let b = 1; b <= barCount; b++) {
+      const bx = gate.x + (gate.width / (barCount + 1)) * b;
+      ctx.beginPath();
+      ctx.moveTo(bx, gate.y);
+      ctx.lineTo(bx, gate.y + h);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = gateOpen ? '#38BDF8' : '#CBD5E1';
+    ctx.font = '700 10px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      gateOpen ? '▼ INNER SANCTUM UNSEALED ▼' : '▲ SEALED PORTCULLIS // DUAL PLATES REQUIRED ▲',
+      gate.x + gate.width / 2,
+      gate.y - 12
+    );
+  }
+
+  // -----------------------------------------------------------------
+  // DUNGEON 2 RENDERING: ARACHNID CAVERNS
+  // -----------------------------------------------------------------
+  private renderCavernsGround(ctx: CanvasRenderingContext2D): void {
+    const cx = 1400;
+
+    // Dark venomous cave rock
+    ctx.fillStyle = '#091510';
+    ctx.fillRect(960, 260, 880, 1400);
+
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.06)';
+    ctx.lineWidth = 1;
+    const tileSize = 64;
+    for (let x = 960; x <= 1840; x += tileSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 260);
+      ctx.lineTo(x, 1660);
+      ctx.stroke();
+    }
+    for (let y = 260; y <= 1660; y += tileSize) {
+      ctx.beginPath();
+      ctx.moveTo(960, y);
+      ctx.lineTo(1840, y);
+      ctx.stroke();
+    }
+
+    // Cavern Obstacles
+    for (const obs of CAVERNS_OBSTACLES) {
+      ctx.fillStyle = '#14291F';
+      ctx.beginPath();
+      ctx.roundRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height, 12);
+      ctx.fill();
+      ctx.strokeStyle = '#059669';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      if (obs.label) {
+        ctx.fillStyle = '#6EE7B7';
+        ctx.font = '700 9px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(obs.label, obs.x, obs.y + 3);
+      }
+    }
+
+    // South Cavern Mouth (Back to Plains)
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+    ctx.fillRect(cx - 85, 1610, 170, 45);
+    ctx.strokeStyle = '#10B981';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 85, 1610, 170, 45);
+    ctx.fillStyle = '#A7F3D0';
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('▼ CAVERN MOUTH: WHISPERING PLAINS ▼', cx, 1635);
+  }
+
+  private renderCavernsPuzzlesAndGates(ctx: CanvasRenderingContext2D): void {
+    // 1. Ancient Braziers
+    for (let i = 0; i < this.cavernsBraziers.length; i++) {
+      const brazier = this.cavernsBraziers[i];
+
+      // Stone Pedestal
+      ctx.fillStyle = '#1F2937';
+      ctx.beginPath();
+      ctx.arc(brazier.x, brazier.y, brazier.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = brazier.isLit ? '#10B981' : '#4B5563';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Flame
+      if (brazier.isLit) {
+        ctx.fillStyle = '#34D399';
+        ctx.shadowColor = '#10B981';
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.arc(brazier.x, brazier.y - 4, brazier.radius * 0.65, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.fillStyle = brazier.isLit ? '#34D399' : '#9CA3AF';
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        brazier.isLit ? '🔥 BRAZIER IGNITED' : 'UNLIT BRAZIER [WALK/STRIKE]',
+        brazier.x,
+        brazier.y - brazier.radius - 8
+      );
+    }
+
+    // 2. Web Wall
+    const wall = this.cavernsWebWall;
+    if (!wall.isBurned) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+
+      // Web Strands
+      ctx.strokeStyle = 'rgba(167, 243, 208, 0.7)';
+      ctx.lineWidth = 2;
+      for (let s = 0; s < 7; s++) {
+        ctx.beginPath();
+        ctx.moveTo(wall.x + s * 25, wall.y);
+        ctx.lineTo(wall.x + wall.width - s * 25, wall.y + wall.height);
+        ctx.stroke();
+      }
+
+      // Web HP Bar
+      const hpPct = Math.max(0, wall.hp / wall.maxHp);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(wall.x + 20, wall.y - 14, wall.width - 40, 5);
+      ctx.fillStyle = '#10B981';
+      ctx.fillRect(wall.x + 20, wall.y - 14, (wall.width - 40) * hpPct, 5);
+
+      ctx.fillStyle = '#A7F3D0';
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TOXIC WEB BARRIER (IGNITE BRAZIERS TO BURN)', wall.x + wall.width / 2, wall.y - 20);
+    } else {
+      ctx.fillStyle = '#34D399';
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▼ WEB BARRIER BURNED // NEST BREACHED ▼', wall.x + wall.width / 2, wall.y + 20);
+    }
+  }
+
+  // -----------------------------------------------------------------
+  // HAZARD POOLS & DUNGEON CHESTS
+  // -----------------------------------------------------------------
+  private renderHazardPools(ctx: CanvasRenderingContext2D): void {
+    for (const pool of this.hazardPools) {
+      const alpha = Math.min(0.65, pool.duration / 2);
+      ctx.fillStyle = `rgba(132, 204, 22, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(pool.x, pool.y, pool.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#84CC16';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(pool.x, pool.y, pool.radius * 0.7, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  private renderDungeonChests(ctx: CanvasRenderingContext2D): void {
+    const chest = this.currentZone === 'forgotten_crypt' ? this.cryptChest : this.cavernsChest;
+    if (!chest) return;
+
+    // Glowing Platform
+    ctx.fillStyle = chest.isOpen ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.3)';
+    ctx.beginPath();
+    ctx.arc(chest.x, chest.y + 12, 34, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chest Box
+    ctx.fillStyle = '#B45309';
+    ctx.fillRect(chest.x - 22, chest.y - 16, 44, 32);
+
+    // Gold Banding
+    ctx.fillStyle = '#F59E0B';
+    ctx.fillRect(chest.x - 24, chest.y - 18, 48, 6);
+    ctx.fillRect(chest.x - 4, chest.y - 18, 8, 34);
+
+    // Lock / Gem
+    ctx.fillStyle = chest.isOpen ? '#10B981' : '#FCD34D';
+    ctx.beginPath();
+    ctx.arc(chest.x, chest.y - 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '700 10px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    if (!chest.isOpen) {
+      ctx.fillStyle = '#FBBF24';
+      ctx.fillText('ANCIENT GOLDEN CHEST', chest.x, chest.y - 30);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('[A] OPEN CHEST', chest.x, chest.y - 44);
+    } else {
+      ctx.fillStyle = '#10B981';
+      ctx.fillText(`OPENED: ${chest.relicName}`, chest.x, chest.y - 28);
+    }
+  }
+
+  private renderDungeonNoticeBanner(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    _height: number
+  ): void {
+    if (!this.dungeonNotice) return;
+    const { title, subtitle, color } = this.dungeonNotice;
+
+    ctx.save();
+    const bx = width / 2;
+    const by = 80;
+
+    // Background Pill
+    ctx.fillStyle = 'rgba(15, 17, 23, 0.94)';
+    ctx.beginPath();
+    ctx.roundRect(bx - 260, by - 24, 520, 56, 16);
+    ctx.fill();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Text
+    ctx.textAlign = 'center';
+    ctx.font = '700 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = color;
+    ctx.fillText(title, bx, by - 2);
+
+    ctx.font = '500 10px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#E2E8F0';
+    ctx.fillText(subtitle, bx, by + 18);
+
+    ctx.restore();
+  }
+
   private renderEnemies(ctx: CanvasRenderingContext2D): void {
     for (const enemy of this.enemies) {
       if (enemy.hp <= 0) continue;
@@ -1534,6 +2460,35 @@ export class ChronoKnightsEngine {
       ctx.beginPath();
       ctx.ellipse(enemy.x, enemy.y + 10, enemy.radius, 6, 0, 0, Math.PI * 2);
       ctx.fill();
+
+      // Boss Glow Aura
+      if (enemy.isBoss) {
+        ctx.fillStyle = enemy.enraged ? 'rgba(239, 68, 68, 0.25)' : 'rgba(168, 85, 247, 0.2)';
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y - 6, enemy.radius + 18, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Shield Aegis Barrier
+      if (enemy.isShielded) {
+        ctx.strokeStyle = '#A855F7';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#A855F7';
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y - 6, enemy.radius + 14, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Whirlwind attack effect for Malakor
+      if (enemy.specialAttack === 'whirlwind') {
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y - 6, 75, 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
       // Enemy Body
       ctx.fillStyle = enemy.hurtTimer > 0 ? '#FFFFFF' : enemy.color;
@@ -1546,7 +2501,7 @@ export class ChronoKnightsEngine {
       ctx.stroke();
 
       // Eyes
-      ctx.fillStyle = '#EF4444';
+      ctx.fillStyle = enemy.enraged ? '#F59E0B' : '#EF4444';
       ctx.beginPath();
       const eyeOffset = enemy.facing === 'left' ? -6 : enemy.facing === 'right' ? 6 : 0;
       ctx.arc(enemy.x + eyeOffset - 3, enemy.y - 8, 2.5, 0, Math.PI * 2);
@@ -1554,23 +2509,23 @@ export class ChronoKnightsEngine {
       ctx.fill();
 
       // Health Bar
-      const bw = 38;
-      const bh = 4;
+      const bw = enemy.isBoss ? 80 : 38;
+      const bh = enemy.isBoss ? 6 : 4;
       const bx = enemy.x - bw / 2;
-      const by = enemy.y - enemy.radius - 14;
+      const by = enemy.y - enemy.radius - (enemy.isBoss ? 20 : 14);
       const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
 
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
       ctx.fillRect(bx, by, bw, bh);
 
-      ctx.fillStyle = '#EF4444';
+      ctx.fillStyle = enemy.isBoss ? (enemy.enraged ? '#EF4444' : '#A855F7') : '#EF4444';
       ctx.fillRect(bx, by, bw * hpPct, bh);
 
-      // Name
-      ctx.font = '600 8px "JetBrains Mono", monospace';
-      ctx.fillStyle = '#CBD5E1';
+      // Name & Boss Title
+      ctx.font = enemy.isBoss ? '700 10px "JetBrains Mono", monospace' : '600 8px "JetBrains Mono", monospace';
+      ctx.fillStyle = enemy.isBoss ? '#FBBF24' : '#CBD5E1';
       ctx.textAlign = 'center';
-      ctx.fillText(enemy.name, enemy.x, by - 3);
+      ctx.fillText(enemy.name, enemy.x, by - 4);
     }
   }
 

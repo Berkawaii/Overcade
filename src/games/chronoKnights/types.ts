@@ -147,3 +147,75 @@ export interface LobbySlotState {
   classId: HeroClassId;
   isReady: boolean;
 }
+
+export type WorldZone =
+  | 'oakhaven'
+  | 'whispering_plains'
+  | 'forgotten_crypt'
+  | 'arachnid_caverns'
+  | 'aethelgard'
+  | 'molten_forge'
+  | 'citadel_of_shadows';
+
+export interface HazardPool {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  type: 'acid' | 'fire' | 'void';
+  duration: number;
+  maxDuration: number;
+  damagePerSec: number;
+  color: string;
+}
+
+export interface PressurePlate {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  isPressed: boolean;
+  color: string;
+  label: string;
+}
+
+export interface PortcullisGate {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isOpen: boolean;
+  openRatio: number;
+}
+
+export interface BrazierTorch {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  isLit: boolean;
+}
+
+export interface WebWall {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  hp: number;
+  maxHp: number;
+  isBurned: boolean;
+}
+
+export interface DungeonChest {
+  id: string;
+  x: number;
+  y: number;
+  isOpen: boolean;
+  relicName: string;
+  relicBonus: string;
+  bonusAtk: number;
+  gold: number;
+  exp: number;
+}

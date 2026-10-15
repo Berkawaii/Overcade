@@ -1,3 +1,5 @@
+import type { WorldZone } from './types';
+
 export interface NpcEntity {
   id: string;
   name: string;
@@ -29,7 +31,7 @@ export interface ZoneBoundary {
   y: number;
   width: number;
   height: number;
-  targetZone: 'oakhaven' | 'whispering_plains';
+  targetZone: WorldZone;
   spawnX: number;
   spawnY: number;
 }
@@ -178,5 +180,53 @@ export const ZONE_GATES: ZoneBoundary[] = [
     targetZone: 'oakhaven',
     spawnX: 1400,
     spawnY: 720,
+  },
+  // North Gate in Whispering Plains -> The Forgotten Crypt
+  {
+    id: 'gate-to-crypt',
+    name: 'Archway to The Forgotten Crypt',
+    x: 1340,
+    y: 180,
+    width: 120,
+    height: 40,
+    targetZone: 'forgotten_crypt',
+    spawnX: 1400,
+    spawnY: 1520,
+  },
+  // South Gate in The Forgotten Crypt -> Whispering Plains
+  {
+    id: 'gate-crypt-exit',
+    name: 'Exit Archway to Whispering Plains',
+    x: 1340,
+    y: 1620,
+    width: 120,
+    height: 40,
+    targetZone: 'whispering_plains',
+    spawnX: 1400,
+    spawnY: 260,
+  },
+  // East Gate in Whispering Plains -> Arachnid Caverns
+  {
+    id: 'gate-to-caverns',
+    name: 'Chasm Path to Arachnid Caverns',
+    x: 1860,
+    y: 360,
+    width: 40,
+    height: 120,
+    targetZone: 'arachnid_caverns',
+    spawnX: 1400,
+    spawnY: 1520,
+  },
+  // South Gate in Arachnid Caverns -> Whispering Plains
+  {
+    id: 'gate-caverns-exit',
+    name: 'Cavern Mouth to Whispering Plains',
+    x: 1340,
+    y: 1620,
+    width: 120,
+    height: 40,
+    targetZone: 'whispering_plains',
+    spawnX: 1800,
+    spawnY: 420,
   },
 ];

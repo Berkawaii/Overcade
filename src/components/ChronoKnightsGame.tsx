@@ -51,6 +51,7 @@ import { ChronoKnightsEngine, type WorldZone } from '../games/chronoKnights/Chro
 import { CLASS_LIST, HERO_CLASSES, SLOT_THEMES } from '../games/chronoKnights/constants';
 import type { HeroClassId, PlayerEntity } from '../games/chronoKnights/types';
 import type { NpcEntity } from '../games/chronoKnights/WorldData';
+import type { EnemyEntity } from '../games/chronoKnights/EnemyData';
 
 interface ChronoKnightsGameProps {
   onExitGame: () => void;
@@ -74,8 +75,9 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
   const [readySlots, setReadySlots] = useState<boolean[]>([false, false, false, false]);
   const [playersState, setPlayersState] = useState<PlayerEntity[]>([]);
 
-  // Phase 2: World, Dialogue & Quest States
+  // Phase 2 & 3: World, Dialogue, Quest & Boss States
   const [activeNpc, setActiveNpc] = useState<NpcEntity | null>(null);
+  const [activeBoss, setActiveBoss] = useState<EnemyEntity | null>(null);
   const [currentZone, setCurrentZone] = useState<WorldZone>('oakhaven');
   const [questKills, setQuestKills] = useState(0);
   const [questGoal, setQuestGoal] = useState(5);
@@ -116,6 +118,10 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
       setTeamExp(exp);
       setTeamLevel(level);
       setExpToNext(toNext);
+    };
+
+    engine.onBossUpdate = (boss) => {
+      setActiveBoss(boss ? { ...boss } : null);
     };
 
     if (canvasRef.current) {
@@ -587,38 +593,110 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
       {phase === 'world' && (
         <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-4">
           {/* Top Quest & Zone Status Bar */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <div className="px-3.5 py-1.5 rounded-full bg-black/70 border border-white/10 backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
-              <span className="text-white/50">ZONE:</span>
-              <span className={`font-bold ${currentZone === 'oakhaven' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {currentZone === 'oakhaven' ? 'OAKHAVEN VILLAGE (SAFE HUB)' : 'WHISPERING PLAINS (BEAST WILDS)'}
-              </span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <div className="px-3.5 py-1.5 rounded-full bg-black/70 border border-white/10 backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
+                <span className="text-white/50">ZONE:</span>
+                <span
+                  className={`font-bold ${
+                    currentZone === 'oakhaven'
+                      ? 'text-emerald-400'
+                      : currentZone === 'whispering_plains'
+                      ? 'text-amber-400'
+                      : currentZone === 'forgotten_crypt'
+                      ? 'text-indigo-400'
+                      : 'text-emerald-300'
+                  }`}
+                >
+                  {currentZone === 'oakhaven'
+                    ? 'OAKHAVEN VILLAGE (SAFE HUB)'
+                    : currentZone === 'whispering_plains'
+                    ? 'WHISPERING PLAINS (BEAST WILDS)'
+                    : currentZone === 'forgotten_crypt'
+                    ? 'THE FORGOTTEN CRYPT (DUNGEON 1)'
+                    : 'ARACHNID CAVERNS (DUNGEON 2)'}
+                </span>
+              </div>
+
+              <div
+                className={`px-4 py-1.5 rounded-full border backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto ${
+                  questDone
+                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 animate-pulse'
+                    : 'bg-black/70 border-white/10 text-white/90'
+                }`}
+              >
+                <Scroll size={14} className={questDone ? 'text-emerald-400' : 'text-blue-400'} />
+                <span>
+                  {questDone
+                    ? 'QUEST COMPLETE: RETURN TO ELDER ELDRIN!'
+                    : `QUEST: SLAY 5 BEASTS [${questKills} / ${questGoal}]`}
+                </span>
+              </div>
+
+              <div className="px-3.5 py-1.5 rounded-full bg-black/70 border border-white/10 backdrop-blur-md flex items-center gap-3 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
+                <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                  <Coins size={14} weight="fill" />
+                  <span>{teamGold} G</span>
+                </div>
+                <span className="text-white/30">•</span>
+                <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+                  <span>LV {teamLevel}</span>
+                  <span className="text-white/50 text-[10px]">
+                    ({teamExp}/{expToNext} EXP)
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className={`px-4 py-1.5 rounded-full border backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto ${
-              questDone
-                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 animate-pulse'
-                : 'bg-black/70 border-white/10 text-white/90'
-            }`}>
-              <Scroll size={14} className={questDone ? 'text-emerald-400' : 'text-blue-400'} />
-              <span>
-                {questDone
-                  ? 'QUEST COMPLETE: RETURN TO ELDER ELDRIN!'
-                  : `QUEST: SLAY 5 BEASTS [${questKills} / ${questGoal}]`}
-              </span>
-            </div>
-
-            <div className="px-3.5 py-1.5 rounded-full bg-black/70 border border-white/10 backdrop-blur-md flex items-center gap-3 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
-              <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-                <Coins size={14} weight="fill" />
-                <span>{teamGold} G</span>
+            {/* Elite Boss Health Bar */}
+            {activeBoss && (
+              <div className="w-full max-w-xl mx-auto p-3 rounded-2xl bg-[#09090D]/90 border border-red-500/40 backdrop-blur-xl shadow-2xl flex flex-col gap-1.5 animate-fade-in pointer-events-auto">
+                <div className="flex items-center justify-between text-xs font-['JetBrains_Mono']">
+                  <div className="flex items-center gap-2">
+                    <Skull size={18} weight="fill" className="text-red-500 animate-pulse" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-white tracking-wide">{activeBoss.name}</span>
+                      {activeBoss.bossTitle && (
+                        <span className="text-[9px] text-white/50">{activeBoss.bossTitle}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {activeBoss.isShielded && (
+                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/50 text-purple-300 text-[10px] font-bold animate-pulse">
+                        TOMB SHIELD
+                      </span>
+                    )}
+                    {activeBoss.enraged && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/50 text-red-400 text-[10px] font-bold animate-pulse">
+                        ENRAGED
+                      </span>
+                    )}
+                    <span className="text-[11px] font-bold text-white/80">
+                      <span className="text-red-400">{Math.floor(activeBoss.hp)}</span> /{' '}
+                      {activeBoss.maxHp} HP
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full h-2.5 bg-black/60 rounded-full overflow-hidden border border-white/10 p-0.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-150 ${
+                      activeBoss.isShielded
+                        ? 'bg-gradient-to-r from-purple-600 via-indigo-500 to-purple-400'
+                        : activeBoss.enraged
+                        ? 'bg-gradient-to-r from-red-600 via-amber-500 to-red-500'
+                        : 'bg-gradient-to-r from-red-600 to-orange-500'
+                    }`}
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(100, (activeBoss.hp / activeBoss.maxHp) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
               </div>
-              <span className="text-white/30">•</span>
-              <div className="flex items-center gap-1.5 text-blue-400 font-bold">
-                <span>LV {teamLevel}</span>
-                <span className="text-white/50 text-[10px]">({teamExp}/{expToNext} EXP)</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Center/Bottom Area: NPC Dialogue Modal & Player Pods */}
