@@ -219,3 +219,44 @@ export interface DungeonChest {
   gold: number;
   exp: number;
 }
+
+export interface SteamValve {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  isTurned: boolean;
+  label: string;
+}
+
+export interface MagmaBridge {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isRaised: boolean;
+  raiseRatio: number;
+}
+
+export interface AstralSealPillar {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  rune: 'sun' | 'moon' | 'star' | 'void';
+  isActivated: boolean;
+  color: string;
+  label: string;
+}
+
+export interface VoidThroneGate {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isOpen: boolean;
+  openRatio: number;
+}
+

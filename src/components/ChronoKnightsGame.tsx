@@ -86,6 +86,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
   const [teamExp, setTeamExp] = useState(0);
   const [teamLevel, setTeamLevel] = useState(1);
   const [expToNext, setExpToNext] = useState(100);
+  const [showVictoryModal, setShowVictoryModal] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<ChronoKnightsEngine | null>(null);
@@ -124,9 +125,14 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
       setActiveBoss(boss ? { ...boss } : null);
     };
 
+    engine.onGameVictory = () => {
+      setShowVictoryModal(true);
+    };
+
     if (canvasRef.current) {
       engine.start(canvasRef.current);
     }
+
 
     return () => {
       engine.stop();
@@ -605,7 +611,13 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       ? 'text-amber-400'
                       : currentZone === 'forgotten_crypt'
                       ? 'text-indigo-400'
-                      : 'text-emerald-300'
+                      : currentZone === 'arachnid_caverns'
+                      ? 'text-emerald-300'
+                      : currentZone === 'aethelgard'
+                      ? 'text-blue-400'
+                      : currentZone === 'molten_forge'
+                      ? 'text-orange-400'
+                      : 'text-purple-400'
                   }`}
                 >
                   {currentZone === 'oakhaven'
@@ -614,9 +626,16 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                     ? 'WHISPERING PLAINS (BEAST WILDS)'
                     : currentZone === 'forgotten_crypt'
                     ? 'THE FORGOTTEN CRYPT (DUNGEON 1)'
-                    : 'ARACHNID CAVERNS (DUNGEON 2)'}
+                    : currentZone === 'arachnid_caverns'
+                    ? 'ARACHNID CAVERNS (DUNGEON 2)'
+                    : currentZone === 'aethelgard'
+                    ? 'ROYAL CAPITAL AETHELGARD'
+                    : currentZone === 'molten_forge'
+                    ? 'THE MOLTEN FORGE (DUNGEON 3)'
+                    : 'THE CITADEL OF SHADOWS (ENDGAME RAID)'}
                 </span>
               </div>
+
 
               <div
                 className={`px-4 py-1.5 rounded-full border backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto ${
@@ -747,6 +766,26 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                         <span>RESTORE FULL PARTY (100% HP/MP) [50G]</span>
                       </button>
                     )}
+
+                    {activeNpc.role === 'bazaar' && (
+                      <button
+                        onClick={() => engineRef.current?.buyBazaarArmor()}
+                        className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
+                      >
+                        <ShieldStar size={16} />
+                        <span>FORTIFY IMPERIAL ARMOR (+100 HP, +15 DEF) [200G]</span>
+                      </button>
+                    )}
+
+                    {activeNpc.role === 'sorcerer' && (
+                      <button
+                        onClick={() => engineRef.current?.buyAstralInfusion()}
+                        className="px-3.5 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
+                      >
+                        <Sparkle size={16} />
+                        <span>ASTRAL INFUSION (+100 MP & FULL RESTORE) [150G]</span>
+                      </button>
+                    )}
                   </div>
 
                   <button
@@ -758,6 +797,83 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Endgame Victory Screen Modal */}
+            {showVictoryModal && (
+              <div className="w-full max-w-3xl mb-4 p-6 rounded-3xl bg-[#090014]/95 border-2 border-purple-500/60 backdrop-blur-2xl shadow-[0_0_80px_rgba(168,85,247,0.35)] flex flex-col items-center gap-5 pointer-events-auto animate-fade-in text-center">
+                <div className="flex items-center gap-3">
+                  <Crown size={36} weight="fill" className="text-amber-400 animate-bounce" />
+                  <div>
+                    <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-purple-300 to-indigo-400 tracking-wider">
+                      REALM RESTORED // CHRONO KNIGHTS VICTORIOUS
+                    </h2>
+                    <p className="text-xs text-white/60 font-['JetBrains_Mono']">
+                      The Cosmic Void is shattered. Dark Sovereign Malakor has fallen. Aethelvale is saved!
+                    </p>
+                  </div>
+                  <Crown size={36} weight="fill" className="text-amber-400 animate-bounce" />
+                </div>
+
+                {/* Team Accomplishments */}
+                <div className="grid grid-cols-3 gap-3 w-full text-xs font-['JetBrains_Mono']">
+                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center">
+                    <span className="text-white/50 text-[10px]">TEAM LEVEL</span>
+                    <span className="text-lg font-bold text-blue-400">LV {teamLevel}</span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center">
+                    <span className="text-white/50 text-[10px]">TOTAL EXP</span>
+                    <span className="text-lg font-bold text-purple-400">{teamExp} EXP</span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center">
+                    <span className="text-white/50 text-[10px]">ROYAL TREASURY</span>
+                    <span className="text-lg font-bold text-amber-400">{teamGold} GOLD</span>
+                  </div>
+                </div>
+
+                {/* Relics Gathered */}
+                <div className="w-full p-3 rounded-2xl bg-purple-950/30 border border-purple-500/30 text-xs font-['JetBrains_Mono'] flex items-center justify-around text-white/90">
+                  <div className="flex items-center gap-1.5 text-indigo-300">
+                    <Sword size={16} />
+                    <span>Runed Greatsword</span>
+                  </div>
+                  <span className="text-white/20">•</span>
+                  <div className="flex items-center gap-1.5 text-emerald-300">
+                    <Sparkle size={16} />
+                    <span>Venom Chitin</span>
+                  </div>
+                  <span className="text-white/20">•</span>
+                  <div className="flex items-center gap-1.5 text-orange-300">
+                    <Flame size={16} />
+                    <span>Flametongue</span>
+                  </div>
+                  <span className="text-white/20">•</span>
+                  <div className="flex items-center gap-1.5 text-amber-300">
+                    <Crown size={16} />
+                    <span>Eternity Crown</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 font-['JetBrains_Mono'] text-xs">
+                  <button
+                    onClick={() => setShowVictoryModal(false)}
+                    className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg shadow-purple-600/30 active:scale-95 transition-all"
+                  >
+                    CONTINUE EXPLORING
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowVictoryModal(false);
+                      setPhase('lobby_select');
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold active:scale-95 transition-all"
+                  >
+                    HERO ROSTER SELECT
+                  </button>
+                </div>
+              </div>
+            )}
+
 
             {/* Bottom Player Pods Bar */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-6xl mx-auto pointer-events-auto">

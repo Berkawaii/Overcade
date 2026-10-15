@@ -10,6 +10,8 @@ import {
   type SlotTheme,
 } from './constants';
 import {
+  AETHELGARD_NPCS,
+  AETHELGARD_OBSTACLES,
   OAKHAVEN_NPCS,
   OAKHAVEN_OBSTACLES,
   WHISPERING_PLAINS_OBSTACLES,
@@ -26,6 +28,14 @@ import {
   CAVERNS_CHEST,
   CAVERNS_OBSTACLES,
   CAVERNS_WEB_WALL,
+  MOLTEN_FORGE_OBSTACLES,
+  MOLTEN_FORGE_VALVES,
+  MOLTEN_FORGE_BRIDGE,
+  MOLTEN_FORGE_CHEST,
+  CITADEL_OBSTACLES,
+  CITADEL_ASTRAL_SEALS,
+  CITADEL_VOID_GATE,
+  CITADEL_CHEST,
 } from './DungeonData';
 import { createEnemy, type EnemyEntity, type EnemyKind } from './EnemyData';
 import type {
@@ -43,6 +53,10 @@ import type {
   Projectile,
   WebWall,
   WorldZone,
+  SteamValve,
+  MagmaBridge,
+  AstralSealPillar,
+  VoidThroneGate,
 } from './types';
 
 export interface DummyTarget {
@@ -74,16 +88,25 @@ export class ChronoKnightsEngine {
   public enemies: EnemyEntity[] = [];
   public npcs: NpcEntity[] = OAKHAVEN_NPCS;
 
-  // Phase 3: Dungeon Puzzles, Bosses, Hazards & Chests
+  // Phase 3 & 4: Dungeon Puzzles, Bosses, Hazards & Chests
   public cryptPlates: PressurePlate[] = CRYPT_PRESSURE_PLATES.map((p) => ({ ...p }));
   public cryptGate: PortcullisGate = { ...CRYPT_PORTCULLIS };
   public cryptChest: DungeonChest = { ...CRYPT_CHEST };
   public cavernsBraziers: BrazierTorch[] = CAVERNS_BRAZIERS.map((b) => ({ ...b }));
   public cavernsWebWall: WebWall = { ...CAVERNS_WEB_WALL };
   public cavernsChest: DungeonChest = { ...CAVERNS_CHEST };
+  public forgeValves: SteamValve[] = MOLTEN_FORGE_VALVES.map((v) => ({ ...v }));
+  public forgeBridge: MagmaBridge = { ...MOLTEN_FORGE_BRIDGE };
+  public forgeChest: DungeonChest = { ...MOLTEN_FORGE_CHEST };
+  public citadelSeals: AstralSealPillar[] = CITADEL_ASTRAL_SEALS.map((s) => ({ ...s }));
+  public citadelGate: VoidThroneGate = { ...CITADEL_VOID_GATE };
+  public citadelChest: DungeonChest = { ...CITADEL_CHEST };
   public hazardPools: HazardPool[] = [];
   public activeBoss: EnemyEntity | null = null;
   public dungeonNotice: { title: string; subtitle: string; timer: number; color: string } | null = null;
+  public singularityActive = false;
+  public gameVictory = false;
+
 
   // Progression & Team Stats
   public teamGold = 250;
@@ -108,6 +131,8 @@ export class ChronoKnightsEngine {
   public onTeamStatsUpdate?: (gold: number, exp: number, level: number, expToNext: number) => void;
   public onBossUpdate?: (boss: EnemyEntity | null) => void;
   public onDungeonNotice?: (title: string, subtitle: string, color: string) => void;
+  public onGameVictory?: () => void;
+
 
   constructor() {
     this.initPlayers();
@@ -474,6 +499,23 @@ export class ChronoKnightsEngine {
       else if (leader.x > 1840 && Math.abs(leader.y - 380) < 110) {
         this.transitionToZone('arachnid_caverns', 1400, 1520);
       }
+      // West Highway: x < 960 && Math.abs(leader.y - 550) < 110 -> Royal Capital Aethelgard
+      else if (leader.x < 960 && Math.abs(leader.y - 550) < 110) {
+        this.transitionToZone('aethelgard', 1800, 1080);
+      }
+    } else if (this.currentZone === 'aethelgard') {
+      // East Gate: x > 1840 && Math.abs(leader.y - 1080) < 110 -> Whispering Plains
+      if (leader.x > 1840 && Math.abs(leader.y - 1080) < 110) {
+        this.transitionToZone('whispering_plains', 1040, 550);
+      }
+      // West Gate: x < 960 && Math.abs(leader.y - 1080) < 110 -> The Molten Forge
+      else if (leader.x < 960 && Math.abs(leader.y - 1080) < 110) {
+        this.transitionToZone('molten_forge', 1400, 1520);
+      }
+      // North Spire: leader.y < 660 && Math.abs(leader.x - 1400) < 110 -> The Citadel of Shadows
+      else if (leader.y < 660 && Math.abs(leader.x - 1400) < 110) {
+        this.transitionToZone('citadel_of_shadows', 1400, 1520);
+      }
     } else if (this.currentZone === 'forgotten_crypt') {
       // South Archway: y > 1580 && Math.abs(x - 1400) < 110 -> Whispering Plains
       if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
@@ -483,6 +525,16 @@ export class ChronoKnightsEngine {
       // South Cavern Mouth: y > 1580 && Math.abs(x - 1400) < 110 -> Whispering Plains
       if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
         this.transitionToZone('whispering_plains', 1780, 400);
+      }
+    } else if (this.currentZone === 'molten_forge') {
+      // South Gate: y > 1580 && Math.abs(x - 1400) < 110 -> Aethelgard
+      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
+        this.transitionToZone('aethelgard', 1040, 1080);
+      }
+    } else if (this.currentZone === 'citadel_of_shadows') {
+      // South Gate: y > 1580 && Math.abs(x - 1400) < 110 -> Aethelgard
+      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
+        this.transitionToZone('aethelgard', 1400, 740);
       }
     }
   }
@@ -517,20 +569,68 @@ export class ChronoKnightsEngine {
     this.enemies = [];
     this.hazardPools = [];
     this.activeBoss = null;
+    this.singularityActive = false;
 
     if (zone === 'oakhaven') {
+      this.npcs = OAKHAVEN_NPCS;
       this.showDungeonNotice('OAKHAVEN VILLAGE', 'Safe Haven // Fountain of Vitality', '#10B981');
     } else if (zone === 'whispering_plains') {
+      this.npcs = [];
       this.spawnWildernessEnemies();
       this.showDungeonNotice('WHISPERING PLAINS', 'Wild Beast Steppe // Path to Ancient Dungeons', '#F59E0B');
     } else if (zone === 'forgotten_crypt') {
+      this.npcs = [];
       this.spawnCryptEnemies();
       this.showDungeonNotice('THE FORGOTTEN CRYPT', 'Catacombs of Malakor // Dual Plates Seal the Gate', '#818CF8');
     } else if (zone === 'arachnid_caverns') {
+      this.npcs = [];
       this.spawnCavernsEnemies();
       this.showDungeonNotice('ARACHNID CAVERNS', 'Broodmother Nest // Ignite Braziers to Clear Web', '#34D399');
+    } else if (zone === 'aethelgard') {
+      this.npcs = AETHELGARD_NPCS;
+      this.showDungeonNotice('ROYAL CAPITAL AETHELGARD', 'Grand Citadel // Imperial Bazaar & Court Sorcery', '#6366F1');
+    } else if (zone === 'molten_forge') {
+      this.npcs = [];
+      this.spawnForgeEnemies();
+      this.showDungeonNotice('THE MOLTEN FORGE', 'Infernal Smelting Core // Turn Valves to Raise Bridge', '#EA580C');
+    } else if (zone === 'citadel_of_shadows') {
+      this.npcs = [];
+      this.spawnCitadelEnemies();
+      this.showDungeonNotice('THE CITADEL OF SHADOWS', 'Cosmic Astral Void // Activate 4 Elemental Seals', '#A855F7');
     }
   }
+
+  public spawnForgeEnemies(): void {
+    this.enemies = [
+      createEnemy('forge-golem-1', 'magma_golem', 1220, 1300),
+      createEnemy('forge-golem-2', 'magma_golem', 1580, 1300),
+      createEnemy('forge-imp-1', 'fire_imp', 1200, 1150),
+      createEnemy('forge-imp-2', 'fire_imp', 1600, 1150),
+      createEnemy('forge-scorp-1', 'obsidian_scorpian', 1300, 780),
+      createEnemy('forge-scorp-2', 'obsidian_scorpian', 1500, 780),
+    ];
+
+    // Spawn Dungeon 3 Boss: Forgekeeper Ignis
+    const boss = createEnemy('boss-ignis', 'boss_ignis', 1400, 480);
+    this.enemies.push(boss);
+    this.activeBoss = boss;
+  }
+
+  public spawnCitadelEnemies(): void {
+    this.enemies = [
+      createEnemy('cit-assassin-1', 'shadow_assassin', 1200, 1300),
+      createEnemy('cit-assassin-2', 'shadow_assassin', 1600, 1300),
+      createEnemy('cit-summoner-1', 'void_summoner', 1400, 1150),
+      createEnemy('cit-assassin-3', 'shadow_assassin', 1250, 680),
+      createEnemy('cit-summoner-2', 'void_summoner', 1550, 680),
+    ];
+
+    // Spawn Final Raid Boss: Dark Sovereign Malakor
+    const boss = createEnemy('boss-dark-malakor', 'boss_dark_malakor', 1400, 480);
+    this.enemies.push(boss);
+    this.activeBoss = boss;
+  }
+
 
   public spawnCryptEnemies(): void {
     this.enemies = [
@@ -985,8 +1085,26 @@ export class ChronoKnightsEngine {
           'Queen Vespera is slain! Unlock the Venom Relic from the Golden Chest.',
           '#10B981'
         );
+      } else if (enemy.kind === 'boss_ignis') {
+        this.showDungeonNotice(
+          'FORGEKEEPER IGNIS EXTINGUISHED!',
+          'The Molten Core is secured! Unlock the Flametongue Blade from the Golden Chest.',
+          '#EA580C'
+        );
+      } else if (enemy.kind === 'boss_dark_malakor') {
+        this.singularityActive = false;
+        this.gameVictory = true;
+        this.showDungeonNotice(
+          'DARK SOVEREIGN SLAIN -- REALM RESTORED!',
+          'The Cosmic Void is shattered! Aethelvale is saved for all eternity!',
+          '#A855F7'
+        );
+        if (this.onGameVictory) {
+          this.onGameVictory();
+        }
       }
     } else {
+
       // Check if Malakor is shielded in this room and awaiting minion clears
       const malakor = this.enemies.find((e) => e.kind === 'boss_malakor' && e.isShielded);
       if (malakor && malakor.minionsRemaining !== undefined && malakor.minionsRemaining > 0) {
@@ -1405,6 +1523,38 @@ export class ChronoKnightsEngine {
       }
     }
 
+    // Collision blocking for unraised Magma Bridge in The Molten Forge
+    if (this.currentZone === 'molten_forge' && this.forgeBridge.raiseRatio < 0.85) {
+      if (player.y < 940 && player.y > 900 && player.x > 1240 && player.x < 1560) {
+        player.y = 940;
+      }
+    }
+
+    // Collision blocking for unsealed Void Gate in The Citadel of Shadows
+    if (this.currentZone === 'citadel_of_shadows' && this.citadelGate.openRatio < 0.85) {
+      if (player.y < 800 && player.y > 760 && player.x > 1240 && player.x < 1560) {
+        player.y = 800;
+      }
+    }
+
+    // Cosmic Void Singularity Pull in Citadel of Shadows Phase 3
+    if (this.currentZone === 'citadel_of_shadows' && this.singularityActive && !player.isDowned) {
+      const sDx = 1400 - player.x;
+      const sDy = 480 - player.y;
+      const sDist = Math.hypot(sDx, sDy);
+      if (sDist > 30) {
+        player.x += (sDx / sDist) * 85 * delta;
+        player.y += (sDy / sDist) * 85 * delta;
+      }
+      if (sDist < 70) {
+        player.hp = Math.max(0, player.hp - 24 * delta);
+        if (Math.random() < 0.08) {
+          this.spawnFloatingText(player.x, player.y - 20, '-15 VOID', '#A855F7');
+        }
+      }
+    }
+
+
     if (player.attackState.isAttacking) {
       player.attackState.timer += delta;
       if (player.attackState.timer >= player.attackState.duration) {
@@ -1501,8 +1651,92 @@ export class ChronoKnightsEngine {
           this.fireEnemyProjectile(boss.x, boss.y, angle, 330, 14, 30, '#84CC16', true);
         }
       }
+    } else if (boss.kind === 'boss_ignis') {
+      // Phase 2 Transition: Molten Core Overheat at 50% HP
+      if (boss.bossPhase === 1 && boss.hp <= boss.maxHp * 0.5) {
+        boss.bossPhase = 2;
+        SoundFX.playExplosion();
+        this.showDungeonNotice('IGNIS MOLTEN CORE OVERHEAT', 'Dodge falling magma meteors and blazing fire pits!', '#EA580C');
+        // Spawn 4 fire pools
+        this.hazardPools.push(
+          { id: `fire-${Date.now()}-1`, x: 1300, y: 550, radius: 48, type: 'fire', duration: 8, maxDuration: 8, damagePerSec: 18, color: '#EA580C' },
+          { id: `fire-${Date.now()}-2`, x: 1500, y: 550, radius: 48, type: 'fire', duration: 8, maxDuration: 8, damagePerSec: 18, color: '#EA580C' },
+          { id: `fire-${Date.now()}-3`, x: 1400, y: 650, radius: 48, type: 'fire', duration: 8, maxDuration: 8, damagePerSec: 18, color: '#EA580C' },
+          { id: `fire-${Date.now()}-4`, x: 1400, y: 400, radius: 48, type: 'fire', duration: 8, maxDuration: 8, damagePerSec: 18, color: '#EA580C' }
+        );
+        // Spawn cinder imps
+        this.enemies.push(
+          createEnemy(`cinder-${Date.now()}-1`, 'fire_imp', 1320, 500),
+          createEnemy(`cinder-${Date.now()}-2`, 'fire_imp', 1480, 500)
+        );
+      }
+
+      // Phase 3 Transition: Enraged Berserk Inferno at 25% HP
+      if (boss.bossPhase === 2 && boss.hp <= boss.maxHp * 0.25) {
+        boss.bossPhase = 3;
+        boss.enraged = true;
+        boss.speed = 220;
+        this.showDungeonNotice('FORGEKEEPER ENRAGED', 'Ignis unleashes catastrophic infernal wrath!', '#EF4444');
+      }
+
+      // Sledgehammer Slam AOE every 5.5s
+      if (boss.specialTimer !== undefined && boss.specialTimer <= 0) {
+        boss.specialTimer = 5.5;
+        SoundFX.playExplosion();
+        for (const p of this.players) {
+          if (!p.connected || p.isDowned) continue;
+          if (Math.hypot(p.x - boss.x, p.y - boss.y) <= 110) {
+            p.hp = Math.max(0, p.hp - 60);
+            this.spawnFloatingText(p.x, p.y - 25, '-60 SLAM', '#EA580C');
+            this.spawnHitSparks(p.x, p.y, '#EA580C');
+          }
+        }
+        this.spawnAuraParticles(boss.x, boss.y, '#EA580C', 35);
+      }
+    } else if (boss.kind === 'boss_dark_malakor') {
+      // Phase 2 Transition: Astral Mirror Clones at 50% HP
+      if (boss.bossPhase === 1 && boss.hp <= boss.maxHp * 0.5) {
+        boss.bossPhase = 2;
+        SoundFX.playEmpShockwave();
+        this.showDungeonNotice('MALAKOR ASTRAL SHADOW MIRRORS', 'Destroy the illusion clones to expose the Sovereign!', '#8B5CF6');
+        const clone1 = createEnemy(`dark-clone-1-${Date.now()}`, 'boss_dark_malakor', 1240, 480);
+        clone1.hp = 850;
+        clone1.maxHp = 850;
+        clone1.isClone = true;
+        clone1.isReal = false;
+        clone1.name = 'Shadow Astral Reflection';
+        const clone2 = createEnemy(`dark-clone-2-${Date.now()}`, 'boss_dark_malakor', 1560, 480);
+        clone2.hp = 850;
+        clone2.maxHp = 850;
+        clone2.isClone = true;
+        clone2.isReal = false;
+        clone2.name = 'Shadow Astral Reflection';
+        this.enemies.push(clone1, clone2);
+      }
+
+      // Phase 3 Transition: Cosmic Void Singularity at 25% HP
+      if (boss.bossPhase === 2 && boss.hp <= boss.maxHp * 0.25) {
+        boss.bossPhase = 3;
+        boss.enraged = true;
+        boss.speed = 220;
+        this.singularityActive = true;
+        SoundFX.playEmpShockwave();
+        this.showDungeonNotice('COSMIC VOID SINGULARITY', 'Gravitational rift opened! Slay the Sovereign to close the void!', '#EC4899');
+      }
+
+      // Cosmic Star Volley every 5s
+      if (boss.specialTimer !== undefined && boss.specialTimer <= 0) {
+        boss.specialTimer = 5.0;
+        SoundFX.playRocketLaunch();
+        const count = 8;
+        for (let i = 0; i < count; i++) {
+          const angle = (i * Math.PI * 2) / count + Math.random() * 0.2;
+          this.fireEnemyProjectile(boss.x, boss.y, angle, 280, 16, 38, '#A855F7', false);
+        }
+      }
     }
   }
+
 
   private fireEnemyProjectile(
     x: number,
@@ -1573,8 +1807,91 @@ export class ChronoKnightsEngine {
         this.notifyTeamStats();
         return true;
       }
+    } else if (this.currentZone === 'molten_forge') {
+      const dist = Math.hypot(player.x - this.forgeChest.x, player.y - this.forgeChest.y);
+      if (dist <= 75 && !this.forgeChest.isOpen) {
+        this.forgeChest.isOpen = true;
+        SoundFX.playChestOpen();
+        this.teamGold += this.forgeChest.gold;
+        this.teamExp += this.forgeChest.exp;
+        for (const p of this.players) {
+          const def = HERO_CLASSES[p.classId];
+          def.baseAtk += this.forgeChest.bonusAtk;
+          p.maxHp += 80;
+          p.hp = p.maxHp;
+        }
+        this.spawnAuraParticles(this.forgeChest.x, this.forgeChest.y, '#EA580C', 50);
+        this.showDungeonNotice(
+          'MOLTEN FORGE CHEST OPENED',
+          `+${this.forgeChest.gold}G, +${this.forgeChest.exp} EXP, Party +45 ATK & +80 HP!`,
+          '#EA580C'
+        );
+        this.notifyTeamStats();
+        return true;
+      }
+    } else if (this.currentZone === 'citadel_of_shadows') {
+      const dist = Math.hypot(player.x - this.citadelChest.x, player.y - this.citadelChest.y);
+      if (dist <= 75 && !this.citadelChest.isOpen) {
+        this.citadelChest.isOpen = true;
+        SoundFX.playChestOpen();
+        this.teamGold += this.citadelChest.gold;
+        this.teamExp += this.citadelChest.exp;
+        for (const p of this.players) {
+          const def = HERO_CLASSES[p.classId];
+          def.baseAtk += this.citadelChest.bonusAtk;
+          p.maxHp += 150;
+          p.maxMp += 150;
+          p.hp = p.maxHp;
+          p.mp = p.maxMp;
+        }
+        this.spawnAuraParticles(this.citadelChest.x, this.citadelChest.y, '#A855F7', 60);
+        this.showDungeonNotice(
+          'COSMIC ASTRAL CHEST OPENED',
+          `+${this.citadelChest.gold}G, +${this.citadelChest.exp} EXP, Party +60 ATK, +150 HP & +150 MP!`,
+          '#A855F7'
+        );
+        this.notifyTeamStats();
+        return true;
+      }
     }
     return false;
+  }
+
+  public buyBazaarArmor(): void {
+    if (this.teamGold < 200) {
+      SoundFX.playCountdownBeep(false);
+      this.showDungeonNotice('INSUFFICIENT GOLD', 'You need 200 Gold to fortify imperial armor.', '#EF4444');
+      return;
+    }
+    this.teamGold -= 200;
+    SoundFX.playFanfare();
+    for (const p of this.players) {
+      const def = HERO_CLASSES[p.classId];
+      def.baseDef += 15;
+      p.maxHp += 100;
+      p.hp = p.maxHp;
+    }
+    this.showDungeonNotice('IMPERIAL ARMOR FORGED', 'Entire party gained +100 Max HP & +15 DEF!', '#F59E0B');
+    this.notifyTeamStats();
+  }
+
+  public buyAstralInfusion(): void {
+    if (this.teamGold < 150) {
+      SoundFX.playCountdownBeep(false);
+      this.showDungeonNotice('INSUFFICIENT GOLD', 'You need 150 Gold for the Astral Infusion.', '#EF4444');
+      return;
+    }
+    this.teamGold -= 150;
+    SoundFX.playHeal();
+    for (const p of this.players) {
+      p.maxMp += 100;
+      p.hp = p.maxHp;
+      p.mp = p.maxMp;
+      p.isDowned = false;
+      p.downedTimer = 0;
+    }
+    this.showDungeonNotice('ASTRAL INFUSION RESTORED', 'Party HP and MP 100% restored with +100 Max MP boost!', '#A855F7');
+    this.notifyTeamStats();
   }
 
   private updateDungeonPuzzles(delta: number): void {
@@ -1637,8 +1954,69 @@ export class ChronoKnightsEngine {
           this.spawnAuraParticles(this.cavernsWebWall.x + 80, this.cavernsWebWall.y, '#10B981', 50);
         }
       }
+    } else if (this.currentZone === 'molten_forge') {
+      // 3. Steam Valves & Magma Bridge
+      for (const valve of this.forgeValves) {
+        if (!valve.isTurned) {
+          const isNear = this.players.some(
+            (p) => p.connected && !p.isDowned && Math.hypot(p.x - valve.x, p.y - valve.y) < valve.radius + 25
+          );
+          if (isNear) {
+            valve.isTurned = true;
+            SoundFX.playDash();
+            this.spawnAuraParticles(valve.x, valve.y, '#EA580C', 25);
+            this.spawnFloatingText(valve.x, valve.y - 25, 'VALVE TURNED!', '#EA580C');
+          }
+        }
+      }
+
+      const activePlayersCount = this.players.filter((p) => p.connected).length;
+      const valvesTurned = this.forgeValves.filter((v) => v.isTurned).length;
+      const requiredValves = activePlayersCount <= 1 ? 1 : this.forgeValves.length;
+
+      if (valvesTurned >= requiredValves && !this.forgeBridge.isRaised) {
+        this.forgeBridge.isRaised = true;
+        SoundFX.playGateClick();
+        this.showDungeonNotice('MAGMA BRIDGE RAISED', 'Steam valves released! Passage to Forgekeeper Ignis opened.', '#EA580C');
+        this.spawnAuraParticles(this.forgeBridge.x + 80, this.forgeBridge.y, '#EA580C', 40);
+      }
+
+      if (this.forgeBridge.isRaised) {
+        this.forgeBridge.raiseRatio = Math.min(1, this.forgeBridge.raiseRatio + delta * 1.5);
+      }
+    } else if (this.currentZone === 'citadel_of_shadows') {
+      // 4. Astral Seal Pillars & Void Throne Gate
+      for (const seal of this.citadelSeals) {
+        if (!seal.isActivated) {
+          const isNear = this.players.some(
+            (p) => p.connected && !p.isDowned && Math.hypot(p.x - seal.x, p.y - seal.y) < seal.radius + 20
+          );
+          if (isNear) {
+            seal.isActivated = true;
+            SoundFX.playHeal();
+            this.spawnAuraParticles(seal.x, seal.y, seal.color, 35);
+            this.spawnFloatingText(seal.x, seal.y - 25, `${seal.label} ACTIVE!`, seal.color);
+          }
+        }
+      }
+
+      const activePlayersCount = this.players.filter((p) => p.connected).length;
+      const sealsActive = this.citadelSeals.filter((s) => s.isActivated).length;
+      const requiredSeals = activePlayersCount <= 1 ? 1 : activePlayersCount === 2 ? 2 : 4;
+
+      if (sealsActive >= requiredSeals && !this.citadelGate.isOpen) {
+        this.citadelGate.isOpen = true;
+        SoundFX.playGateClick();
+        this.showDungeonNotice('VOID THRONE GATE UNSEALED', 'Astral alignment complete! The Sovereign awaits.', '#A855F7');
+        this.spawnAuraParticles(this.citadelGate.x + 80, this.citadelGate.y, '#A855F7', 50);
+      }
+
+      if (this.citadelGate.isOpen) {
+        this.citadelGate.openRatio = Math.min(1, this.citadelGate.openRatio + delta * 1.5);
+      }
     }
   }
+
 
   private updateHazardPools(delta: number): void {
     for (let i = this.hazardPools.length - 1; i >= 0; i--) {
@@ -1821,7 +2199,24 @@ export class ChronoKnightsEngine {
       this.renderHazardPools(ctx);
       this.renderDungeonChests(ctx);
       this.renderEnemies(ctx);
+    } else if (this.currentZone === 'aethelgard') {
+      this.renderAethelgardGround(ctx);
+      this.renderAethelgardScenery(ctx);
+      this.renderNpcs(ctx);
+    } else if (this.currentZone === 'molten_forge') {
+      this.renderForgeGround(ctx);
+      this.renderForgePuzzlesAndGates(ctx);
+      this.renderHazardPools(ctx);
+      this.renderDungeonChests(ctx);
+      this.renderEnemies(ctx);
+    } else if (this.currentZone === 'citadel_of_shadows') {
+      this.renderCitadelGround(ctx);
+      this.renderCitadelPuzzlesAndGates(ctx);
+      this.renderHazardPools(ctx);
+      this.renderDungeonChests(ctx);
+      this.renderEnemies(ctx);
     }
+
 
     // 2. Render Projectiles
     this.renderProjectiles(ctx);
@@ -2360,17 +2755,387 @@ export class ChronoKnightsEngine {
   }
 
   // -----------------------------------------------------------------
+  // AETHELGARD CAPITAL RENDERING
+  // -----------------------------------------------------------------
+  private renderAethelgardGround(ctx: CanvasRenderingContext2D): void {
+    const cx = WORLD_BOUNDS.hubCenterX;
+    const cy = WORLD_BOUNDS.hubCenterY;
+
+    // Imperial White Granite Plaza
+    ctx.fillStyle = '#0F121C';
+    ctx.fillRect(800, 600, 1200, 900);
+
+    // Granite flagstones with subtle indigo accents
+    ctx.strokeStyle = 'rgba(99, 102, 241, 0.08)';
+    ctx.lineWidth = 1.5;
+    const tileSize = 64;
+    for (let x = 800; x <= 2000; x += tileSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 600);
+      ctx.lineTo(x, 1500);
+      ctx.stroke();
+    }
+    for (let y = 600; y <= 1500; y += tileSize) {
+      ctx.beginPath();
+      ctx.moveTo(800, y);
+      ctx.lineTo(2000, y);
+      ctx.stroke();
+    }
+
+    // Outer Plaza Border
+    ctx.strokeStyle = '#6366F1';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(800, 600, 1200, 900);
+
+    // Grand Avenue (North-South & East-West Crossway)
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.07)';
+    ctx.fillRect(cx - 70, 600, 140, 900);
+    ctx.fillRect(800, cy - 70, 1200, 140);
+
+    // Central Sun Circle (Healing Fountain Plaza)
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Central Sun Healing Fountain
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.3)';
+    ctx.shadowColor = '#F59E0B';
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Gate Indicators
+    // East Gate: Whispering Plains
+    ctx.fillStyle = '#F59E0B';
+    ctx.fillRect(1860, 1040, 40, 120);
+    ctx.strokeRect(1860, 1040, 40, 120);
+    ctx.fillStyle = '#FBBF24';
+    ctx.font = '700 10px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('EAST GATE: PLAINS', 1880, 1025);
+
+    // West Gate: Molten Forge
+    ctx.fillStyle = '#EA580C';
+    ctx.fillRect(940, 1040, 40, 120);
+    ctx.strokeRect(940, 1040, 40, 120);
+    ctx.fillStyle = '#F97316';
+    ctx.fillText('WEST GATE: FORGE', 960, 1025);
+
+    // North Gate: Citadel of Shadows
+    ctx.fillStyle = '#A855F7';
+    ctx.fillRect(1340, 640, 120, 40);
+    ctx.strokeRect(1340, 640, 120, 40);
+    ctx.fillStyle = '#C084FC';
+    ctx.fillText('NORTH SPIRE: CITADEL', 1400, 625);
+  }
+
+  private renderAethelgardScenery(ctx: CanvasRenderingContext2D): void {
+    for (const obs of AETHELGARD_OBSTACLES) {
+      if (obs.type === 'cathedral') {
+        // Grand Cathedral Keep
+        ctx.fillStyle = '#1E1B4B';
+        ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+        ctx.strokeStyle = '#6366F1';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+
+        // Arched stained glass windows
+        ctx.fillStyle = '#38BDF8';
+        ctx.fillRect(obs.x - 70, obs.y - 20, 24, 45);
+        ctx.fillRect(obs.x + 46, obs.y - 20, 24, 45);
+
+        // Golden Crest
+        ctx.fillStyle = '#F59E0B';
+        ctx.font = '700 12px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('HIGH IMPERIAL CITADEL', obs.x, obs.y);
+      } else if (obs.type === 'stall') {
+        // Market Bazaar Canopies
+        const isBazaar = obs.id === 'stall-bazaar';
+        ctx.fillStyle = isBazaar ? '#1E3A8A' : '#4C1D95';
+        ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+        ctx.strokeStyle = isBazaar ? '#3B82F6' : '#A855F7';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+
+        if (obs.label) {
+          ctx.font = '700 10px "JetBrains Mono", monospace';
+          ctx.fillStyle = '#F8FAFC';
+          ctx.textAlign = 'center';
+          ctx.fillText(obs.label, obs.x, obs.y);
+        }
+      } else if (obs.type === 'pillar') {
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+        ctx.strokeStyle = '#94A3B8';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+      } else if (obs.type === 'lantern') {
+        ctx.fillStyle = '#F59E0B';
+        ctx.shadowColor = '#F59E0B';
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------
+  // DUNGEON 3: THE MOLTEN FORGE RENDERING
+  // -----------------------------------------------------------------
+  private renderForgeGround(ctx: CanvasRenderingContext2D): void {
+    const cx = WORLD_BOUNDS.hubCenterX;
+
+    // Basalt Dark Stone Chamber
+    ctx.fillStyle = '#140E0A';
+    ctx.fillRect(960, 260, 880, 1400);
+
+    // Glowing Lava channels
+    ctx.fillStyle = 'rgba(234, 88, 12, 0.35)';
+    ctx.fillRect(960, 880, 880, 100);
+
+    ctx.strokeStyle = '#F97316';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(960, 260, 880, 1400);
+
+    // Lava Flow Details
+    ctx.fillStyle = '#DC2626';
+    ctx.fillRect(960, 910, 880, 40);
+
+    // Obstacles: Smelting spires & colossal anvils
+    for (const obs of MOLTEN_FORGE_OBSTACLES) {
+      ctx.fillStyle = '#292524';
+      ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+      ctx.strokeStyle = '#78716C';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+
+      if (obs.label) {
+        ctx.font = '700 9px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#FB923C';
+        ctx.textAlign = 'center';
+        ctx.fillText(obs.label, obs.x, obs.y);
+      }
+    }
+
+    // South Exit Gate back to Aethelgard
+    ctx.fillStyle = 'rgba(234, 88, 12, 0.2)';
+    ctx.fillRect(cx - 85, 1610, 170, 45);
+    ctx.strokeStyle = '#EA580C';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 85, 1610, 170, 45);
+    ctx.fillStyle = '#FDBA74';
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('▼ EXIT ROAD: ROYAL CAPITAL AETHELGARD ▼', cx, 1635);
+  }
+
+  private renderForgePuzzlesAndGates(ctx: CanvasRenderingContext2D): void {
+    // 1. Steam Pressure Valves
+    for (const valve of this.forgeValves) {
+      ctx.fillStyle = valve.isTurned ? '#C2410C' : '#44403C';
+      ctx.beginPath();
+      ctx.arc(valve.x, valve.y, valve.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = valve.isTurned ? '#FB923C' : '#A8A29E';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Valve Spokes
+      ctx.strokeStyle = valve.isTurned ? '#FED7AA' : '#78716C';
+      ctx.lineWidth = 2;
+      for (let s = 0; s < 4; s++) {
+        const rad = (s * Math.PI) / 2;
+        ctx.beginPath();
+        ctx.moveTo(valve.x, valve.y);
+        ctx.lineTo(valve.x + Math.cos(rad) * (valve.radius - 4), valve.y + Math.sin(rad) * (valve.radius - 4));
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = valve.isTurned ? '#FB923C' : '#D6D3D1';
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        valve.isTurned ? 'VALVE RELEASED [OPEN]' : 'PRESSURE VALVE [WALK OVER]',
+        valve.x,
+        valve.y - valve.radius - 8
+      );
+    }
+
+    // 2. Magma Bridge
+    const bridge = this.forgeBridge;
+    const isRaised = bridge.raiseRatio >= 0.85;
+    ctx.fillStyle = isRaised ? '#78350F' : 'rgba(220, 38, 38, 0.4)';
+    ctx.fillRect(bridge.x, bridge.y, bridge.width, bridge.height);
+    ctx.strokeStyle = isRaised ? '#F59E0B' : '#EF4444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bridge.x, bridge.y, bridge.width, bridge.height);
+
+    ctx.fillStyle = isRaised ? '#FBBF24' : '#FCA5A5';
+    ctx.font = '700 10px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      isRaised ? '▼ MAGMA BRIDGE RAISED // PROCEED TO IGNIS ▼' : '▲ MAGMA CHASM // TURN STEAM VALVES TO RAISE BRIDGE ▲',
+      bridge.x + bridge.width / 2,
+      bridge.y - 12
+    );
+  }
+
+  // -----------------------------------------------------------------
+  // DUNGEON 4: THE CITADEL OF SHADOWS RENDERING
+  // -----------------------------------------------------------------
+  private renderCitadelGround(ctx: CanvasRenderingContext2D): void {
+    const cx = WORLD_BOUNDS.hubCenterX;
+
+    // Deep Cosmic Starry Void
+    ctx.fillStyle = '#06030D';
+    ctx.fillRect(960, 260, 880, 1400);
+
+    // Subtle astral grid
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
+    ctx.lineWidth = 1;
+    const step = 60;
+    for (let x = 960; x <= 1840; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 260);
+      ctx.lineTo(x, 1660);
+      ctx.stroke();
+    }
+    for (let y = 260; y <= 1660; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(960, y);
+      ctx.lineTo(1840, y);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#A855F7';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(960, 260, 880, 1400);
+
+    // Singularity vortex when active
+    if (this.singularityActive) {
+      ctx.save();
+      const time = Date.now() * 0.002;
+      ctx.translate(1400, 480);
+      ctx.rotate(time);
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.25)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 120, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#090014';
+      ctx.shadowColor = '#EC4899';
+      ctx.shadowBlur = 30;
+      ctx.beginPath();
+      ctx.arc(0, 0, 36, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    // Obstacles: Astral spires & monoliths
+    for (const obs of CITADEL_OBSTACLES) {
+      ctx.fillStyle = '#1E1B4B';
+      ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+      ctx.strokeStyle = '#818CF8';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+
+      if (obs.label) {
+        ctx.font = '700 9px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#C084FC';
+        ctx.textAlign = 'center';
+        ctx.fillText(obs.label, obs.x, obs.y);
+      }
+    }
+
+    // South Exit Gate back to Aethelgard
+    ctx.fillStyle = 'rgba(168, 85, 247, 0.2)';
+    ctx.fillRect(cx - 85, 1610, 170, 45);
+    ctx.strokeStyle = '#A855F7';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 85, 1610, 170, 45);
+    ctx.fillStyle = '#E9D5FF';
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('▼ ASTRAL RIFT: ROYAL CAPITAL AETHELGARD ▼', cx, 1635);
+  }
+
+  private renderCitadelPuzzlesAndGates(ctx: CanvasRenderingContext2D): void {
+    // 1. 4 Astral Seal Pillars
+    for (const seal of this.citadelSeals) {
+      ctx.fillStyle = seal.isActivated ? seal.color : '#1E1B4B';
+      ctx.beginPath();
+      ctx.arc(seal.x, seal.y, seal.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = seal.isActivated ? '#FFFFFF' : seal.color;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Beacon of light if activated
+      if (seal.isActivated) {
+        ctx.fillStyle = `${seal.color}40`;
+        ctx.beginPath();
+        ctx.arc(seal.x, seal.y, seal.radius * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = seal.isActivated ? '#FFFFFF' : seal.color;
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        seal.isActivated ? `${seal.label} [ALIGNED]` : `${seal.label} [STAND HERE]`,
+        seal.x,
+        seal.y - seal.radius - 8
+      );
+    }
+
+    // 2. Void Throne Gate
+    const gate = this.citadelGate;
+    const isOpen = gate.openRatio >= 0.85;
+    ctx.fillStyle = isOpen ? 'rgba(168, 85, 247, 0.15)' : 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(gate.x, gate.y, gate.width, gate.height);
+    ctx.strokeStyle = isOpen ? '#38BDF8' : '#A855F7';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(gate.x, gate.y, gate.width, gate.height);
+
+    ctx.fillStyle = isOpen ? '#38BDF8' : '#C084FC';
+    ctx.font = '700 10px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      isOpen ? '▼ VOID THRONE UNSEALED // DEFEAT DARK SOVEREIGN ▼' : '▲ VOID THRONE SEALED // ALIGN 4 ASTRAL SEALS ▲',
+      gate.x + gate.width / 2,
+      gate.y - 12
+    );
+  }
+
+  // -----------------------------------------------------------------
   // HAZARD POOLS & DUNGEON CHESTS
   // -----------------------------------------------------------------
   private renderHazardPools(ctx: CanvasRenderingContext2D): void {
     for (const pool of this.hazardPools) {
       const alpha = Math.min(0.65, pool.duration / 2);
-      ctx.fillStyle = `rgba(132, 204, 22, ${alpha})`;
+      const isFire = pool.type === 'fire';
+      const isVoid = pool.type === 'void';
+      ctx.fillStyle = isFire
+        ? `rgba(234, 88, 12, ${alpha})`
+        : isVoid
+        ? `rgba(168, 85, 247, ${alpha})`
+        : `rgba(132, 204, 22, ${alpha})`;
       ctx.beginPath();
       ctx.arc(pool.x, pool.y, pool.radius, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = '#84CC16';
+      ctx.strokeStyle = isFire ? '#EA580C' : isVoid ? '#A855F7' : '#84CC16';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(pool.x, pool.y, pool.radius * 0.7, 0, Math.PI * 2);
@@ -2379,8 +3144,18 @@ export class ChronoKnightsEngine {
   }
 
   private renderDungeonChests(ctx: CanvasRenderingContext2D): void {
-    const chest = this.currentZone === 'forgotten_crypt' ? this.cryptChest : this.cavernsChest;
+    const chest =
+      this.currentZone === 'forgotten_crypt'
+        ? this.cryptChest
+        : this.currentZone === 'arachnid_caverns'
+        ? this.cavernsChest
+        : this.currentZone === 'molten_forge'
+        ? this.forgeChest
+        : this.currentZone === 'citadel_of_shadows'
+        ? this.citadelChest
+        : null;
     if (!chest) return;
+
 
     // Glowing Platform
     ctx.fillStyle = chest.isOpen ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.3)';

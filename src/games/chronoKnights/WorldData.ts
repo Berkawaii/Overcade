@@ -7,7 +7,7 @@ export interface NpcEntity {
   x: number;
   y: number;
   radius: number;
-  role: 'quest' | 'blacksmith' | 'healer';
+  role: 'quest' | 'blacksmith' | 'healer' | 'bazaar' | 'sorcerer';
   symbol: string;
   avatarColor: string;
   dialogue: string[];
@@ -15,7 +15,7 @@ export interface NpcEntity {
 
 export interface WorldObstacle {
   id: string;
-  type: 'house' | 'tree' | 'rock' | 'fountain' | 'lantern' | 'fence';
+  type: 'house' | 'tree' | 'rock' | 'fountain' | 'lantern' | 'fence' | 'pillar' | 'stall' | 'cathedral';
   x: number;
   y: number;
   width: number;
@@ -23,6 +23,7 @@ export interface WorldObstacle {
   solid: boolean;
   label?: string;
 }
+
 
 export interface ZoneBoundary {
   id: string;
@@ -156,6 +157,114 @@ export const WHISPERING_PLAINS_OBSTACLES: WorldObstacle[] = [
   { id: 'ptree-4', type: 'tree', x: 1700, y: 560, width: 70, height: 70, solid: true },
 ];
 
+export const AETHELGARD_NPCS: NpcEntity[] = [
+  {
+    id: 'npc-thorne',
+    name: 'High Commander Thorne',
+    title: 'Grand Marshall of the Realm',
+    x: 1400,
+    y: 920,
+    radius: 26,
+    role: 'quest',
+    symbol: '⚔️',
+    avatarColor: '#6366F1',
+    dialogue: [
+      'Halt, heroes! You stand in the grand courtyard of Aethelgard, the Crown City.',
+      'The dark tides have breached our northern frontiers!',
+      'Forgekeeper Ignis has gone mad within The Molten Forge to the west, fueling infernal siege engines.',
+      'Worse still, Dark Sovereign Malakor gathers cosmic void energy in The Citadel of Shadows to the north!',
+      'Prepare your squad, purchase masterwork upgrades, and vanquish both horrors to bring eternal peace to Aethelvale!',
+    ],
+  },
+  {
+    id: 'npc-bazaar',
+    name: 'Merchant Cedric',
+    title: 'Grand Bazaar Quartermaster',
+    x: 1180,
+    y: 1040,
+    radius: 24,
+    role: 'bazaar',
+    symbol: '💎',
+    avatarColor: '#F59E0B',
+    dialogue: [
+      'Welcome to the Grand Bazaar! Finest imperial plate and enchanted relics from across the continent.',
+      'For 200 Gold, I will fortify your entire party with Imperial Armor (+100 Max HP & +15 DEF)!',
+    ],
+  },
+  {
+    id: 'npc-zephyr',
+    name: 'High Mage Zephyr',
+    title: 'Grand Court Archsorcerer',
+    x: 1620,
+    y: 1040,
+    radius: 24,
+    role: 'sorcerer',
+    symbol: '🔮',
+    avatarColor: '#A855F7',
+    dialogue: [
+      'The astral leylines sing of your valiant victories, champions.',
+      'Step within our sacred sun circle to mend your flesh.',
+      'For 150 Gold, I can bestow an Astral Infusion upon your team (+100 Max MP & 100% full recovery)!',
+    ],
+  },
+];
+
+export const AETHELGARD_OBSTACLES: WorldObstacle[] = [
+  // Grand Cathedral Keep at center north
+  {
+    id: 'cathedral-keep',
+    type: 'cathedral',
+    x: 1400,
+    y: 780,
+    width: 260,
+    height: 140,
+    solid: true,
+    label: 'Grand Cathedral Keep',
+  },
+  // Royal Sun Fountain
+  {
+    id: 'fountain-aethelgard',
+    type: 'fountain',
+    x: 1400,
+    y: 1100,
+    width: 100,
+    height: 100,
+    solid: true,
+    label: 'Royal Sun Fountain',
+  },
+  // West Bazaar Stall
+  {
+    id: 'stall-bazaar',
+    type: 'stall',
+    x: 1120,
+    y: 980,
+    width: 140,
+    height: 90,
+    solid: true,
+    label: "Cedric's Bazaar Stall",
+  },
+  // East Arcane Tower
+  {
+    id: 'stall-sorcery',
+    type: 'stall',
+    x: 1680,
+    y: 980,
+    width: 140,
+    height: 90,
+    solid: true,
+    label: "Zephyr's Arcane Tower",
+  },
+  // Granite Pillars and Lanterns
+  { id: 'pillar-1', type: 'pillar', x: 1240, y: 880, width: 36, height: 70, solid: true },
+  { id: 'pillar-2', type: 'pillar', x: 1560, y: 880, width: 36, height: 70, solid: true },
+  { id: 'pillar-3', type: 'pillar', x: 1240, y: 1260, width: 36, height: 70, solid: true },
+  { id: 'pillar-4', type: 'pillar', x: 1560, y: 1260, width: 36, height: 70, solid: true },
+  { id: 'aeth-lantern-1', type: 'lantern', x: 1320, y: 980, width: 20, height: 40, solid: false },
+  { id: 'aeth-lantern-2', type: 'lantern', x: 1480, y: 980, width: 20, height: 40, solid: false },
+  { id: 'aeth-lantern-3', type: 'lantern', x: 1320, y: 1220, width: 20, height: 40, solid: false },
+  { id: 'aeth-lantern-4', type: 'lantern', x: 1480, y: 1220, width: 20, height: 40, solid: false },
+];
+
 export const ZONE_GATES: ZoneBoundary[] = [
   // North Gate in Oakhaven -> Whispering Plains
   {
@@ -229,4 +338,77 @@ export const ZONE_GATES: ZoneBoundary[] = [
     spawnX: 1800,
     spawnY: 420,
   },
+  // West Gate in Whispering Plains -> Royal Capital Aethelgard
+  {
+    id: 'gate-plains-to-aethelgard',
+    name: 'Imperial Highway to Aethelgard',
+    x: 940,
+    y: 490,
+    width: 40,
+    height: 120,
+    targetZone: 'aethelgard',
+    spawnX: 1800,
+    spawnY: 1100,
+  },
+  // East Gate in Aethelgard -> Whispering Plains
+  {
+    id: 'gate-aethelgard-to-plains',
+    name: 'East Gate to Whispering Plains',
+    x: 1860,
+    y: 1040,
+    width: 40,
+    height: 120,
+    targetZone: 'whispering_plains',
+    spawnX: 1040,
+    spawnY: 550,
+  },
+  // West Gate in Aethelgard -> The Molten Forge
+  {
+    id: 'gate-aethelgard-to-forge',
+    name: 'Volcanic Path to The Molten Forge',
+    x: 940,
+    y: 1040,
+    width: 40,
+    height: 120,
+    targetZone: 'molten_forge',
+    spawnX: 1400,
+    spawnY: 1520,
+  },
+  // South Gate in The Molten Forge -> Aethelgard
+  {
+    id: 'gate-forge-to-aethelgard',
+    name: 'Exit Road to Aethelgard',
+    x: 1340,
+    y: 1620,
+    width: 120,
+    height: 40,
+    targetZone: 'aethelgard',
+    spawnX: 1040,
+    spawnY: 1100,
+  },
+  // North Gate in Aethelgard -> The Citadel of Shadows
+  {
+    id: 'gate-aethelgard-to-citadel',
+    name: 'Void Spire Gate to Citadel of Shadows',
+    x: 1340,
+    y: 640,
+    width: 120,
+    height: 40,
+    targetZone: 'citadel_of_shadows',
+    spawnX: 1400,
+    spawnY: 1520,
+  },
+  // South Gate in The Citadel of Shadows -> Aethelgard
+  {
+    id: 'gate-citadel-to-aethelgard',
+    name: 'Astral Rift Exit to Aethelgard',
+    x: 1340,
+    y: 1620,
+    width: 120,
+    height: 40,
+    targetZone: 'aethelgard',
+    spawnX: 1400,
+    spawnY: 740,
+  },
 ];
+

@@ -9,7 +9,14 @@ export type EnemyKind =
   | 'spider_spinner'
   | 'spider_spitter'
   | 'spider_hatchling'
-  | 'boss_vespera';
+  | 'boss_vespera'
+  | 'magma_golem'
+  | 'fire_imp'
+  | 'obsidian_scorpian'
+  | 'boss_ignis'
+  | 'shadow_assassin'
+  | 'void_summoner'
+  | 'boss_dark_malakor';
 
 export interface EnemyEntity {
   id: string;
@@ -46,6 +53,8 @@ export interface EnemyEntity {
   specialAttack?: string;
   minionsRemaining?: number;
   shootCooldown?: number;
+  isClone?: boolean;
+  isReal?: boolean;
 }
 
 export function createEnemy(
@@ -380,6 +389,221 @@ export function createEnemy(
         bossPhase: 1,
         enraged: false,
         specialTimer: 4,
+      };
+
+    // -------------------------------------------------------------
+    // DUNGEON 3: THE MOLTEN FORGE ENEMIES
+    // -------------------------------------------------------------
+    case 'magma_golem':
+      return {
+        id,
+        kind: 'magma_golem',
+        name: 'Magma Crusher Golem',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        radius: 30,
+        hp: 520,
+        maxHp: 520,
+        baseAtk: 46,
+        speed: 130,
+        facing: 'down',
+        state: 'idle',
+        stateTimer: 1.5,
+        targetSlot: null,
+        hurtTimer: 0,
+        windupTimer: 0,
+        attackCooldown: 2.2,
+        chargeTargetX: 0,
+        chargeTargetY: 0,
+        goldValue: 80,
+        expValue: 110,
+        color: '#EA580C',
+      };
+
+    case 'fire_imp':
+      return {
+        id,
+        kind: 'fire_imp',
+        name: 'Cinder Fire Imp',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        radius: 18,
+        hp: 260,
+        maxHp: 260,
+        baseAtk: 42,
+        speed: 230,
+        facing: 'down',
+        state: 'idle',
+        stateTimer: 1.0,
+        targetSlot: null,
+        hurtTimer: 0,
+        windupTimer: 0,
+        attackCooldown: 1.8,
+        shootCooldown: 2.0,
+        chargeTargetX: 0,
+        chargeTargetY: 0,
+        goldValue: 70,
+        expValue: 95,
+        color: '#F97316',
+      };
+
+    case 'obsidian_scorpian':
+      return {
+        id,
+        kind: 'obsidian_scorpian',
+        name: 'Obsidian Stinger Scorpian',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        radius: 26,
+        hp: 440,
+        maxHp: 440,
+        baseAtk: 48,
+        speed: 185,
+        facing: 'down',
+        state: 'idle',
+        stateTimer: 1.2,
+        targetSlot: null,
+        hurtTimer: 0,
+        windupTimer: 0,
+        attackCooldown: 1.5,
+        chargeTargetX: 0,
+        chargeTargetY: 0,
+        goldValue: 90,
+        expValue: 120,
+        color: '#7C2D12',
+      };
+
+    case 'boss_ignis':
+      return {
+        id,
+        kind: 'boss_ignis',
+        name: 'Forgekeeper Ignis',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        radius: 52,
+        hp: 4200,
+        maxHp: 4200,
+        baseAtk: 74,
+        speed: 160,
+        facing: 'down',
+        state: 'idle',
+        stateTimer: 2.0,
+        targetSlot: null,
+        hurtTimer: 0,
+        windupTimer: 0,
+        attackCooldown: 1.8,
+        chargeTargetX: 0,
+        chargeTargetY: 0,
+        goldValue: 750,
+        expValue: 1200,
+        color: '#C2410C',
+        isBoss: true,
+        bossTitle: 'Guardian of the Molten Core',
+        bossPhase: 1,
+        enraged: false,
+        specialTimer: 4.5,
+      };
+
+    // -------------------------------------------------------------
+    // DUNGEON 4: THE CITADEL OF SHADOWS (ENDGAME RAID) ENEMIES
+    // -------------------------------------------------------------
+    case 'shadow_assassin':
+      return {
+        id,
+        kind: 'shadow_assassin',
+        name: 'Shadow Citadel Assassin',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        radius: 22,
+        hp: 480,
+        maxHp: 480,
+        baseAtk: 58,
+        speed: 250,
+        facing: 'down',
+        state: 'idle',
+        stateTimer: 1.0,
+        targetSlot: null,
+        hurtTimer: 0,
+        windupTimer: 0,
+        attackCooldown: 1.1,
+        chargeTargetX: 0,
+        chargeTargetY: 0,
+        goldValue: 110,
+        expValue: 150,
+        color: '#6366F1',
+      };
+
+    case 'void_summoner':
+      return {
+        id,
+        kind: 'void_summoner',
+        name: 'Void Portal Summoner',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        radius: 25,
+        hp: 560,
+        maxHp: 560,
+        baseAtk: 52,
+        speed: 145,
+        facing: 'down',
+        state: 'idle',
+        stateTimer: 1.2,
+        targetSlot: null,
+        hurtTimer: 0,
+        windupTimer: 0,
+        attackCooldown: 2.2,
+        shootCooldown: 2.2,
+        chargeTargetX: 0,
+        chargeTargetY: 0,
+        goldValue: 130,
+        expValue: 180,
+        color: '#9333EA',
+      };
+
+    case 'boss_dark_malakor':
+      return {
+        id,
+        kind: 'boss_dark_malakor',
+        name: 'Dark Sovereign Malakor',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        radius: 56,
+        hp: 5800,
+        maxHp: 5800,
+        baseAtk: 88,
+        speed: 180,
+        facing: 'down',
+        state: 'idle',
+        stateTimer: 2.0,
+        targetSlot: null,
+        hurtTimer: 0,
+        windupTimer: 0,
+        attackCooldown: 1.5,
+        chargeTargetX: 0,
+        chargeTargetY: 0,
+        goldValue: 1500,
+        expValue: 2500,
+        color: '#4C1D95',
+        isBoss: true,
+        bossTitle: 'Dark Sovereign of the Cosmic Void',
+        bossPhase: 1,
+        enraged: false,
+        specialTimer: 5.0,
+        isReal: true,
       };
   }
 }

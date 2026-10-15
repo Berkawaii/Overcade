@@ -115,18 +115,60 @@ Bu belge, oyunun Faz 1'den Faz 5'e kadar olan adım adım geliştirme sürecini,
 ---
 
 ### [FAZ 4] Büyük Başkent (Aethelgard) & Oyun Sonu Zindanları (The Molten Forge & The Citadel of Shadows)
+- **Durum:** TAMAMLANDI (COMPLETED)
+- **Tarih:** 2026-10-15
+
+#### Tamamlanan İlerlemeler:
+1. **Kraliyet Başkenti Tasarımı (Royal Capital Aethelgard):**
+   - **Görsel Çevre & Mimari:** Beyaz granit zemin döşemeleri, altın işlemeli imparatorluk bordürleri, Grand Cathedral Keep şatosu, merkezi Royal Sun Fountain ve çarşı gölgelikleri.
+   - **Genişletilmiş NPC & Ticaret Sistemi:**
+     - **High Commander Thorne (Grand Marshall):** Başkentin başkomutanı; oyuncuları Batıdaki Molten Forge ve Kuzeydeki Citadel of Shadows'u temizlemeye yönlendiren kraliyet fermanını verir.
+     - **Merchant Cedric (Grand Bazaar Quartermaster):** 200 Altın karşılığında partinin tüm üyelerine +100 Max HP ve +15 Zırh (Imperial Armor Fortification) sağlar.
+     - **High Mage Zephyr (Grand Court Archsorcerer):** 150 Altın karşılığında tüm partinin can ve manasını %100 doldurur ve +100 Max MP (Astral Infusion) kalıcı buff'ı verir.
+   - **Entegre Dünya Haritası Geçişleri:** Whispering Plains Batı Yolu <-> Aethelgard Doğu Kapısı <-> Molten Forge Batı Kapısı <-> Citadel of Shadows Kuzey Kapısı.
+
+2. **Zindan 3: Dövme Ocağı & Lav Krateri (The Molten Forge):**
+   - **Görsel Tasarım & Ortam:** Koyu bazalt taş blokları, zemin boyunca akan parlayan lav nehirleri, döküm sprey kuleleri ve devasa demirci örsleri.
+   - **Eşli Bulmaca Mekaniği (Twin Steam Pressure Valves & Magma Drawbridge):**
+     - Arenanın iki yakasında Batı Basınç Vanası ve Doğu Basınç Vanası.
+     - Oyuncular üzerlerinden geçtiğinde dönen vanalar ve çıkan basınçlı buhar partikülleri.
+     - İki vana da açıldığında lav yarığının üzerinden yükselerek Ignis'in arenasına geçit veren Magma Köprüsü (Magma Bridge).
+   - **Düşman Hiyerarşisi:** Magma Crusher Golem (yüksek can, ezici darbeler), Cinder Fire Imp (hızlı, menzilli ateş mermileri), Obsidian Stinger Scorpian (hızlı hücum ve sokma).
+   - **Boss 3: Dövme Muhafızı Ignis (Forgekeeper Ignis):**
+     - Max HP: 4200. Devasa iki elli lav döküm çekici.
+     - **Faz 1:** Döküm Çekici Şok Dalgası (Sledgehammer Slam); 110px alana 60 hasar vuran sarsıcı alan darbesi.
+     - **Faz 2 (Molten Core Overheat, <%50 HP):** Çekicini yere vurarak tavandan 4 adet yakıcı Lav Göleti (Fire Hazard Pools) indirir ve 2 adet Cinder Fire Imp çağırır.
+     - **Faz 3 (Öfke Modu, <%25 HP):** Hızı 220'ye fırlar, kor alev aurasıyla çılgınca hücum eder.
+     - **Hazine Sandığı (Molten Golden Chest):** +750G, +1200 EXP ve partiye kalıcı **Flametongue Blade & Molten Hearthstone (+45 ATK & +80 Max HP)** buff'ı verir.
+
+3. **Zindan 4: Gölge Kalesi (The Citadel of Shadows // Endgame Cosmic Raid):**
+   - **Görsel Tasarım & Ortam:** Sonsuz kozmik karanlık zemin, parıldayan yıldızlar ve astral nebula tozları, mor astral sütunlar ve monolitleşmiş dikitler.
+   - **Eşli Bulmaca Mekaniği (4-Pillar Astral Seal & Void Throne Gate):**
+     - Dört köşede Güneş (Solar/Sarı), Ay (Lunar/Mavi), Yıldız (Stellar/Mor) ve Boşluk (Void/Pembe) Rün Mühürleri.
+     - Oyuncular mühürlerin üzerine bastığında gökyüzüne fışkıran kozmik ışık sütunları.
+     - Tüm mühürler hizalandığında çözülerek açılan Karanlık Taht Kapısı (Void Throne Gate).
+   - **Düşman Hiyerarşisi:** Shadow Citadel Assassin (yüksek hızlı suikastçiler), Void Portal Summoner (kozmik karanlık büyü topları fırlatan büyücüler).
+   - **Final Raid Boss: Karanlık Astral Hükümdar Malakor (Dark Sovereign Malakor):**
+     - Max HP: 5800. Kozmik boşluk hükümdarı aurası ve çift astral hançerler.
+     - **Faz 1:** Kozmik Yıldız Çemberi; 8 yöne dağılan karanlık enerji küreleri.
+     - **Faz 2 (Astral Gölge Aynaları, <%50 HP):** Kendisini 2 adet gölge kopyasına böler (Shadow Astral Reflections). Partinin gerçek hükümdarı bulması gerekir!
+     - **Faz 3 (Kozmik Karadelik / Void Singularity, <%25 HP):** Arenanın merkezinde dönen bir yerçekimi tekilliği (Black Hole) açılır! Tüm oyuncuları merkeze çeker ve yaklaşanları yakar; Malakor ise mor kozmik öfke moduna girer!
+     - **Hazine Sandığı (Cosmic Astral Chest):** +1500G, +2500 EXP ve partiye kalıcı **Crown of Eternity & Cosmic Relic (+60 ATK, +150 Max HP & +150 Max MP)** buff'ı verir.
+
+4. **Epik Oyun Sonu Zafer Ekranı (Endgame Realm Victory Modal):**
+   - Malakor katledildiğinde ekranın ortasında açılan, tüm krallığın kurtuluşunu kutlayan şık cam arayüz modalı.
+   - Partinin ulaştığı Seviye, Toplanan Toplam Altın, EXP ve 4 Zindandan elde edilen kadim kutsal emanetler (Runed Greatsword, Venom Chitin, Flametongue, Eternity Crown).
+   - "CONTINUE EXPLORING" ile dünyayı serbest gezmeye devam etme veya "HERO ROSTER SELECT" ile yeniden başlama seçeneği.
+
+---
+
+### [FAZ 5] Ses Cilası, Mobil Kumanda Companion HUD & Çok Oyunculu Dağıtım Doğrulaması
 - **Durum:** SIRADAKİ ADIM (NEXT IN PROGRESS)
 - **Planlanan Kapsam:**
-  - **Kraliyet Başkenti: Aethelgard:**
-    - Beyaz granit surlar, kraliyet bayrakları, şövalye muhafızları ve devasa katedral.
-    - Maceracılar Loncası (Bounty avları, EXP takasları).
-    - Büyük Çarşı (Grand Bazaar) ve Işınlanma Rün Çemberi (keşfedilen zindanlara hızlı seyahat).
-  - **Zindan 3: Dövme Ocağı & Lav Krateri (The Molten Forge):**
-    - Buhar kapakları, yükselen lav seviyesi bulmacası.
-    - Düşmanlar: Magma Golems, Fire Imps, Obsidian Scorpians.
-    - Boss 3: Dövme Muhafızı Ignis (Forgekeeper Ignis) - Dev döküm çekici şok dalgaları, erimiş lav odası ve meteor yağmuru fazları.
-  - **Zindan 4: Gölge Kalesi (The Citadel of Shadows - Endgame Raid):**
-    - Astral gotik kuleler, mor yerçekimsiz boşluklar.
-    - Eşli Bulmaca: 4 Köşe Mührü (Güneş, Ay, Yıldız, Boşluk kristallerine aynı anda basma).
-    - Final Boss: Karanlık Astral Hükümdar Malakor (3 fazlı kozmik raid bossu, kopyalara bölünme, merkez karadelik).
-  - Krallığın Kurtarıcısı Epik Zafer Ekranı ve Sonsuzluk Rünleri.
+  - Mobil Kumanda Companion HUD (`ControllerApp.tsx`):
+    - Telefon ekranında oyuncunun aktif kahraman portresi, canlı HP/MP çubuğu, altın ve takım seviyesi göstergesi.
+    - Yetenek butonlarında kalan cooldown sayaçları.
+    - Hasar alındığında telefon titreşimi (Tactile Haptic Feedback).
+  - Web Audio ses sentezleyici cilası.
+  - Canlı dağıtım ve çoklu cihaz bağlantı testi.
+
