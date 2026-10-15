@@ -39,6 +39,7 @@ import {
 } from './DungeonData';
 import { createEnemy, type EnemyEntity, type EnemyKind } from './EnemyData';
 import { PixelArtRenderer } from './PixelArtRenderer';
+import { PixelWorldRenderer } from './PixelWorldRenderer';
 import type {
   AttackState,
   BrazierTorch,
@@ -2346,138 +2347,25 @@ export class ChronoKnightsEngine {
   }
 
   private renderOakhavenGround(ctx: CanvasRenderingContext2D): void {
-    const cx = WORLD_BOUNDS.hubCenterX;
-    const cy = WORLD_BOUNDS.hubCenterY;
-
-    // Spacious emerald grass village green
-    ctx.fillStyle = '#0F1713';
-    ctx.fillRect(1000, 650, 1600, 1200);
-
-    ctx.strokeStyle = 'rgba(16, 185, 129, 0.05)';
-    ctx.lineWidth = 1;
-    const tileSize = 64;
-    for (let x = 1000; x <= 2600; x += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 650);
-      ctx.lineTo(x, 1850);
-      ctx.stroke();
-    }
-    for (let y = 650; y <= 1850; y += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(1000, y);
-      ctx.lineTo(2600, y);
-      ctx.stroke();
-    }
-
-    // Cobblestone Highway from South to North Gate
-    ctx.fillStyle = '#1E232A';
-    ctx.fillRect(cx - 50, 680, 100, 1150);
-    ctx.fillRect(1150, cy - 45, 1300, 90);
-
-    // Cobblestone Plaza circle around fountain
-    const grad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 280);
-    grad.addColorStop(0, '#272F38');
-    grad.addColorStop(0.7, '#1C2229');
-    grad.addColorStop(1, '#11151A');
-
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 280, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 275, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // North Exit Gate Archway
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
-    ctx.fillRect(cx - 85, 700, 170, 45);
-    ctx.strokeStyle = '#3B82F6';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 85, 700, 170, 45);
-
-    ctx.fillStyle = '#93C5FD';
-    ctx.font = '700 11px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('▲ NORTH GATE: WHISPERING PLAINS ▲', cx, 727);
+    PixelWorldRenderer.drawOakhavenGround(ctx, performance.now());
   }
 
   private renderOakhavenScenery(ctx: CanvasRenderingContext2D): void {
     const cx = WORLD_BOUNDS.hubCenterX;
     const cy = WORLD_BOUNDS.hubCenterY;
+    const now = performance.now();
 
     // Sacred Healing Fountain
-    const ripple = (performance.now() * 0.002) % 1;
-    ctx.fillStyle = '#0284C7';
-    ctx.beginPath();
-    ctx.arc(cx, cy, 52, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = `rgba(56, 189, 248, ${1 - ripple})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 28 + ripple * 32, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.strokeStyle = '#E0F2FE';
-    ctx.lineWidth = 2.5;
-    ctx.strokeRect(cx - 55, cy - 55, 110, 110);
-
-    ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.fillStyle = '#38BDF8';
-    ctx.textAlign = 'center';
-    ctx.fillText('SACRED HEALING FOUNTAIN', cx, cy + 74);
+    PixelWorldRenderer.drawPixelFountain(ctx, cx, cy, false, now);
 
     // Obstacles: Houses, trees, lanterns
     for (const obs of OAKHAVEN_OBSTACLES) {
       if (obs.type === 'house') {
-        // Wooden House with Thatched Roof
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-        ctx.strokeStyle = '#64748B';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-
-        // Thatched Roof
-        ctx.fillStyle = '#78350F';
-        ctx.beginPath();
-        ctx.moveTo(obs.x - obs.width / 2 - 12, obs.y - obs.height / 2);
-        ctx.lineTo(obs.x, obs.y - obs.height / 2 - 28);
-        ctx.lineTo(obs.x + obs.width / 2 + 12, obs.y - obs.height / 2);
-        ctx.closePath();
-        ctx.fill();
-
-        // Label
-        if (obs.label) {
-          ctx.font = '700 10px "JetBrains Mono", monospace';
-          ctx.fillStyle = '#F8FAFC';
-          ctx.textAlign = 'center';
-          ctx.fillText(obs.label, obs.x, obs.y);
-        }
+        PixelWorldRenderer.drawPixelHouse(ctx, obs, now);
       } else if (obs.type === 'tree') {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.beginPath();
-        ctx.ellipse(obs.x, obs.y + 16, 22, 9, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#065F46';
-        ctx.beginPath();
-        ctx.arc(obs.x, obs.y - 12, 28, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#047857';
-        ctx.beginPath();
-        ctx.arc(obs.x, obs.y - 18, 22, 0, Math.PI * 2);
-        ctx.fill();
+        PixelWorldRenderer.drawPixelTree(ctx, obs, now);
       } else if (obs.type === 'lantern') {
-        ctx.fillStyle = '#F59E0B';
-        ctx.shadowColor = '#F59E0B';
-        ctx.shadowBlur = 14;
-        ctx.beginPath();
-        ctx.arc(obs.x, obs.y, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        PixelWorldRenderer.drawPixelLantern(ctx, obs.x, obs.y, now, false);
       }
     }
   }
@@ -2509,131 +2397,16 @@ export class ChronoKnightsEngine {
   }
 
   private renderWhisperingPlainsGround(ctx: CanvasRenderingContext2D): void {
-    const cx = WORLD_BOUNDS.hubCenterX;
-
-    // Full 3600 x 2600 Vast Savanna & Wilderness
-    ctx.fillStyle = '#141A13';
-    ctx.fillRect(100, 100, 3400, 2400);
-
-    // Subtle grassy grid texture
-    ctx.strokeStyle = 'rgba(34, 197, 94, 0.04)';
-    ctx.lineWidth = 1;
-    const tileSize = 64;
-    for (let x = 100; x <= 3500; x += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 100);
-      ctx.lineTo(x, 2500);
-      ctx.stroke();
-    }
-    for (let y = 100; y <= 2500; y += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(100, y);
-      ctx.lineTo(3500, y);
-      ctx.stroke();
-    }
-
-    // Winding Southern River
-    ctx.fillStyle = '#0C4A6E';
-    ctx.fillRect(100, 1920, 3400, 70);
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(100, 1920, 3400, 70);
-
-    // Ancient Stone Bridge over Southern River
-    ctx.fillStyle = '#475569';
-    ctx.fillRect(cx - 70, 1910, 140, 90);
-    ctx.strokeStyle = '#94A3B8';
-    ctx.lineWidth = 2.5;
-    ctx.strokeRect(cx - 70, 1910, 140, 90);
-
-    // Main Imperial Stone Highway (North-South Valley Road)
-    ctx.fillStyle = '#262626';
-    ctx.fillRect(cx - 50, 200, 100, 2200);
-
-    // East Trail (to Wolf Den & Arachnid Caverns)
-    ctx.fillStyle = '#27272A';
-    ctx.fillRect(cx, 1600, 1100, 70);
-    ctx.fillRect(2600, 1040, 750, 70);
-    ctx.fillRect(2600, 1040, 70, 600);
-
-    // West Highway (to Boar Grove & Imperial Highway to Aethelgard)
-    ctx.fillRect(200, 1040, cx - 200, 80);
-    ctx.fillRect(800, 1040, 70, 650);
-
-    // South Gate (Back to Oakhaven Village)
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
-    ctx.fillRect(cx - 85, 2330, 170, 45);
-    ctx.strokeStyle = '#10B981';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 85, 2330, 170, 45);
-    ctx.fillStyle = '#6EE7B7';
-    ctx.font = '700 11px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('▼ SOUTH GATE: OAKHAVEN VILLAGE ▼', cx, 2358);
-
-    // North Gate: The Forgotten Crypt
-    ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
-    ctx.fillRect(cx - 85, 195, 170, 45);
-    ctx.strokeStyle = '#6366F1';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 85, 195, 170, 45);
-    ctx.fillStyle = '#A5B4FC';
-    ctx.font = '700 11px "JetBrains Mono", monospace';
-    ctx.fillText('▲ NORTH GATE: THE FORGOTTEN CRYPT ▲', cx, 222);
-
-    // Far East Gate: Arachnid Caverns
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
-    ctx.fillRect(3320, 1020, 50, 140);
-    ctx.strokeStyle = '#10B981';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(3320, 1020, 50, 140);
-    ctx.fillStyle = '#6EE7B7';
-    ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.fillText('▶ ARACHNID CAVERNS ▶', 3345, 1095);
-
-    // Far West Gate: Imperial Highway to Aethelgard
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-    ctx.fillRect(190, 1020, 50, 140);
-    ctx.strokeStyle = '#F59E0B';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(190, 1020, 50, 140);
-    ctx.fillStyle = '#FDE047';
-    ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.fillText('◀ HIGHWAY TO AETHELGARD ◀', 215, 1095);
+    PixelWorldRenderer.drawWhisperingPlainsGround(ctx, performance.now());
   }
 
   private renderWhisperingPlainsScenery(ctx: CanvasRenderingContext2D): void {
+    const now = performance.now();
     for (const obs of WHISPERING_PLAINS_OBSTACLES) {
       if (obs.type === 'rock') {
-        ctx.fillStyle = '#44403C';
-        ctx.beginPath();
-        ctx.roundRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height, 8);
-        ctx.fill();
-        ctx.strokeStyle = '#78716C';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        if (obs.label) {
-          ctx.font = '700 9px "JetBrains Mono", monospace';
-          ctx.fillStyle = '#D6D3D1';
-          ctx.textAlign = 'center';
-          ctx.fillText(obs.label, obs.x, obs.y - obs.height / 2 - 6);
-        }
+        PixelWorldRenderer.drawPixelRock(ctx, obs);
       } else if (obs.type === 'tree') {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.beginPath();
-        ctx.ellipse(obs.x, obs.y + 16, 24, 10, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#14532D';
-        ctx.beginPath();
-        ctx.arc(obs.x, obs.y - 12, 28, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#166534';
-        ctx.beginPath();
-        ctx.arc(obs.x, obs.y - 18, 20, 0, Math.PI * 2);
-        ctx.fill();
+        PixelWorldRenderer.drawPixelTree(ctx, obs, now);
       }
     }
   }
@@ -2642,385 +2415,48 @@ export class ChronoKnightsEngine {
   // DUNGEON 1 RENDERING: THE FORGOTTEN CRYPT
   // -----------------------------------------------------------------
   private renderCryptGround(ctx: CanvasRenderingContext2D): void {
-    const cx = 1400;
-
-    // Dark gothic tomb flagstone floor
-    ctx.fillStyle = '#0F1117';
-    ctx.fillRect(960, 260, 880, 1400);
-
-    ctx.strokeStyle = 'rgba(99, 102, 241, 0.07)';
-    ctx.lineWidth = 1;
-    const tileSize = 64;
-    for (let x = 960; x <= 1840; x += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 260);
-      ctx.lineTo(x, 1660);
-      ctx.stroke();
-    }
-    for (let y = 260; y <= 1660; y += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(960, y);
-      ctx.lineTo(1840, y);
-      ctx.stroke();
-    }
-
-    // Outer stone tomb walls
-    ctx.fillStyle = '#1E1B2E';
-    ctx.fillRect(920, 220, 40, 1480);
-    ctx.fillRect(1840, 220, 40, 1480);
-    ctx.fillRect(920, 220, 960, 40);
-
-    // Crypt Obstacles & Sarcophagi
-    for (const obs of CRYPT_OBSTACLES) {
-      ctx.fillStyle = '#262338';
-      ctx.beginPath();
-      ctx.roundRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height, 6);
-      ctx.fill();
-      ctx.strokeStyle = '#4338CA';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      if (obs.label) {
-        ctx.fillStyle = '#A5B4FC';
-        ctx.font = '700 9px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(obs.label, obs.x, obs.y + 3);
-      }
-    }
-
-    // South Exit Gate (Back to Plains)
-    ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
-    ctx.fillRect(cx - 85, 1610, 170, 45);
-    ctx.strokeStyle = '#6366F1';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 85, 1610, 170, 45);
-    ctx.fillStyle = '#C7D2FE';
-    ctx.font = '700 11px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('▼ SOUTH ARCHWAY: WHISPERING PLAINS ▼', cx, 1635);
+    PixelWorldRenderer.drawCryptGround(ctx, CRYPT_OBSTACLES, performance.now());
   }
 
   private renderCryptPuzzlesAndGates(ctx: CanvasRenderingContext2D): void {
-    // 1. Dual Pressure Plates
-    for (let i = 0; i < this.cryptPlates.length; i++) {
-      const plate = this.cryptPlates[i];
-      const isPressed = plate.isPressed;
-
-      // Base Disk
-      ctx.fillStyle = isPressed ? '#1E3A8A' : '#1E293B';
-      ctx.beginPath();
-      ctx.arc(plate.x, plate.y, plate.radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = isPressed ? '#38BDF8' : '#475569';
-      ctx.lineWidth = isPressed ? 3 : 2;
-      if (isPressed) {
-        ctx.shadowColor = '#38BDF8';
-        ctx.shadowBlur = 15;
-      }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Inner Runic Glyph
-      ctx.strokeStyle = isPressed ? '#E0F2FE' : '#64748B';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(plate.x, plate.y, plate.radius * 0.55, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = isPressed ? '#38BDF8' : '#94A3B8';
-      ctx.font = '700 10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`PLATE ${i === 0 ? 'I' : 'II'}: ${isPressed ? 'ACTIVE' : 'STAND HERE'}`, plate.x, plate.y - plate.radius - 8);
-    }
-
-    // 2. Iron Portcullis
-    const gate = this.cryptGate;
-    const gateOpen = gate.openRatio >= 0.85;
-    const h = gate.height * (1 - gate.openRatio * 0.9);
-
-    ctx.fillStyle = gateOpen ? 'rgba(56, 189, 248, 0.15)' : 'rgba(0, 0, 0, 0.75)';
-    ctx.fillRect(gate.x, gate.y, gate.width, h);
-
-    // Vertical Iron Bars
-    ctx.strokeStyle = gateOpen ? '#38BDF8' : '#94A3B8';
-    ctx.lineWidth = 3;
-    const barCount = 8;
-    for (let b = 1; b <= barCount; b++) {
-      const bx = gate.x + (gate.width / (barCount + 1)) * b;
-      ctx.beginPath();
-      ctx.moveTo(bx, gate.y);
-      ctx.lineTo(bx, gate.y + h);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = gateOpen ? '#38BDF8' : '#CBD5E1';
-    ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(
-      gateOpen ? '▼ INNER SANCTUM UNSEALED ▼' : '▲ SEALED PORTCULLIS // DUAL PLATES REQUIRED ▲',
-      gate.x + gate.width / 2,
-      gate.y - 12
-    );
+    PixelWorldRenderer.drawCryptPuzzlesAndGates(ctx, this.cryptPlates, this.cryptGate, performance.now());
   }
 
   // -----------------------------------------------------------------
   // DUNGEON 2 RENDERING: ARACHNID CAVERNS
   // -----------------------------------------------------------------
   private renderCavernsGround(ctx: CanvasRenderingContext2D): void {
-    const cx = 1400;
-
-    // Dark venomous cave rock
-    ctx.fillStyle = '#091510';
-    ctx.fillRect(960, 260, 880, 1400);
-
-    ctx.strokeStyle = 'rgba(16, 185, 129, 0.06)';
-    ctx.lineWidth = 1;
-    const tileSize = 64;
-    for (let x = 960; x <= 1840; x += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 260);
-      ctx.lineTo(x, 1660);
-      ctx.stroke();
-    }
-    for (let y = 260; y <= 1660; y += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(960, y);
-      ctx.lineTo(1840, y);
-      ctx.stroke();
-    }
-
-    // Cavern Obstacles
-    for (const obs of CAVERNS_OBSTACLES) {
-      ctx.fillStyle = '#14291F';
-      ctx.beginPath();
-      ctx.roundRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height, 12);
-      ctx.fill();
-      ctx.strokeStyle = '#059669';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      if (obs.label) {
-        ctx.fillStyle = '#6EE7B7';
-        ctx.font = '700 9px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(obs.label, obs.x, obs.y + 3);
-      }
-    }
-
-    // South Cavern Mouth (Back to Plains)
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
-    ctx.fillRect(cx - 85, 1610, 170, 45);
-    ctx.strokeStyle = '#10B981';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 85, 1610, 170, 45);
-    ctx.fillStyle = '#A7F3D0';
-    ctx.font = '700 11px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('▼ CAVERN MOUTH: WHISPERING PLAINS ▼', cx, 1635);
+    PixelWorldRenderer.drawCavernsGround(ctx, CAVERNS_OBSTACLES, performance.now());
   }
 
   private renderCavernsPuzzlesAndGates(ctx: CanvasRenderingContext2D): void {
-    // 1. Ancient Braziers
-    for (let i = 0; i < this.cavernsBraziers.length; i++) {
-      const brazier = this.cavernsBraziers[i];
-
-      // Stone Pedestal
-      ctx.fillStyle = '#1F2937';
-      ctx.beginPath();
-      ctx.arc(brazier.x, brazier.y, brazier.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = brazier.isLit ? '#10B981' : '#4B5563';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Flame
-      if (brazier.isLit) {
-        ctx.fillStyle = '#34D399';
-        ctx.shadowColor = '#10B981';
-        ctx.shadowBlur = 18;
-        ctx.beginPath();
-        ctx.arc(brazier.x, brazier.y - 4, brazier.radius * 0.65, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-
-      ctx.fillStyle = brazier.isLit ? '#34D399' : '#9CA3AF';
-      ctx.font = '700 10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        brazier.isLit ? '🔥 BRAZIER IGNITED' : 'UNLIT BRAZIER [WALK/STRIKE]',
-        brazier.x,
-        brazier.y - brazier.radius - 8
-      );
-    }
-
-    // 2. Web Wall
-    const wall = this.cavernsWebWall;
-    if (!wall.isBurned) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-      ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-
-      // Web Strands
-      ctx.strokeStyle = 'rgba(167, 243, 208, 0.7)';
-      ctx.lineWidth = 2;
-      for (let s = 0; s < 7; s++) {
-        ctx.beginPath();
-        ctx.moveTo(wall.x + s * 25, wall.y);
-        ctx.lineTo(wall.x + wall.width - s * 25, wall.y + wall.height);
-        ctx.stroke();
-      }
-
-      // Web HP Bar
-      const hpPct = Math.max(0, wall.hp / wall.maxHp);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(wall.x + 20, wall.y - 14, wall.width - 40, 5);
-      ctx.fillStyle = '#10B981';
-      ctx.fillRect(wall.x + 20, wall.y - 14, (wall.width - 40) * hpPct, 5);
-
-      ctx.fillStyle = '#A7F3D0';
-      ctx.font = '700 10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('TOXIC WEB BARRIER (IGNITE BRAZIERS TO BURN)', wall.x + wall.width / 2, wall.y - 20);
-    } else {
-      ctx.fillStyle = '#34D399';
-      ctx.font = '700 10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('▼ WEB BARRIER BURNED // NEST BREACHED ▼', wall.x + wall.width / 2, wall.y + 20);
-    }
+    PixelWorldRenderer.drawCavernsPuzzlesAndGates(ctx, this.cavernsBraziers, this.cavernsWebWall, performance.now());
   }
 
   // -----------------------------------------------------------------
   // AETHELGARD CAPITAL RENDERING
   // -----------------------------------------------------------------
   private renderAethelgardGround(ctx: CanvasRenderingContext2D): void {
-    const cx = WORLD_BOUNDS.hubCenterX;
-    const cy = WORLD_BOUNDS.hubCenterY;
-
-    // Imperial White Granite Plaza (Expansive 1800x1200)
-    ctx.fillStyle = '#0F121C';
-    ctx.fillRect(900, 600, 1800, 1300);
-
-    // Granite flagstones with subtle indigo accents
-    ctx.strokeStyle = 'rgba(99, 102, 241, 0.08)';
-    ctx.lineWidth = 1.5;
-    const tileSize = 64;
-    for (let x = 900; x <= 2700; x += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 600);
-      ctx.lineTo(x, 1900);
-      ctx.stroke();
-    }
-    for (let y = 600; y <= 1900; y += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(900, y);
-      ctx.lineTo(2700, y);
-      ctx.stroke();
-    }
-
-    // Outer Plaza Border
-    ctx.strokeStyle = '#6366F1';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(900, 600, 1800, 1300);
-
-    // Grand Avenue (North-South & East-West Crossway)
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.07)';
-    ctx.fillRect(cx - 75, 600, 150, 1300);
-    ctx.fillRect(900, cy - 75, 1800, 150);
-
-    // Central Sun Circle (Healing Fountain Plaza)
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
-    ctx.beginPath();
-    ctx.arc(cx, cy, 160, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Central Sun Healing Fountain
-    ctx.fillStyle = 'rgba(251, 191, 36, 0.3)';
-    ctx.shadowColor = '#F59E0B';
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 55, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Gate Indicators
-    // East Gate: Whispering Plains Imperial Highway
-    ctx.fillStyle = '#F59E0B';
-    ctx.fillRect(2560, 1240, 40, 120);
-    ctx.strokeRect(2560, 1240, 40, 120);
-    ctx.fillStyle = '#FBBF24';
-    ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('EAST GATE: PLAINS', 2580, 1225);
-
-    // West Gate: Molten Forge
-    ctx.fillStyle = '#EA580C';
-    ctx.fillRect(1040, 1240, 40, 120);
-    ctx.strokeRect(1040, 1240, 40, 120);
-    ctx.fillStyle = '#F97316';
-    ctx.fillText('WEST GATE: FORGE', 1060, 1225);
-
-    // North Gate: Citadel of Shadows
-    ctx.fillStyle = '#A855F7';
-    ctx.fillRect(cx - 60, 640, 120, 40);
-    ctx.strokeRect(cx - 60, 640, 120, 40);
-    ctx.fillStyle = '#C084FC';
-    ctx.fillText('NORTH SPIRE: CITADEL', cx, 625);
+    PixelWorldRenderer.drawAethelgardGround(ctx, performance.now());
   }
 
   private renderAethelgardScenery(ctx: CanvasRenderingContext2D): void {
+    const cx = WORLD_BOUNDS.hubCenterX;
+    const cy = WORLD_BOUNDS.hubCenterY;
+    const now = performance.now();
+
+    // Royal Sun Fountain
+    PixelWorldRenderer.drawPixelFountain(ctx, cx, cy, true, now);
+
     for (const obs of AETHELGARD_OBSTACLES) {
       if (obs.type === 'cathedral') {
-        // Grand Cathedral Keep
-        ctx.fillStyle = '#1E1B4B';
-        ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-        ctx.strokeStyle = '#6366F1';
-        ctx.lineWidth = 2.5;
-        ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-
-        // Arched stained glass windows
-        ctx.fillStyle = '#38BDF8';
-        ctx.fillRect(obs.x - 70, obs.y - 20, 24, 45);
-        ctx.fillRect(obs.x + 46, obs.y - 20, 24, 45);
-
-        // Golden Crest
-        ctx.fillStyle = '#F59E0B';
-        ctx.font = '700 12px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('HIGH IMPERIAL CITADEL', obs.x, obs.y);
+        PixelWorldRenderer.drawPixelCathedral(ctx, obs, now);
       } else if (obs.type === 'stall') {
-        // Market Bazaar Canopies
-        const isBazaar = obs.id === 'stall-bazaar';
-        ctx.fillStyle = isBazaar ? '#1E3A8A' : '#4C1D95';
-        ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-        ctx.strokeStyle = isBazaar ? '#3B82F6' : '#A855F7';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-
-        if (obs.label) {
-          ctx.font = '700 10px "JetBrains Mono", monospace';
-          ctx.fillStyle = '#F8FAFC';
-          ctx.textAlign = 'center';
-          ctx.fillText(obs.label, obs.x, obs.y);
-        }
+        PixelWorldRenderer.drawPixelMarketStall(ctx, obs, now);
       } else if (obs.type === 'pillar') {
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-        ctx.strokeStyle = '#94A3B8';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
+        PixelWorldRenderer.drawPixelRock(ctx, obs);
       } else if (obs.type === 'lantern') {
-        ctx.fillStyle = '#F59E0B';
-        ctx.shadowColor = '#F59E0B';
-        ctx.shadowBlur = 16;
-        ctx.beginPath();
-        ctx.arc(obs.x, obs.y, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        PixelWorldRenderer.drawPixelLantern(ctx, obs.x, obs.y, now, true);
       }
     }
   }
@@ -3029,254 +2465,29 @@ export class ChronoKnightsEngine {
   // DUNGEON 3: THE MOLTEN FORGE RENDERING
   // -----------------------------------------------------------------
   private renderForgeGround(ctx: CanvasRenderingContext2D): void {
-    const cx = WORLD_BOUNDS.hubCenterX;
-
-    // Basalt Dark Stone Chamber
-    ctx.fillStyle = '#140E0A';
-    ctx.fillRect(960, 260, 880, 1400);
-
-    // Glowing Lava channels
-    ctx.fillStyle = 'rgba(234, 88, 12, 0.35)';
-    ctx.fillRect(960, 880, 880, 100);
-
-    ctx.strokeStyle = '#F97316';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(960, 260, 880, 1400);
-
-    // Lava Flow Details
-    ctx.fillStyle = '#DC2626';
-    ctx.fillRect(960, 910, 880, 40);
-
-    // Obstacles: Smelting spires & colossal anvils
-    for (const obs of MOLTEN_FORGE_OBSTACLES) {
-      ctx.fillStyle = '#292524';
-      ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-      ctx.strokeStyle = '#78716C';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-
-      if (obs.label) {
-        ctx.font = '700 9px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#FB923C';
-        ctx.textAlign = 'center';
-        ctx.fillText(obs.label, obs.x, obs.y);
-      }
-    }
-
-    // South Exit Gate back to Aethelgard
-    ctx.fillStyle = 'rgba(234, 88, 12, 0.2)';
-    ctx.fillRect(cx - 85, 1610, 170, 45);
-    ctx.strokeStyle = '#EA580C';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 85, 1610, 170, 45);
-    ctx.fillStyle = '#FDBA74';
-    ctx.font = '700 11px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('▼ EXIT ROAD: ROYAL CAPITAL AETHELGARD ▼', cx, 1635);
+    PixelWorldRenderer.drawForgeGround(ctx, MOLTEN_FORGE_OBSTACLES, performance.now());
   }
 
   private renderForgePuzzlesAndGates(ctx: CanvasRenderingContext2D): void {
-    // 1. Steam Pressure Valves
-    for (const valve of this.forgeValves) {
-      ctx.fillStyle = valve.isTurned ? '#C2410C' : '#44403C';
-      ctx.beginPath();
-      ctx.arc(valve.x, valve.y, valve.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = valve.isTurned ? '#FB923C' : '#A8A29E';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Valve Spokes
-      ctx.strokeStyle = valve.isTurned ? '#FED7AA' : '#78716C';
-      ctx.lineWidth = 2;
-      for (let s = 0; s < 4; s++) {
-        const rad = (s * Math.PI) / 2;
-        ctx.beginPath();
-        ctx.moveTo(valve.x, valve.y);
-        ctx.lineTo(valve.x + Math.cos(rad) * (valve.radius - 4), valve.y + Math.sin(rad) * (valve.radius - 4));
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = valve.isTurned ? '#FB923C' : '#D6D3D1';
-      ctx.font = '700 10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        valve.isTurned ? 'VALVE RELEASED [OPEN]' : 'PRESSURE VALVE [WALK OVER]',
-        valve.x,
-        valve.y - valve.radius - 8
-      );
-    }
-
-    // 2. Magma Bridge
-    const bridge = this.forgeBridge;
-    const isRaised = bridge.raiseRatio >= 0.85;
-    ctx.fillStyle = isRaised ? '#78350F' : 'rgba(220, 38, 38, 0.4)';
-    ctx.fillRect(bridge.x, bridge.y, bridge.width, bridge.height);
-    ctx.strokeStyle = isRaised ? '#F59E0B' : '#EF4444';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(bridge.x, bridge.y, bridge.width, bridge.height);
-
-    ctx.fillStyle = isRaised ? '#FBBF24' : '#FCA5A5';
-    ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(
-      isRaised ? '▼ MAGMA BRIDGE RAISED // PROCEED TO IGNIS ▼' : '▲ MAGMA CHASM // TURN STEAM VALVES TO RAISE BRIDGE ▲',
-      bridge.x + bridge.width / 2,
-      bridge.y - 12
-    );
+    PixelWorldRenderer.drawForgePuzzlesAndGates(ctx, this.forgeValves, this.forgeBridge, performance.now());
   }
 
   // -----------------------------------------------------------------
   // DUNGEON 4: THE CITADEL OF SHADOWS RENDERING
   // -----------------------------------------------------------------
   private renderCitadelGround(ctx: CanvasRenderingContext2D): void {
-    const cx = WORLD_BOUNDS.hubCenterX;
-
-    // Deep Cosmic Starry Void
-    ctx.fillStyle = '#06030D';
-    ctx.fillRect(960, 260, 880, 1400);
-
-    // Subtle astral grid
-    ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
-    ctx.lineWidth = 1;
-    const step = 60;
-    for (let x = 960; x <= 1840; x += step) {
-      ctx.beginPath();
-      ctx.moveTo(x, 260);
-      ctx.lineTo(x, 1660);
-      ctx.stroke();
-    }
-    for (let y = 260; y <= 1660; y += step) {
-      ctx.beginPath();
-      ctx.moveTo(960, y);
-      ctx.lineTo(1840, y);
-      ctx.stroke();
-    }
-
-    ctx.strokeStyle = '#A855F7';
-    ctx.lineWidth = 2.5;
-    ctx.strokeRect(960, 260, 880, 1400);
-
-    // Singularity vortex when active
-    if (this.singularityActive) {
-      ctx.save();
-      const time = Date.now() * 0.002;
-      ctx.translate(1400, 480);
-      ctx.rotate(time);
-      ctx.fillStyle = 'rgba(168, 85, 247, 0.25)';
-      ctx.beginPath();
-      ctx.arc(0, 0, 120, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#090014';
-      ctx.shadowColor = '#EC4899';
-      ctx.shadowBlur = 30;
-      ctx.beginPath();
-      ctx.arc(0, 0, 36, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-    }
-
-    // Obstacles: Astral spires & monoliths
-    for (const obs of CITADEL_OBSTACLES) {
-      ctx.fillStyle = '#1E1B4B';
-      ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-      ctx.strokeStyle = '#818CF8';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
-
-      if (obs.label) {
-        ctx.font = '700 9px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#C084FC';
-        ctx.textAlign = 'center';
-        ctx.fillText(obs.label, obs.x, obs.y);
-      }
-    }
-
-    // South Exit Gate back to Aethelgard
-    ctx.fillStyle = 'rgba(168, 85, 247, 0.2)';
-    ctx.fillRect(cx - 85, 1610, 170, 45);
-    ctx.strokeStyle = '#A855F7';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 85, 1610, 170, 45);
-    ctx.fillStyle = '#E9D5FF';
-    ctx.font = '700 11px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('▼ ASTRAL RIFT: ROYAL CAPITAL AETHELGARD ▼', cx, 1635);
+    PixelWorldRenderer.drawCitadelGround(ctx, CITADEL_OBSTACLES, this.singularityActive, performance.now());
   }
 
   private renderCitadelPuzzlesAndGates(ctx: CanvasRenderingContext2D): void {
-    // 1. 4 Astral Seal Pillars
-    for (const seal of this.citadelSeals) {
-      ctx.fillStyle = seal.isActivated ? seal.color : '#1E1B4B';
-      ctx.beginPath();
-      ctx.arc(seal.x, seal.y, seal.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = seal.isActivated ? '#FFFFFF' : seal.color;
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      // Beacon of light if activated
-      if (seal.isActivated) {
-        ctx.fillStyle = `${seal.color}40`;
-        ctx.beginPath();
-        ctx.arc(seal.x, seal.y, seal.radius * 1.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.fillStyle = seal.isActivated ? '#FFFFFF' : seal.color;
-      ctx.font = '700 10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        seal.isActivated ? `${seal.label} [ALIGNED]` : `${seal.label} [STAND HERE]`,
-        seal.x,
-        seal.y - seal.radius - 8
-      );
-    }
-
-    // 2. Void Throne Gate
-    const gate = this.citadelGate;
-    const isOpen = gate.openRatio >= 0.85;
-    ctx.fillStyle = isOpen ? 'rgba(168, 85, 247, 0.15)' : 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(gate.x, gate.y, gate.width, gate.height);
-    ctx.strokeStyle = isOpen ? '#38BDF8' : '#A855F7';
-    ctx.lineWidth = 2.5;
-    ctx.strokeRect(gate.x, gate.y, gate.width, gate.height);
-
-    ctx.fillStyle = isOpen ? '#38BDF8' : '#C084FC';
-    ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(
-      isOpen ? '▼ VOID THRONE UNSEALED // DEFEAT DARK SOVEREIGN ▼' : '▲ VOID THRONE SEALED // ALIGN 4 ASTRAL SEALS ▲',
-      gate.x + gate.width / 2,
-      gate.y - 12
-    );
+    PixelWorldRenderer.drawCitadelPuzzlesAndGates(ctx, this.citadelSeals, this.citadelGate, performance.now());
   }
 
   // -----------------------------------------------------------------
   // HAZARD POOLS & DUNGEON CHESTS
   // -----------------------------------------------------------------
   private renderHazardPools(ctx: CanvasRenderingContext2D): void {
-    for (const pool of this.hazardPools) {
-      const alpha = Math.min(0.65, pool.duration / 2);
-      const isFire = pool.type === 'fire';
-      const isVoid = pool.type === 'void';
-      ctx.fillStyle = isFire
-        ? `rgba(234, 88, 12, ${alpha})`
-        : isVoid
-        ? `rgba(168, 85, 247, ${alpha})`
-        : `rgba(132, 204, 22, ${alpha})`;
-      ctx.beginPath();
-      ctx.arc(pool.x, pool.y, pool.radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = isFire ? '#EA580C' : isVoid ? '#A855F7' : '#84CC16';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(pool.x, pool.y, pool.radius * 0.7, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    PixelWorldRenderer.drawHazardPools(ctx, this.hazardPools, performance.now());
   }
 
   private renderDungeonChests(ctx: CanvasRenderingContext2D): void {
@@ -3291,40 +2502,7 @@ export class ChronoKnightsEngine {
         ? this.citadelChest
         : null;
     if (!chest) return;
-
-
-    // Glowing Platform
-    ctx.fillStyle = chest.isOpen ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.3)';
-    ctx.beginPath();
-    ctx.arc(chest.x, chest.y + 12, 34, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Chest Box
-    ctx.fillStyle = '#B45309';
-    ctx.fillRect(chest.x - 22, chest.y - 16, 44, 32);
-
-    // Gold Banding
-    ctx.fillStyle = '#F59E0B';
-    ctx.fillRect(chest.x - 24, chest.y - 18, 48, 6);
-    ctx.fillRect(chest.x - 4, chest.y - 18, 8, 34);
-
-    // Lock / Gem
-    ctx.fillStyle = chest.isOpen ? '#10B981' : '#FCD34D';
-    ctx.beginPath();
-    ctx.arc(chest.x, chest.y - 4, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    if (!chest.isOpen) {
-      ctx.fillStyle = '#FBBF24';
-      ctx.fillText('ANCIENT GOLDEN CHEST', chest.x, chest.y - 30);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillText('[A] OPEN CHEST', chest.x, chest.y - 44);
-    } else {
-      ctx.fillStyle = '#10B981';
-      ctx.fillText(`OPENED: ${chest.relicName}`, chest.x, chest.y - 28);
-    }
+    PixelWorldRenderer.drawDungeonChest(ctx, chest, performance.now());
   }
 
   private renderDungeonNoticeBanner(
