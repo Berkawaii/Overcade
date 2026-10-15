@@ -423,12 +423,12 @@ export class ControllerSignalingClient {
   public async joinRoom(rawRoomId: string): Promise<void> {
     const cleanRoomId = rawRoomId.trim().toUpperCase();
     if (cleanRoomId.length < 4) {
-      this.onStateChange('error', 'Geçersiz oda kodu.');
+      this.onStateChange('error', 'Invalid room code.');
       return;
     }
 
     this.disconnect();
-    this.onStateChange('connecting', `${cleanRoomId} odası aranıyor...`);
+    this.onStateChange('connecting', `Connecting to room ${cleanRoomId}...`);
 
     await tryAnonymousSession();
 
@@ -439,7 +439,7 @@ export class ControllerSignalingClient {
       if (!roomSnap.exists()) {
         this.onStateChange(
           'error',
-          `Oda (${cleanRoomId}) bulunamadı veya tüm 4 oyuncu slotu doldu.`
+          `Room (${cleanRoomId}) not found or all player slots full.`
         );
         return;
       }
@@ -448,7 +448,7 @@ export class ControllerSignalingClient {
       if (!roomData?.offer) {
         this.onStateChange(
           'error',
-          'Oda şu anda başka bir telefonu eşleştiriyor, 2 saniye sonra tekrar deneyin.'
+          'Host is pairing another controller, retry in 2 seconds.'
         );
         return;
       }
@@ -469,7 +469,7 @@ export class ControllerSignalingClient {
             usernameFragment: json.usernameFragment ?? null,
           });
         } catch (err) {
-          console.warn('Callee ICE candidate yazma hatası:', err);
+          console.warn('Callee ICE candidate write error:', err);
         }
       };
 
@@ -483,7 +483,7 @@ export class ControllerSignalingClient {
             this.callerIceUnsubscribe();
             this.callerIceUnsubscribe = null;
           }
-          this.onStateChange('connected', 'Doğrudan P2P UDP Veri Kanalı Aktif');
+          this.onStateChange('connected', 'Direct P2P Data Channel Active');
         };
 
         channel.onmessage = (msgEvent) => {
@@ -496,20 +496,21 @@ export class ControllerSignalingClient {
         };
 
         channel.onclose = () => {
-          this.onStateChange('disconnected', 'Host ile P2P bağlantısı kapandı.');
+          this.onStateChange('disconnected', 'P2P connection closed by host.');
         };
 
         channel.onerror = () => {
-          this.onStateChange('error', 'WebRTC veri kanalı hatası oluştu.');
+          this.onStateChange('error', 'WebRTC data channel error.');
         };
       };
 
       this.peerConnection.onconnectionstatechange = () => {
         const st = this.peerConnection?.connectionState;
         if (st === 'disconnected' || st === 'failed' || st === 'closed') {
-          this.onStateChange('disconnected', 'Konsol bağlantısı kesildi.');
+          this.onStateChange('disconnected', 'Console connection disconnected.');
         }
       };
+
 
       await this.peerConnection.setRemoteDescription(new RTCSessionDescription(roomData.offer));
       const answerDescription = await this.peerConnection.createAnswer();

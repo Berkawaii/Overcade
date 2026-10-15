@@ -48,8 +48,9 @@ export const ControllerApp: React.FC = () => {
     initialRoom ? 'connecting' : 'idle'
   );
   const [statusDetail, setStatusDetail] = useState<string>(
-    initialRoom ? `${initialRoom.toUpperCase()} odasına bağlanılıyor...` : 'Oda kodu girin veya QR okutun'
+    initialRoom ? `Connecting to room ${initialRoom.toUpperCase()}...` : 'Enter room code or scan QR code'
   );
+
   const [assignedSlot, setAssignedSlot] = useState<number>(0);
   const [armorHp, setArmorHp] = useState<number>(100);
   const [wakeLockActive, setWakeLockActive] = useState(false);
@@ -108,7 +109,7 @@ export const ControllerApp: React.FC = () => {
   const hexReadoutRef = useRef<HTMLSpanElement | null>(null);
 
   const playerAccentColor = PLAYER_COLORS[assignedSlot] || '#FF5500';
-  const playerCallsign = PLAYER_CALLSIGNS[assignedSlot] || 'MECH-01 // P1';
+  const playerCallsign = PLAYER_CALLSIGNS[assignedSlot] || 'HERO-01 // P1';
 
   const enableWakeLock = useCallback(async () => {
     try {
@@ -360,17 +361,17 @@ export const ControllerApp: React.FC = () => {
             <DeviceRotate size={36} weight="duotone" />
           </div>
           <h2 className="mt-4 text-xl font-bold tracking-tight">
-            Telefonu Yatay (Landscape) Konuma Çevirin
+            Rotate Device to Landscape
           </h2>
           <p className="mt-2 max-w-xs text-xs text-[#A1A1AA]">
-            Overcade Twin-Stick kumanda arayüzü yatay konsol tutuşuna göre tasarlanmıştır.
+            Overcade controller interface is engineered for horizontal console grip.
           </p>
           <button
             type="button"
             onClick={() => setIsPortrait(false)}
             className="mt-6 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 font-mono text-xs font-semibold text-[#F4F4F5]"
           >
-            YİNE DE DEVAM ET
+            CONTINUE ANYWAY
           </button>
         </div>
       )}
@@ -386,7 +387,7 @@ export const ControllerApp: React.FC = () => {
           onPointerCancel={(e) => setButtonState('L1', false, e.currentTarget)}
           className="col-span-3 flex h-12 sm:h-14 items-center justify-center rounded-tl-3xl rounded-tr-xl rounded-b-xl border border-white/15 bg-[#121215] font-mono text-xs sm:text-sm font-bold tracking-widest text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-[0.98] transition-transform"
         >
-          L1 // EMP KALKAN
+          L1 // DEFENSE
         </button>
 
         {/* Center Status, Assigned Player Slot, Armor HP & Room Input Pill */}
@@ -409,7 +410,7 @@ export const ControllerApp: React.FC = () => {
 
             <div className="flex items-center gap-1.5">
               <span
-                title="Wake Lock Durumu"
+                title="Wake Lock Status"
                 className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[9px] ${
                   wakeLockActive
                     ? 'bg-emerald-500/15 text-emerald-400'
@@ -425,7 +426,7 @@ export const ControllerApp: React.FC = () => {
                 className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[9px] text-[#F4F4F5]"
               >
                 <ArrowsOut size={11} />
-                {isFullscreen ? 'TAM EKRAN' : 'TAM EKRAN'}
+                {isFullscreen ? 'EXIT FULL' : 'FULLSCREEN'}
               </button>
             </div>
           </div>
@@ -443,7 +444,7 @@ export const ControllerApp: React.FC = () => {
                 maxLength={8}
                 value={roomInput}
                 onChange={(e) => setRoomInput(e.target.value.toUpperCase())}
-                placeholder="ODA KODU (ÖRN: AB9K2X)"
+                placeholder="ROOM CODE (E.G. AB9K2X)"
                 className="w-full rounded border border-white/15 bg-[#09090B] px-2 py-1 font-mono text-xs uppercase tracking-widest text-[#F4F4F5] focus:border-[#FF5500] focus:outline-none"
               />
               <button
@@ -451,23 +452,24 @@ export const ControllerApp: React.FC = () => {
                 className="shrink-0 inline-flex items-center gap-1 rounded bg-[#FF5500] px-3 py-1 font-mono text-xs font-bold text-[#09090B]"
               >
                 <PlugsConnected size={13} weight="bold" />
-                BAĞLAN
+                CONNECT
               </button>
             </form>
           ) : (
             <div className="mt-1 flex w-full items-center justify-between gap-3 font-mono text-[10px]">
               <div className="flex items-center gap-1.5">
                 <ShieldCheck size={12} style={{ color: playerAccentColor }} />
-                <span className="text-[#F4F4F5] font-bold">ZIRH: %{armorHp}</span>
+                <span className="text-[#F4F4F5] font-bold">HP / SHIELD: {armorHp}%</span>
               </div>
               <div className="hidden sm:flex items-center gap-1 text-[#A1A1AA]">
-                <span>8B:</span>
+                <span>PACKET:</span>
                 <strong ref={hexReadoutRef} style={{ color: playerAccentColor }}>
                   01 00 00 00 00 00 00 00
                 </strong>
               </div>
             </div>
           )}
+
         </div>
 
         {/* R1 Shoulder Trigger */}
@@ -479,7 +481,7 @@ export const ControllerApp: React.FC = () => {
           onPointerCancel={(e) => setButtonState('R1', false, e.currentTarget)}
           className="col-span-3 flex h-12 sm:h-14 items-center justify-center rounded-tr-3xl rounded-tl-xl rounded-b-xl border border-white/15 bg-[#121215] font-mono text-xs sm:text-sm font-bold tracking-widest text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-[0.98] transition-transform"
         >
-          R1 // OVERDRIVE
+          R1 // ULTIMATE
         </button>
       </div>
 
@@ -514,7 +516,7 @@ export const ControllerApp: React.FC = () => {
               </div>
             </div>
             <span className="mt-1.5 font-mono text-[10px] uppercase tracking-widest text-[#A1A1AA]">
-              SOL ANALOG (YÜRÜYÜŞ)
+              LEFT ANALOG // MOVE
             </span>
           </div>
 
@@ -627,7 +629,7 @@ export const ControllerApp: React.FC = () => {
               </div>
             </div>
             <span className="mt-1.5 font-mono text-[10px] uppercase tracking-widest text-[#A1A1AA]">
-              SAĞ ANALOG (360° ATEŞ)
+              RIGHT ANALOG // AIM & SKILLS
             </span>
           </div>
 
@@ -643,7 +645,7 @@ export const ControllerApp: React.FC = () => {
               className="flex flex-col items-center justify-center rounded-full border-2 border-white/20 bg-[#121215] font-mono text-sm font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
             >
               <span>Y</span>
-              <span className="text-[7px] font-normal text-[#A1A1AA]">MOD</span>
+              <span className="text-[7px] font-normal text-[#A1A1AA]">SPECIAL</span>
             </button>
             <div />
 
@@ -669,7 +671,7 @@ export const ControllerApp: React.FC = () => {
               className="flex flex-col items-center justify-center rounded-full border-2 border-white/25 bg-[#121215] font-mono text-sm font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
             >
               <span>B</span>
-              <span className="text-[7px] font-normal text-[#FF5500]">ROKET</span>
+              <span className="text-[7px] font-normal text-[#FF5500]">SKILL</span>
             </button>
 
             <div />
@@ -682,7 +684,7 @@ export const ControllerApp: React.FC = () => {
               className="flex flex-col items-center justify-center rounded-full border-2 border-[#FF5500] bg-[#FF5500]/15 font-mono text-sm font-extrabold text-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
             >
               <span>A</span>
-              <span className="text-[7px] font-normal">DASH</span>
+              <span className="text-[7px] font-normal">ACTION</span>
             </button>
             <div />
           </div>
@@ -694,12 +696,12 @@ export const ControllerApp: React.FC = () => {
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1">
             <WifiHigh size={12} style={{ color: playerAccentColor }} />
-            UDP P2P // TWIN-STICK MEKA PROTOKOLÜ
+            UDP P2P // BINARY GAMEPAD PROTOCOL
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Vibrate size={12} className="text-emerald-400" />
-          <span>ÇİFT YÖNLÜ HAPTİK TELEMETRİ AKTİF</span>
+          <span>TACTILE HAPTIC TELEMETRY ACTIVE</span>
         </div>
       </div>
     </div>

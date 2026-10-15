@@ -24,8 +24,9 @@ export const PACKET_TYPE_HOST_FEEDBACK = 0x03;
 
 export const MAX_PLAYERS = 4;
 
-export const PLAYER_COLORS = ['#FF5500', '#10B981', '#F59E0B', '#06B6D4'] as const;
-export const PLAYER_CALLSIGNS = ['MECH-01 // P1', 'MECH-02 // P2', 'MECH-03 // P3', 'MECH-04 // P4'] as const;
+export const PLAYER_COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B'] as const;
+export const PLAYER_CALLSIGNS = ['HERO-01 // P1', 'HERO-02 // P2', 'HERO-03 // P3', 'HERO-04 // P4'] as const;
+
 
 export interface GamepadButtons {
   A: boolean;
