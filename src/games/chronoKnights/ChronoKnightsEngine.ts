@@ -38,6 +38,7 @@ import {
   CITADEL_CHEST,
 } from './DungeonData';
 import { createEnemy, type EnemyEntity, type EnemyKind } from './EnemyData';
+import { PixelArtRenderer } from './PixelArtRenderer';
 import type {
   AttackState,
   BrazierTorch,
@@ -239,14 +240,21 @@ export class ChronoKnightsEngine {
 
   public spawnWildernessEnemies(): void {
     this.enemies = [
-      createEnemy('wolf-1', 'wolf', 1220, 420),
-      createEnemy('wolf-2', 'wolf', 1300, 380),
-      createEnemy('wolf-3', 'wolf', 1550, 440),
-      createEnemy('wolf-4', 'wolf', 1620, 390),
-      createEnemy('boar-1', 'boar', 1140, 260),
-      createEnemy('boar-2', 'boar', 1680, 250),
-      createEnemy('bandit-1', 'bandit', 1350, 210),
-      createEnemy('bandit-2', 'bandit', 1450, 220),
+      // East Wolf Pack Den (Pine thickets around x: 2700, y: 1600)
+      createEnemy('wolf-1', 'wolf', 2650, 1600),
+      createEnemy('wolf-2', 'wolf', 2760, 1550),
+      createEnemy('wolf-3', 'wolf', 2700, 1680),
+      // Southwest Tusker Grove (Mud hollows around x: 800, y: 1650)
+      createEnemy('boar-1', 'boar', 800, 1650),
+      createEnemy('boar-2', 'boar', 740, 1750),
+      createEnemy('boar-3', 'boar', 900, 1700),
+      // Northern Crypt Approach Ruins (Ancient arches around x: 1800, y: 500)
+      createEnemy('bandit-1', 'bandit', 1700, 520),
+      createEnemy('bandit-2', 'bandit', 1900, 520),
+      createEnemy('bandit-3', 'bandit', 1800, 430),
+      // Central Valley Wild Roamers (Valley crossings around x: 1500, y: 1300)
+      createEnemy('wolf-roamer-1', 'wolf', 1500, 1300),
+      createEnemy('wolf-roamer-2', 'wolf', 2100, 1300),
     ];
   }
 
@@ -482,59 +490,59 @@ export class ChronoKnightsEngine {
     if (!leader) return;
 
     if (this.currentZone === 'oakhaven') {
-      // North Road gate: y < 640 && Math.abs(x - 1400) < 110 -> Whispering Plains
-      if (leader.y < 640 && Math.abs(leader.x - 1400) < 110) {
-        this.transitionToZone('whispering_plains', 1400, 560);
+      // North Road gate: y < 740 && Math.abs(x - 1800) < 140 -> Whispering Plains South Meadow
+      if (leader.y < 740 && Math.abs(leader.x - 1800) < 140) {
+        this.transitionToZone('whispering_plains', 1800, 2260);
       }
     } else if (this.currentZone === 'whispering_plains') {
-      // South Gate: y > 610 && Math.abs(x - 1400) < 110 -> Oakhaven Village
-      if (leader.y > 610 && Math.abs(leader.x - 1400) < 110) {
-        this.transitionToZone('oakhaven', 1400, 720);
+      // South Gate: y > 2320 && Math.abs(x - 1800) < 140 -> Oakhaven Village
+      if (leader.y > 2320 && Math.abs(leader.x - 1800) < 140) {
+        this.transitionToZone('oakhaven', 1800, 840);
       }
-      // North Archway: y < 190 && Math.abs(x - 1400) < 110 -> The Forgotten Crypt
-      else if (leader.y < 190 && Math.abs(leader.x - 1400) < 110) {
+      // North Archway: y < 260 && Math.abs(x - 1800) < 140 -> The Forgotten Crypt
+      else if (leader.y < 260 && Math.abs(leader.x - 1800) < 140) {
         this.transitionToZone('forgotten_crypt', 1400, 1520);
       }
-      // East Chasm: x > 1840 && Math.abs(leader.y - 380) < 110 -> Arachnid Caverns
-      else if (leader.x > 1840 && Math.abs(leader.y - 380) < 110) {
+      // East Chasm: x > 3300 && Math.abs(leader.y - 1100) < 140 -> Arachnid Caverns
+      else if (leader.x > 3300 && Math.abs(leader.y - 1100) < 140) {
         this.transitionToZone('arachnid_caverns', 1400, 1520);
       }
-      // West Highway: x < 960 && Math.abs(leader.y - 550) < 110 -> Royal Capital Aethelgard
-      else if (leader.x < 960 && Math.abs(leader.y - 550) < 110) {
-        this.transitionToZone('aethelgard', 1800, 1080);
+      // West Highway: x < 260 && Math.abs(leader.y - 1100) < 140 -> Royal Capital Aethelgard
+      else if (leader.x < 260 && Math.abs(leader.y - 1100) < 140) {
+        this.transitionToZone('aethelgard', 2460, 1300);
       }
     } else if (this.currentZone === 'aethelgard') {
-      // East Gate: x > 1840 && Math.abs(leader.y - 1080) < 110 -> Whispering Plains
-      if (leader.x > 1840 && Math.abs(leader.y - 1080) < 110) {
-        this.transitionToZone('whispering_plains', 1040, 550);
+      // East Gate: x > 2520 && Math.abs(leader.y - 1300) < 140 -> Whispering Plains Imperial Highway
+      if (leader.x > 2520 && Math.abs(leader.y - 1300) < 140) {
+        this.transitionToZone('whispering_plains', 360, 1100);
       }
-      // West Gate: x < 960 && Math.abs(leader.y - 1080) < 110 -> The Molten Forge
-      else if (leader.x < 960 && Math.abs(leader.y - 1080) < 110) {
+      // West Gate: x < 1080 && Math.abs(leader.y - 1300) < 140 -> The Molten Forge
+      else if (leader.x < 1080 && Math.abs(leader.y - 1300) < 140) {
         this.transitionToZone('molten_forge', 1400, 1520);
       }
-      // North Spire: leader.y < 660 && Math.abs(leader.x - 1400) < 110 -> The Citadel of Shadows
-      else if (leader.y < 660 && Math.abs(leader.x - 1400) < 110) {
+      // North Spire: leader.y < 660 && Math.abs(leader.x - 1800) < 140 -> The Citadel of Shadows
+      else if (leader.y < 660 && Math.abs(leader.x - 1800) < 140) {
         this.transitionToZone('citadel_of_shadows', 1400, 1520);
       }
     } else if (this.currentZone === 'forgotten_crypt') {
-      // South Archway: y > 1580 && Math.abs(x - 1400) < 110 -> Whispering Plains
-      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
-        this.transitionToZone('whispering_plains', 1400, 260);
+      // South Archway: y > 1580 && Math.abs(x - 1400) < 140 -> Whispering Plains
+      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 140) {
+        this.transitionToZone('whispering_plains', 1800, 340);
       }
     } else if (this.currentZone === 'arachnid_caverns') {
-      // South Cavern Mouth: y > 1580 && Math.abs(x - 1400) < 110 -> Whispering Plains
-      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
-        this.transitionToZone('whispering_plains', 1780, 400);
+      // South Cavern Mouth: y > 1580 && Math.abs(x - 1400) < 140 -> Whispering Plains
+      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 140) {
+        this.transitionToZone('whispering_plains', 3240, 1100);
       }
     } else if (this.currentZone === 'molten_forge') {
-      // South Gate: y > 1580 && Math.abs(x - 1400) < 110 -> Aethelgard
-      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
-        this.transitionToZone('aethelgard', 1040, 1080);
+      // South Gate: y > 1580 && Math.abs(x - 1400) < 140 -> Aethelgard
+      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 140) {
+        this.transitionToZone('aethelgard', 1140, 1300);
       }
     } else if (this.currentZone === 'citadel_of_shadows') {
-      // South Gate: y > 1580 && Math.abs(x - 1400) < 110 -> Aethelgard
-      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 110) {
-        this.transitionToZone('aethelgard', 1400, 740);
+      // South Gate: y > 1580 && Math.abs(x - 1400) < 140 -> Aethelgard
+      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 140) {
+        this.transitionToZone('aethelgard', 1800, 740);
       }
     }
   }
@@ -857,7 +865,18 @@ export class ChronoKnightsEngine {
     // Ranger Split Volley
     if (player.classId === 'ranger' && button === 'B') {
       SoundFX.playAutocannon();
-      const baseAngle = this.getFacingAngle(player.facing);
+      let baseAngle = this.getFacingAngle(player.facing);
+      const target = this.findNearestEnemyTarget(player.x, player.y, 650);
+      if (target) {
+        baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
+        const dx = target.x - player.x;
+        const dy = target.y - player.y;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          player.facing = dx > 0 ? 'right' : 'left';
+        } else {
+          player.facing = dy > 0 ? 'down' : 'up';
+        }
+      }
       for (let a = -2; a <= 2; a++) {
         const spreadAngle = baseAngle + (a * Math.PI) / 16;
         this.fireProjectileWithAngle(player, 'arrow', spreadAngle, 520, 10, 35, 'poison');
@@ -1121,18 +1140,6 @@ export class ChronoKnightsEngine {
 
     // Remove defeated enemy
     this.enemies.splice(index, 1);
-
-    // Respawn after delay if pool is depleted in Whispering Plains
-    if (this.currentZone === 'whispering_plains' && this.enemies.length < 3) {
-      setTimeout(() => {
-        if (this.currentZone !== 'whispering_plains') return;
-        const kinds: EnemyKind[] = ['wolf', 'boar', 'bandit'];
-        const randomKind = kinds[Math.floor(Math.random() * kinds.length)];
-        const rx = 1100 + Math.random() * 600;
-        const ry = 220 + Math.random() * 300;
-        this.enemies.push(createEnemy(`respawn-${Date.now()}`, randomKind, rx, ry));
-      }, 4000);
-    }
   }
 
   private triggerLevelUp(): void {
@@ -1171,6 +1178,41 @@ export class ChronoKnightsEngine {
     }
   }
 
+  private findNearestEnemyTarget(
+    sourceX: number,
+    sourceY: number,
+    maxRange = 650
+  ): { x: number; y: number } | null {
+    let nearest: { x: number; y: number } | null = null;
+    let minDist = maxRange;
+
+    // Check hostile enemies in wilderness or dungeons
+    if (this.currentZone !== 'oakhaven') {
+      for (let i = 0; i < this.enemies.length; i++) {
+        const e = this.enemies[i];
+        if (e.hp <= 0) continue;
+        const dist = Math.hypot(e.x - sourceX, e.y - sourceY);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = { x: e.x, y: e.y - 6 };
+        }
+      }
+    } else {
+      // In Oakhaven training hub, auto-aim at nearby training dummies!
+      for (let i = 0; i < this.dummies.length; i++) {
+        const d = this.dummies[i];
+        if (d.hp <= 0) continue;
+        const dist = Math.hypot(d.x - sourceX, d.y - sourceY);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = { x: d.x, y: d.y };
+        }
+      }
+    }
+
+    return nearest;
+  }
+
   private fireProjectile(
     player: PlayerEntity,
     type: string,
@@ -1179,7 +1221,21 @@ export class ChronoKnightsEngine {
     damage: number,
     element: 'physical' | 'fire' | 'ice' | 'holy' | 'poison'
   ): void {
-    const angle = this.getFacingAngle(player.facing);
+    let angle = this.getFacingAngle(player.facing);
+
+    // Auto-Aim for ranged attacks (Pyromancer, Ranger, Cleric) towards nearest enemy
+    const target = this.findNearestEnemyTarget(player.x, player.y, 650);
+    if (target) {
+      angle = Math.atan2(target.y - player.y, target.x - player.x);
+      const dx = target.x - player.x;
+      const dy = target.y - player.y;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        player.facing = dx > 0 ? 'right' : 'left';
+      } else {
+        player.facing = dy > 0 ? 'down' : 'up';
+      }
+    }
+
     this.fireProjectileWithAngle(player, type, angle, speed, radius, damage, element);
   }
 
@@ -1455,10 +1511,34 @@ export class ChronoKnightsEngine {
       enemy.y += enemy.vy * delta;
 
       // Keep inside bounds according to active zone
-      const minX = this.currentZone === 'whispering_plains' ? 900 : 1060;
-      const maxX = this.currentZone === 'whispering_plains' ? 1900 : 1740;
-      const minY = this.currentZone === 'whispering_plains' ? 120 : 380;
-      const maxY = this.currentZone === 'whispering_plains' ? 620 : 1540;
+      let minX = 900;
+      let maxX = 2700;
+      let minY = 350;
+      let maxY = 2250;
+
+      if (this.currentZone === 'whispering_plains') {
+        minX = 200;
+        maxX = 3400;
+        minY = 200;
+        maxY = 2400;
+      } else if (this.currentZone === 'oakhaven') {
+        minX = 1200;
+        maxX = 2400;
+        minY = 750;
+        maxY = 1750;
+      } else if (this.currentZone === 'aethelgard') {
+        minX = 900;
+        maxX = 2700;
+        minY = 650;
+        maxY = 1850;
+      } else {
+        // Dungeons
+        minX = 960;
+        maxX = 1840;
+        minY = 260;
+        maxY = 1660;
+      }
+
       enemy.x = Math.max(minX, Math.min(maxX, enemy.x));
       enemy.y = Math.max(minY, Math.min(maxY, enemy.y));
     }
@@ -1505,9 +1585,36 @@ export class ChronoKnightsEngine {
     player.y += player.vy * delta;
 
     // Clamp inside zone bounds
-    const pad = 80;
-    player.x = Math.max(pad, Math.min(WORLD_BOUNDS.width - pad, player.x));
-    player.y = Math.max(pad, Math.min(WORLD_BOUNDS.height - pad, player.y));
+    let minX = 900;
+    let maxX = 2700;
+    let minY = 350;
+    let maxY = 2250;
+
+    if (this.currentZone === 'whispering_plains') {
+      minX = 200;
+      maxX = 3400;
+      minY = 200;
+      maxY = 2400;
+    } else if (this.currentZone === 'oakhaven') {
+      minX = 1200;
+      maxX = 2400;
+      minY = 720;
+      maxY = 1750;
+    } else if (this.currentZone === 'aethelgard') {
+      minX = 900;
+      maxX = 2700;
+      minY = 640;
+      maxY = 1850;
+    } else {
+      // Dungeons
+      minX = 960;
+      maxX = 1840;
+      minY = 260;
+      maxY = 1660;
+    }
+
+    player.x = Math.max(minX, Math.min(maxX, player.x));
+    player.y = Math.max(minY, Math.min(maxY, player.y));
 
     // Collision blocking for closed Portcullis in Forgotten Crypt
     if (this.currentZone === 'forgotten_crypt' && this.cryptGate.openRatio < 0.85) {
@@ -2242,59 +2349,59 @@ export class ChronoKnightsEngine {
     const cx = WORLD_BOUNDS.hubCenterX;
     const cy = WORLD_BOUNDS.hubCenterY;
 
-    // Soft emerald-carbon grass grid
+    // Spacious emerald grass village green
     ctx.fillStyle = '#0F1713';
-    ctx.fillRect(800, 600, 1200, 900);
+    ctx.fillRect(1000, 650, 1600, 1200);
 
     ctx.strokeStyle = 'rgba(16, 185, 129, 0.05)';
     ctx.lineWidth = 1;
     const tileSize = 64;
-    for (let x = 800; x <= 2000; x += tileSize) {
+    for (let x = 1000; x <= 2600; x += tileSize) {
       ctx.beginPath();
-      ctx.moveTo(x, 600);
-      ctx.lineTo(x, 1500);
+      ctx.moveTo(x, 650);
+      ctx.lineTo(x, 1850);
       ctx.stroke();
     }
-    for (let y = 600; y <= 1500; y += tileSize) {
+    for (let y = 650; y <= 1850; y += tileSize) {
       ctx.beginPath();
-      ctx.moveTo(800, y);
-      ctx.lineTo(2000, y);
+      ctx.moveTo(1000, y);
+      ctx.lineTo(2600, y);
       ctx.stroke();
     }
 
-    // Stone pathway from south to north road
+    // Cobblestone Highway from South to North Gate
     ctx.fillStyle = '#1E232A';
-    ctx.fillRect(cx - 50, 600, 100, 900);
-    ctx.fillRect(1000, cy - 40, 800, 80);
+    ctx.fillRect(cx - 50, 680, 100, 1150);
+    ctx.fillRect(1150, cy - 45, 1300, 90);
 
-    // Cobblestone Plaza circle
-    const grad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 260);
+    // Cobblestone Plaza circle around fountain
+    const grad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 280);
     grad.addColorStop(0, '#272F38');
     grad.addColorStop(0.7, '#1C2229');
     grad.addColorStop(1, '#11151A');
 
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(cx, cy, 260, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 280, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(cx, cy, 255, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 275, 0, Math.PI * 2);
     ctx.stroke();
 
     // North Exit Gate Archway
     ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
-    ctx.fillRect(cx - 75, 620, 150, 45);
+    ctx.fillRect(cx - 85, 700, 170, 45);
     ctx.strokeStyle = '#3B82F6';
     ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 75, 620, 150, 45);
+    ctx.strokeRect(cx - 85, 700, 170, 45);
 
     ctx.fillStyle = '#93C5FD';
     ctx.font = '700 11px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('▲ NORTH GATE: WHISPERING PLAINS ▲', cx, 645);
+    ctx.fillText('▲ NORTH GATE: WHISPERING PLAINS ▲', cx, 727);
   }
 
   private renderOakhavenScenery(ctx: CanvasRenderingContext2D): void {
@@ -2305,28 +2412,28 @@ export class ChronoKnightsEngine {
     const ripple = (performance.now() * 0.002) % 1;
     ctx.fillStyle = '#0284C7';
     ctx.beginPath();
-    ctx.arc(cx, cy, 46, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 52, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = `rgba(56, 189, 248, ${1 - ripple})`;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(cx, cy, 25 + ripple * 28, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 28 + ripple * 32, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.strokeStyle = '#E0F2FE';
     ctx.lineWidth = 2.5;
-    ctx.strokeRect(cx - 48, cy - 48, 96, 96);
+    ctx.strokeRect(cx - 55, cy - 55, 110, 110);
 
     ctx.font = '700 10px "JetBrains Mono", monospace';
     ctx.fillStyle = '#38BDF8';
     ctx.textAlign = 'center';
-    ctx.fillText('HEALING FOUNTAIN', cx, cy + 64);
+    ctx.fillText('SACRED HEALING FOUNTAIN', cx, cy + 74);
 
     // Obstacles: Houses, trees, lanterns
     for (const obs of OAKHAVEN_OBSTACLES) {
       if (obs.type === 'house') {
-        // Wooden House
+        // Wooden House with Thatched Roof
         ctx.fillStyle = '#334155';
         ctx.fillRect(obs.x - obs.width / 2, obs.y - obs.height / 2, obs.width, obs.height);
         ctx.strokeStyle = '#64748B';
@@ -2336,9 +2443,9 @@ export class ChronoKnightsEngine {
         // Thatched Roof
         ctx.fillStyle = '#78350F';
         ctx.beginPath();
-        ctx.moveTo(obs.x - obs.width / 2 - 10, obs.y - obs.height / 2);
-        ctx.lineTo(obs.x, obs.y - obs.height / 2 - 25);
-        ctx.lineTo(obs.x + obs.width / 2 + 10, obs.y - obs.height / 2);
+        ctx.moveTo(obs.x - obs.width / 2 - 12, obs.y - obs.height / 2);
+        ctx.lineTo(obs.x, obs.y - obs.height / 2 - 28);
+        ctx.lineTo(obs.x + obs.width / 2 + 12, obs.y - obs.height / 2);
         ctx.closePath();
         ctx.fill();
 
@@ -2352,16 +2459,16 @@ export class ChronoKnightsEngine {
       } else if (obs.type === 'tree') {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.beginPath();
-        ctx.ellipse(obs.x, obs.y + 16, 20, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(obs.x, obs.y + 16, 22, 9, 0, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = '#065F46';
         ctx.beginPath();
-        ctx.arc(obs.x, obs.y - 10, 24, 0, Math.PI * 2);
+        ctx.arc(obs.x, obs.y - 12, 28, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#047857';
         ctx.beginPath();
-        ctx.arc(obs.x, obs.y - 16, 18, 0, Math.PI * 2);
+        ctx.arc(obs.x, obs.y - 18, 22, 0, Math.PI * 2);
         ctx.fill();
       } else if (obs.type === 'lantern') {
         ctx.fillStyle = '#F59E0B';
@@ -2377,43 +2484,26 @@ export class ChronoKnightsEngine {
 
   private renderNpcs(ctx: CanvasRenderingContext2D): void {
     for (const npc of this.npcs) {
-      // Drop Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.beginPath();
-      ctx.ellipse(npc.x, npc.y + 12, 14, 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // NPC Body
-      ctx.fillStyle = npc.avatarColor;
-      ctx.beginPath();
-      ctx.arc(npc.x, npc.y - 8, 14, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Symbol
-      ctx.font = '16px serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(npc.symbol, npc.x, npc.y - 4);
+      // Handcrafted 16-bit Pixel-Art NPC
+      PixelArtRenderer.drawNpc(ctx, npc);
 
       // Name & Title Badge
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-      ctx.fillRect(npc.x - 45, npc.y - 38, 90, 16);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(npc.x - 52, npc.y - 42, 104, 16);
       ctx.strokeStyle = npc.avatarColor;
       ctx.lineWidth = 1;
-      ctx.strokeRect(npc.x - 45, npc.y - 38, 90, 16);
+      ctx.strokeRect(npc.x - 52, npc.y - 42, 104, 16);
 
       ctx.font = '700 9px "JetBrains Mono", monospace';
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillText(npc.name, npc.x, npc.y - 26);
+      ctx.textAlign = 'center';
+      ctx.fillText(npc.name, npc.x, npc.y - 30);
 
       // Interaction Prompt if nearby
       if (this.nearbyNpc === npc) {
         ctx.fillStyle = '#F59E0B';
         ctx.font = '700 10px "JetBrains Mono", monospace';
-        ctx.fillText('[A] TALK', npc.x, npc.y - 44);
+        ctx.fillText('[A] TALK', npc.x, npc.y - 48);
       }
     }
   }
@@ -2421,61 +2511,95 @@ export class ChronoKnightsEngine {
   private renderWhisperingPlainsGround(ctx: CanvasRenderingContext2D): void {
     const cx = WORLD_BOUNDS.hubCenterX;
 
-    // Wild savanna / steppe terrain
-    ctx.fillStyle = '#1C1917';
-    ctx.fillRect(800, 100, 1200, 560);
+    // Full 3600 x 2600 Vast Savanna & Wilderness
+    ctx.fillStyle = '#141A13';
+    ctx.fillRect(100, 100, 3400, 2400);
 
-    ctx.strokeStyle = 'rgba(217, 119, 6, 0.06)';
+    // Subtle grassy grid texture
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.04)';
     ctx.lineWidth = 1;
     const tileSize = 64;
-    for (let x = 800; x <= 2000; x += tileSize) {
+    for (let x = 100; x <= 3500; x += tileSize) {
       ctx.beginPath();
       ctx.moveTo(x, 100);
-      ctx.lineTo(x, 660);
+      ctx.lineTo(x, 2500);
       ctx.stroke();
     }
-    for (let y = 100; y <= 660; y += tileSize) {
+    for (let y = 100; y <= 2500; y += tileSize) {
       ctx.beginPath();
-      ctx.moveTo(800, y);
-      ctx.lineTo(2000, y);
+      ctx.moveTo(100, y);
+      ctx.lineTo(3500, y);
       ctx.stroke();
     }
 
-    // Dirt trail from south gate to northern archways
-    ctx.fillStyle = '#292524';
-    ctx.fillRect(cx - 40, 100, 80, 560);
-    ctx.fillRect(cx, 340, 600, 60);
+    // Winding Southern River
+    ctx.fillStyle = '#0C4A6E';
+    ctx.fillRect(100, 1920, 3400, 70);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(100, 1920, 3400, 70);
 
-    // South Exit Gate (Back to Village)
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
-    ctx.fillRect(cx - 75, 590, 150, 45);
+    // Ancient Stone Bridge over Southern River
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(cx - 70, 1910, 140, 90);
+    ctx.strokeStyle = '#94A3B8';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(cx - 70, 1910, 140, 90);
+
+    // Main Imperial Stone Highway (North-South Valley Road)
+    ctx.fillStyle = '#262626';
+    ctx.fillRect(cx - 50, 200, 100, 2200);
+
+    // East Trail (to Wolf Den & Arachnid Caverns)
+    ctx.fillStyle = '#27272A';
+    ctx.fillRect(cx, 1600, 1100, 70);
+    ctx.fillRect(2600, 1040, 750, 70);
+    ctx.fillRect(2600, 1040, 70, 600);
+
+    // West Highway (to Boar Grove & Imperial Highway to Aethelgard)
+    ctx.fillRect(200, 1040, cx - 200, 80);
+    ctx.fillRect(800, 1040, 70, 650);
+
+    // South Gate (Back to Oakhaven Village)
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+    ctx.fillRect(cx - 85, 2330, 170, 45);
     ctx.strokeStyle = '#10B981';
     ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 75, 590, 150, 45);
+    ctx.strokeRect(cx - 85, 2330, 170, 45);
     ctx.fillStyle = '#6EE7B7';
     ctx.font = '700 11px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('▼ SOUTH GATE: OAKHAVEN VILLAGE ▼', cx, 615);
+    ctx.fillText('▼ SOUTH GATE: OAKHAVEN VILLAGE ▼', cx, 2358);
 
     // North Gate: The Forgotten Crypt
     ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
-    ctx.fillRect(cx - 85, 115, 170, 45);
+    ctx.fillRect(cx - 85, 195, 170, 45);
     ctx.strokeStyle = '#6366F1';
     ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 85, 115, 170, 45);
+    ctx.strokeRect(cx - 85, 195, 170, 45);
     ctx.fillStyle = '#A5B4FC';
     ctx.font = '700 11px "JetBrains Mono", monospace';
-    ctx.fillText('▲ NORTH GATE: THE FORGOTTEN CRYPT ▲', cx, 140);
+    ctx.fillText('▲ NORTH GATE: THE FORGOTTEN CRYPT ▲', cx, 222);
 
-    // East Gate: Arachnid Caverns
+    // Far East Gate: Arachnid Caverns
     ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
-    ctx.fillRect(1820, 310, 45, 140);
+    ctx.fillRect(3320, 1020, 50, 140);
     ctx.strokeStyle = '#10B981';
     ctx.lineWidth = 2;
-    ctx.strokeRect(1820, 310, 45, 140);
+    ctx.strokeRect(3320, 1020, 50, 140);
     ctx.fillStyle = '#6EE7B7';
     ctx.font = '700 10px "JetBrains Mono", monospace';
-    ctx.fillText('▶ ARACHNID CAVERNS ▶', 1842, 385);
+    ctx.fillText('▶ ARACHNID CAVERNS ▶', 3345, 1095);
+
+    // Far West Gate: Imperial Highway to Aethelgard
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+    ctx.fillRect(190, 1020, 50, 140);
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(190, 1020, 50, 140);
+    ctx.fillStyle = '#FDE047';
+    ctx.font = '700 10px "JetBrains Mono", monospace';
+    ctx.fillText('◀ HIGHWAY TO AETHELGARD ◀', 215, 1095);
   }
 
   private renderWhisperingPlainsScenery(ctx: CanvasRenderingContext2D): void {
@@ -2488,6 +2612,13 @@ export class ChronoKnightsEngine {
         ctx.strokeStyle = '#78716C';
         ctx.lineWidth = 2;
         ctx.stroke();
+
+        if (obs.label) {
+          ctx.font = '700 9px "JetBrains Mono", monospace';
+          ctx.fillStyle = '#D6D3D1';
+          ctx.textAlign = 'center';
+          ctx.fillText(obs.label, obs.x, obs.y - obs.height / 2 - 6);
+        }
       } else if (obs.type === 'tree') {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
         ctx.beginPath();
@@ -2497,6 +2628,11 @@ export class ChronoKnightsEngine {
         ctx.fillStyle = '#14532D';
         ctx.beginPath();
         ctx.arc(obs.x, obs.y - 12, 28, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#166534';
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y - 18, 20, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -2761,45 +2897,45 @@ export class ChronoKnightsEngine {
     const cx = WORLD_BOUNDS.hubCenterX;
     const cy = WORLD_BOUNDS.hubCenterY;
 
-    // Imperial White Granite Plaza
+    // Imperial White Granite Plaza (Expansive 1800x1200)
     ctx.fillStyle = '#0F121C';
-    ctx.fillRect(800, 600, 1200, 900);
+    ctx.fillRect(900, 600, 1800, 1300);
 
     // Granite flagstones with subtle indigo accents
     ctx.strokeStyle = 'rgba(99, 102, 241, 0.08)';
     ctx.lineWidth = 1.5;
     const tileSize = 64;
-    for (let x = 800; x <= 2000; x += tileSize) {
+    for (let x = 900; x <= 2700; x += tileSize) {
       ctx.beginPath();
       ctx.moveTo(x, 600);
-      ctx.lineTo(x, 1500);
+      ctx.lineTo(x, 1900);
       ctx.stroke();
     }
-    for (let y = 600; y <= 1500; y += tileSize) {
+    for (let y = 600; y <= 1900; y += tileSize) {
       ctx.beginPath();
-      ctx.moveTo(800, y);
-      ctx.lineTo(2000, y);
+      ctx.moveTo(900, y);
+      ctx.lineTo(2700, y);
       ctx.stroke();
     }
 
     // Outer Plaza Border
     ctx.strokeStyle = '#6366F1';
     ctx.lineWidth = 3;
-    ctx.strokeRect(800, 600, 1200, 900);
+    ctx.strokeRect(900, 600, 1800, 1300);
 
     // Grand Avenue (North-South & East-West Crossway)
     ctx.fillStyle = 'rgba(245, 158, 11, 0.07)';
-    ctx.fillRect(cx - 70, 600, 140, 900);
-    ctx.fillRect(800, cy - 70, 1200, 140);
+    ctx.fillRect(cx - 75, 600, 150, 1300);
+    ctx.fillRect(900, cy - 75, 1800, 150);
 
     // Central Sun Circle (Healing Fountain Plaza)
     ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
     ctx.beginPath();
-    ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 160, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
     // Central Sun Healing Fountain
@@ -2807,33 +2943,33 @@ export class ChronoKnightsEngine {
     ctx.shadowColor = '#F59E0B';
     ctx.shadowBlur = 20;
     ctx.beginPath();
-    ctx.arc(cx, cy, 45, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 55, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
 
     // Gate Indicators
-    // East Gate: Whispering Plains
+    // East Gate: Whispering Plains Imperial Highway
     ctx.fillStyle = '#F59E0B';
-    ctx.fillRect(1860, 1040, 40, 120);
-    ctx.strokeRect(1860, 1040, 40, 120);
+    ctx.fillRect(2560, 1240, 40, 120);
+    ctx.strokeRect(2560, 1240, 40, 120);
     ctx.fillStyle = '#FBBF24';
     ctx.font = '700 10px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('EAST GATE: PLAINS', 1880, 1025);
+    ctx.fillText('EAST GATE: PLAINS', 2580, 1225);
 
     // West Gate: Molten Forge
     ctx.fillStyle = '#EA580C';
-    ctx.fillRect(940, 1040, 40, 120);
-    ctx.strokeRect(940, 1040, 40, 120);
+    ctx.fillRect(1040, 1240, 40, 120);
+    ctx.strokeRect(1040, 1240, 40, 120);
     ctx.fillStyle = '#F97316';
-    ctx.fillText('WEST GATE: FORGE', 960, 1025);
+    ctx.fillText('WEST GATE: FORGE', 1060, 1225);
 
     // North Gate: Citadel of Shadows
     ctx.fillStyle = '#A855F7';
-    ctx.fillRect(1340, 640, 120, 40);
-    ctx.strokeRect(1340, 640, 120, 40);
+    ctx.fillRect(cx - 60, 640, 120, 40);
+    ctx.strokeRect(cx - 60, 640, 120, 40);
     ctx.fillStyle = '#C084FC';
-    ctx.fillText('NORTH SPIRE: CITADEL', 1400, 625);
+    ctx.fillText('NORTH SPIRE: CITADEL', cx, 625);
   }
 
   private renderAethelgardScenery(ctx: CanvasRenderingContext2D): void {
@@ -3265,29 +3401,18 @@ export class ChronoKnightsEngine {
         ctx.stroke();
       }
 
-      // Enemy Body
-      ctx.fillStyle = enemy.hurtTimer > 0 ? '#FFFFFF' : enemy.color;
-      ctx.beginPath();
-      ctx.arc(enemy.x, enemy.y - 6, enemy.radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = enemy.hurtTimer > 0 ? '#EF4444' : '#000000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Eyes
-      ctx.fillStyle = enemy.enraged ? '#F59E0B' : '#EF4444';
-      ctx.beginPath();
-      const eyeOffset = enemy.facing === 'left' ? -6 : enemy.facing === 'right' ? 6 : 0;
-      ctx.arc(enemy.x + eyeOffset - 3, enemy.y - 8, 2.5, 0, Math.PI * 2);
-      ctx.arc(enemy.x + eyeOffset + 3, enemy.y - 8, 2.5, 0, Math.PI * 2);
-      ctx.fill();
+      // Render Handcrafted 16-Bit Pixel-Art Boss or Enemy
+      if (enemy.isBoss) {
+        PixelArtRenderer.drawBoss(ctx, enemy);
+      } else {
+        PixelArtRenderer.drawEnemy(ctx, enemy);
+      }
 
       // Health Bar
       const bw = enemy.isBoss ? 80 : 38;
       const bh = enemy.isBoss ? 6 : 4;
       const bx = enemy.x - bw / 2;
-      const by = enemy.y - enemy.radius - (enemy.isBoss ? 20 : 14);
+      const by = enemy.y - enemy.radius - (enemy.isBoss ? 24 : 16);
       const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
 
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -3306,24 +3431,13 @@ export class ChronoKnightsEngine {
 
   private renderDummies(ctx: CanvasRenderingContext2D): void {
     for (const d of this.dummies) {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-      ctx.beginPath();
-      ctx.ellipse(d.x, d.y + 16, 22, 10, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = d.hurtTimer > 0 ? '#EF4444' : '#854D0E';
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = d.hurtTimer > 0 ? '#FFFFFF' : '#A16207';
-      ctx.lineWidth = 3;
-      ctx.stroke();
+      // Handcrafted Pixel-Art Training Dummy
+      PixelArtRenderer.drawDummy(ctx, d);
 
       const bw = 54;
       const bh = 6;
       const bx = d.x - bw / 2;
-      const by = d.y - d.radius - 16;
+      const by = d.y - d.radius - 22;
       const hpPct = Math.max(0, d.hp / d.maxHp);
 
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -3385,70 +3499,9 @@ export class ChronoKnightsEngine {
         ctx.fill();
       }
 
-      this.drawHeroSprite(ctx, player, classDef, theme.color);
+      PixelArtRenderer.drawHero(ctx, player, classDef, theme.color);
       this.drawPlayerOverheadUI(ctx, player, theme);
     }
-  }
-
-  private drawHeroSprite(
-    ctx: CanvasRenderingContext2D,
-    player: PlayerEntity,
-    classDef: (typeof HERO_CLASSES)[HeroClassId],
-    accentColor: string
-  ): void {
-    ctx.save();
-    ctx.translate(player.x, player.y);
-
-    const isAttacking = player.attackState.isAttacking;
-    const walkBob = player.isMoving ? Math.sin(performance.now() * 0.015) * 2 : 0;
-
-    ctx.fillStyle = classDef.accentColor;
-    ctx.beginPath();
-    ctx.arc(0, -10 + walkBob, 14, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = '#1E293B';
-    ctx.beginPath();
-    ctx.arc(0, -14 + walkBob, 11, Math.PI, 0);
-    ctx.fill();
-
-    ctx.fillStyle = '#F8FAFC';
-    let eyeX = 0;
-    let eyeY = -10 + walkBob;
-    if (player.facing === 'left') eyeX = -5;
-    else if (player.facing === 'right') eyeX = 5;
-    else if (player.facing === 'up') eyeY = -14 + walkBob;
-    else if (player.facing === 'down') eyeY = -8 + walkBob;
-
-    ctx.beginPath();
-    ctx.arc(eyeX, eyeY, 3, 0, Math.PI * 2);
-    ctx.fill();
-
-    const angle = this.getFacingAngle(player.facing);
-    const weaponReach = isAttacking ? 22 : 14;
-    const wx = Math.cos(angle) * weaponReach;
-    const wy = Math.sin(angle) * weaponReach + walkBob;
-
-    ctx.strokeStyle = accentColor;
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.moveTo(wx * 0.3, wy * 0.3);
-    ctx.lineTo(wx, wy);
-    ctx.stroke();
-
-    if (isAttacking) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, walkBob, 28, angle - 0.7, angle + 0.7);
-      ctx.stroke();
-    }
-
-    ctx.restore();
   }
 
   private drawPlayerOverheadUI(

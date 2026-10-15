@@ -584,8 +584,8 @@ export const CLASS_LIST: HeroClassId[] = [
 ];
 
 export const WORLD_BOUNDS = {
-  width: 2800,
-  height: 2200,
-  hubCenterX: 1400,
-  hubCenterY: 1100,
+  width: 3600,
+  height: 2600,
+  hubCenterX: 1800,
+  hubCenterY: 1300,
 };
