@@ -1,0 +1,182 @@
+export interface NpcEntity {
+  id: string;
+  name: string;
+  title: string;
+  x: number;
+  y: number;
+  radius: number;
+  role: 'quest' | 'blacksmith' | 'healer';
+  symbol: string;
+  avatarColor: string;
+  dialogue: string[];
+}
+
+export interface WorldObstacle {
+  id: string;
+  type: 'house' | 'tree' | 'rock' | 'fountain' | 'lantern' | 'fence';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  solid: boolean;
+  label?: string;
+}
+
+export interface ZoneBoundary {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  targetZone: 'oakhaven' | 'whispering_plains';
+  spawnX: number;
+  spawnY: number;
+}
+
+export const OAKHAVEN_NPCS: NpcEntity[] = [
+  {
+    id: 'npc-elder',
+    name: 'Elder Eldrin',
+    title: 'Village Chieftain',
+    x: 1400,
+    y: 920,
+    radius: 24,
+    role: 'quest',
+    symbol: '📜',
+    avatarColor: '#3B82F6',
+    dialogue: [
+      'Greetings, champions of the realm! Shadows stir in the ancient lands once more.',
+      'The ward stones sealing the Forgotten Crypt to the north have fractured.',
+      'Savage wolf packs and bandits have overrun Whispering Plains just outside our village gates.',
+      'Take up your weapons! Clear 5 wild beasts in the plains, then enter the crypt to reclaim our ancestral relic!',
+    ],
+  },
+  {
+    id: 'npc-blacksmith',
+    name: 'Brom the Smith',
+    title: 'Master Blacksmith',
+    x: 1180,
+    y: 1040,
+    radius: 24,
+    role: 'blacksmith',
+    symbol: '🔨',
+    avatarColor: '#F97316',
+    dialogue: [
+      'Fine steel makes the difference between a glorious victory and an early grave.',
+      'Bring me 100 Gold and monster scrap, and I will hone your party weapons for +15 Attack power!',
+    ],
+  },
+  {
+    id: 'npc-healer',
+    name: 'Martha the Herbalist',
+    title: 'Village Apothecary',
+    x: 1620,
+    y: 1040,
+    radius: 24,
+    role: 'healer',
+    symbol: '🌿',
+    avatarColor: '#10B981',
+    dialogue: [
+      'May the light preserve your strength, travelers.',
+      'Stand by our enchanted village fountain to soothe your wounds, or take my vitality tonics into the field.',
+    ],
+  },
+];
+
+export const OAKHAVEN_OBSTACLES: WorldObstacle[] = [
+  // Village Fountain at center
+  {
+    id: 'fountain-center',
+    type: 'fountain',
+    x: 1400,
+    y: 1100,
+    width: 90,
+    height: 90,
+    solid: true,
+    label: 'Sacred Healing Fountain',
+  },
+  // Chieftain Longhouse
+  {
+    id: 'house-chief',
+    type: 'house',
+    x: 1400,
+    y: 800,
+    width: 170,
+    height: 120,
+    solid: true,
+    label: 'Elder Longhouse',
+  },
+  // Blacksmith Forge
+  {
+    id: 'house-forge',
+    type: 'house',
+    x: 1120,
+    y: 980,
+    width: 130,
+    height: 100,
+    solid: true,
+    label: "Brom's Anvil",
+  },
+  // Apothecary Hut
+  {
+    id: 'house-apothecary',
+    type: 'house',
+    x: 1680,
+    y: 980,
+    width: 130,
+    height: 100,
+    solid: true,
+    label: "Martha's Herbs",
+  },
+  // Surrounding trees and lanterns
+  { id: 'tree-1', type: 'tree', x: 980, y: 880, width: 64, height: 64, solid: true },
+  { id: 'tree-2', type: 'tree', x: 1040, y: 760, width: 64, height: 64, solid: true },
+  { id: 'tree-3', type: 'tree', x: 1760, y: 880, width: 64, height: 64, solid: true },
+  { id: 'tree-4', type: 'tree', x: 1820, y: 760, width: 64, height: 64, solid: true },
+  { id: 'tree-5', type: 'tree', x: 1220, y: 1320, width: 64, height: 64, solid: true },
+  { id: 'tree-6', type: 'tree', x: 1580, y: 1320, width: 64, height: 64, solid: true },
+  { id: 'lantern-1', type: 'lantern', x: 1310, y: 990, width: 20, height: 40, solid: false },
+  { id: 'lantern-2', type: 'lantern', x: 1490, y: 990, width: 20, height: 40, solid: false },
+  { id: 'lantern-3', type: 'lantern', x: 1310, y: 1220, width: 20, height: 40, solid: false },
+  { id: 'lantern-4', type: 'lantern', x: 1490, y: 1220, width: 20, height: 40, solid: false },
+];
+
+export const WHISPERING_PLAINS_OBSTACLES: WorldObstacle[] = [
+  // Ancient Broken Pillars
+  { id: 'ruin-1', type: 'rock', x: 1200, y: 400, width: 70, height: 70, solid: true },
+  { id: 'ruin-2', type: 'rock', x: 1600, y: 380, width: 80, height: 80, solid: true },
+  { id: 'ruin-3', type: 'rock', x: 1400, y: 220, width: 110, height: 70, solid: true },
+  // Wilderness Trees
+  { id: 'ptree-1', type: 'tree', x: 1000, y: 300, width: 75, height: 75, solid: true },
+  { id: 'ptree-2', type: 'tree', x: 1800, y: 320, width: 75, height: 75, solid: true },
+  { id: 'ptree-3', type: 'tree', x: 1100, y: 550, width: 70, height: 70, solid: true },
+  { id: 'ptree-4', type: 'tree', x: 1700, y: 560, width: 70, height: 70, solid: true },
+];
+
+export const ZONE_GATES: ZoneBoundary[] = [
+  // North Gate in Oakhaven -> Whispering Plains
+  {
+    id: 'gate-to-plains',
+    name: 'North Road to Whispering Plains',
+    x: 1340,
+    y: 620,
+    width: 120,
+    height: 40,
+    targetZone: 'whispering_plains',
+    spawnX: 1400,
+    spawnY: 550,
+  },
+  // South Gate in Whispering Plains -> Oakhaven Village
+  {
+    id: 'gate-to-village',
+    name: 'South Gate to Oakhaven Village',
+    x: 1340,
+    y: 630,
+    width: 120,
+    height: 40,
+    targetZone: 'oakhaven',
+    spawnX: 1400,
+    spawnY: 720,
+  },
+];

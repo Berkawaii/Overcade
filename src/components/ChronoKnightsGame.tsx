@@ -40,12 +40,17 @@ import {
   CaretLeft,
   CaretRight,
   Info,
+  Coins,
+  Scroll,
+  Check,
+  X,
 } from '@phosphor-icons/react';
 import { GameEngineBridge, useConsoleConnectionStore } from '../lib/gameEngineBridge';
 import { SoundFX } from '../lib/soundEffects';
-import { ChronoKnightsEngine } from '../games/chronoKnights/ChronoKnightsEngine';
+import { ChronoKnightsEngine, type WorldZone } from '../games/chronoKnights/ChronoKnightsEngine';
 import { CLASS_LIST, HERO_CLASSES, SLOT_THEMES } from '../games/chronoKnights/constants';
 import type { HeroClassId, PlayerEntity } from '../games/chronoKnights/types';
+import type { NpcEntity } from '../games/chronoKnights/WorldData';
 
 interface ChronoKnightsGameProps {
   onExitGame: () => void;
@@ -69,6 +74,17 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
   const [readySlots, setReadySlots] = useState<boolean[]>([false, false, false, false]);
   const [playersState, setPlayersState] = useState<PlayerEntity[]>([]);
 
+  // Phase 2: World, Dialogue & Quest States
+  const [activeNpc, setActiveNpc] = useState<NpcEntity | null>(null);
+  const [currentZone, setCurrentZone] = useState<WorldZone>('oakhaven');
+  const [questKills, setQuestKills] = useState(0);
+  const [questGoal, setQuestGoal] = useState(5);
+  const [questDone, setQuestDone] = useState(false);
+  const [teamGold, setTeamGold] = useState(250);
+  const [teamExp, setTeamExp] = useState(0);
+  const [teamLevel, setTeamLevel] = useState(1);
+  const [expToNext, setExpToNext] = useState(100);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<ChronoKnightsEngine | null>(null);
 
@@ -82,6 +98,24 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
 
     engine.onStateUpdate = (players) => {
       setPlayersState([...players]);
+      setCurrentZone(engine.currentZone);
+    };
+
+    engine.onNpcInteract = (npc) => {
+      setActiveNpc(npc);
+    };
+
+    engine.onQuestUpdate = (kills, goal, completed) => {
+      setQuestKills(kills);
+      setQuestGoal(goal);
+      setQuestDone(completed);
+    };
+
+    engine.onTeamStatsUpdate = (gold, exp, level, toNext) => {
+      setTeamGold(gold);
+      setTeamExp(exp);
+      setTeamLevel(level);
+      setExpToNext(toNext);
     };
 
     if (canvasRef.current) {
@@ -548,23 +582,107 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* PHASE 1: IN-GAME HUD & MULTI-PLAYER BOTTOM PODS               */}
+      {/* PHASE 2: IN-GAME HUD, QUEST TRACKER & NPC DIALOGUES           */}
       {/* ------------------------------------------------------------- */}
       {phase === 'world' && (
         <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-4">
-          {/* Top Info Banner */}
-          <div className="flex justify-center">
-            <div className="px-4 py-1.5 rounded-full bg-black/60 border border-white/10 backdrop-blur-md flex items-center gap-3 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
-              <span className="text-white/60">ZONE:</span>
-              <span className="text-blue-400 font-bold">AETHELVALE COURTYARD (SAFE HUB)</span>
+          {/* Top Quest & Zone Status Bar */}
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <div className="px-3.5 py-1.5 rounded-full bg-black/70 border border-white/10 backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
+              <span className="text-white/50">ZONE:</span>
+              <span className={`font-bold ${currentZone === 'oakhaven' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {currentZone === 'oakhaven' ? 'OAKHAVEN VILLAGE (SAFE HUB)' : 'WHISPERING PLAINS (BEAST WILDS)'}
+              </span>
+            </div>
+
+            <div className={`px-4 py-1.5 rounded-full border backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto ${
+              questDone
+                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 animate-pulse'
+                : 'bg-black/70 border-white/10 text-white/90'
+            }`}>
+              <Scroll size={14} className={questDone ? 'text-emerald-400' : 'text-blue-400'} />
+              <span>
+                {questDone
+                  ? 'QUEST COMPLETE: RETURN TO ELDER ELDRIN!'
+                  : `QUEST: SLAY 5 BEASTS [${questKills} / ${questGoal}]`}
+              </span>
+            </div>
+
+            <div className="px-3.5 py-1.5 rounded-full bg-black/70 border border-white/10 backdrop-blur-md flex items-center gap-3 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
+              <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                <Coins size={14} weight="fill" />
+                <span>{teamGold} G</span>
+              </div>
               <span className="text-white/30">•</span>
-              <span className="text-white/60">TARGETS:</span>
-              <span className="text-amber-400 font-bold">3 DUMMY POSTS</span>
+              <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+                <span>LV {teamLevel}</span>
+                <span className="text-white/50 text-[10px]">({teamExp}/{expToNext} EXP)</span>
+              </div>
             </div>
           </div>
 
-          {/* Bottom Player Pods Bar */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-6xl mx-auto pointer-events-auto">
+          {/* Center/Bottom Area: NPC Dialogue Modal & Player Pods */}
+          <div className="w-full flex flex-col items-center">
+            {/* NPC Interaction Dialogue Modal */}
+            {activeNpc && (
+              <div className="w-full max-w-3xl mb-3 p-4 rounded-2xl bg-[#121215]/95 border-2 border-blue-500/40 backdrop-blur-xl shadow-2xl flex flex-col gap-3 pointer-events-auto animate-fade-in">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{activeNpc.symbol}</span>
+                    <div>
+                      <h3 className="text-base font-bold text-white">{activeNpc.name}</h3>
+                      <span className="text-xs text-blue-400 font-['JetBrains_Mono']">{activeNpc.title}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveNpc(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5 text-xs text-white/85 font-medium">
+                  {activeNpc.dialogue.map((line, idx) => (
+                    <p key={idx} className="leading-relaxed">{line}</p>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs font-['JetBrains_Mono']">
+                  <div className="flex items-center gap-2">
+                    {activeNpc.role === 'blacksmith' && (
+                      <button
+                        onClick={() => engineRef.current?.upgradeWeapons()}
+                        className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
+                      >
+                        <Hammer size={16} />
+                        <span>HONE WEAPONS (+15 ATK) [100G]</span>
+                      </button>
+                    )}
+
+                    {activeNpc.role === 'healer' && (
+                      <button
+                        onClick={() => engineRef.current?.buyPotions()}
+                        className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
+                      >
+                        <Flask size={16} />
+                        <span>RESTORE FULL PARTY (100% HP/MP) [50G]</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => setActiveNpc(null)}
+                    className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 active:scale-95 transition-all font-bold"
+                  >
+                    <span>CLOSE [B]</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Player Pods Bar */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-6xl mx-auto pointer-events-auto">
             {SLOT_THEMES.map((theme, slotIdx) => {
               const player = playersState[slotIdx];
               if (!player || !player.connected) return null;
@@ -671,6 +789,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
             })}
           </div>
         </div>
+      </div>
       )}
 
       {/* Floating Keyboard Legend on bottom right */}
