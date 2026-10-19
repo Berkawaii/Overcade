@@ -218,6 +218,19 @@ class TacticalSoundEngine {
     this.playTone(1240, 'sine', 0.035, 0.04, 1560, 0.01);
   }
 
+  public playCoinInsert(): void {
+    // Metallic coin clink into chute + ascending credit chimes
+    this.playNoiseBurst(0.04, 3800, 'highpass', 0.12, 0);
+    this.playTone(1864.66, 'sine', 0.12, 0.12, undefined, 0.03);
+    this.playTone(2349.32, 'sine', 0.28, 0.14, undefined, 0.09);
+  }
+
+  public playArcadeWheel(): void {
+    // Mechanical arcade wheel ratchet click
+    this.playNoiseBurst(0.025, 4200, 'bandpass', 0.08, 0);
+    this.playTone(740, 'triangle', 0.035, 0.06, 320, 0);
+  }
+
   public playCountdownBeep(isFinal = false): void {
     if (isFinal) {
       this.playTone(880, 'sawtooth', 0.25, 0.14, 1320, 0);
