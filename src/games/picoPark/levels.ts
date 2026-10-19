@@ -73,32 +73,32 @@ export const PICO_STAGES: PicoStageDefinition[] = [
     hintText:
       'You are tied together! Jump across gaps in sync, and anchor on the ledge to dangle one teammate down for the Key!',
     tetherEnabled: true,
-    tetherLength: 195,
+    tetherLength: 210,
     spawnPos: { x: 100, y: 460 },
-    keyPos: { x: 640, y: 555 },
+    keyPos: { x: 645, y: 540 },
     doorPos: { x: 1130, y: 460 },
     platforms: [
       // Left Ledge
       { id: 'p2-left', x: 0, y: 520, width: 290, height: 200, color: '#3B82F6', type: 'solid' },
       // Gap 1 Stepping Stone
-      { id: 'p2-step1', x: 365, y: 490, width: 120, height: 28, color: '#60A5FA', type: 'solid' },
+      { id: 'p2-step1', x: 350, y: 485, width: 115, height: 28, color: '#60A5FA', type: 'solid' },
       // Center Anchor Bridge (Key is suspended below this bridge in the chasm!)
-      { id: 'p2-center-left', x: 540, y: 440, width: 85, height: 28, color: '#3B82F6', type: 'solid' },
-      { id: 'p2-center-right', x: 675, y: 440, width: 85, height: 28, color: '#3B82F6', type: 'solid' },
+      { id: 'p2-center-left', x: 495, y: 440, width: 115, height: 28, color: '#3B82F6', type: 'solid' },
+      { id: 'p2-center-right', x: 680, y: 440, width: 115, height: 28, color: '#3B82F6', type: 'solid' },
       // Safe Lower Key Alcove
-      { id: 'p2-key-floor', x: 585, y: 590, width: 110, height: 26, color: '#93C5FD', type: 'solid' },
+      { id: 'p2-key-floor', x: 590, y: 585, width: 110, height: 26, color: '#93C5FD', type: 'solid' },
       // Gap 2 Moving Platform
       {
         id: 'p2-moving',
-        x: 820,
-        y: 490,
-        width: 120,
+        x: 845,
+        y: 485,
+        width: 115,
         height: 26,
         color: '#38BDF8',
         type: 'moving',
         moveAxis: 'x',
-        moveRange: 70,
-        moveSpeed: 1.6,
+        moveRange: 55,
+        moveSpeed: 1.5,
       },
       // Right Goal Platform
       { id: 'p2-right', x: 1020, y: 520, width: 260, height: 200, color: '#3B82F6', type: 'solid' },
@@ -106,7 +106,7 @@ export const PICO_STAGES: PicoStageDefinition[] = [
     numberBlocks: [],
     switches: [],
     springs: [
-      { id: 'sp-2-alcove', x: 615, y: 574, width: 50, height: 16, bounceVy: -690 },
+      { id: 'sp-2-alcove', x: 620, y: 569, width: 50, height: 16, bounceVy: -720 },
     ],
     lasers: [],
     hazards: [

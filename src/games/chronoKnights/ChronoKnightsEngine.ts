@@ -198,7 +198,7 @@ export class ChronoKnightsEngine {
     const mpPct = player.maxMp > 0 ? player.mp / player.maxMp : 1;
 
     player.maxHp = Math.round(def.baseHp + (this.teamLevel - 1) * 32 + this.partyBonusHp);
-    player.maxMp = Math.round(def.baseMp + (this.teamLevel - 1) * 15 + this.partyBonusMp);
+    player.maxMp = Math.round(def.baseMp + (this.teamLevel - 1) * 5 + this.partyBonusMp);
     player.level = this.teamLevel;
 
     if (fullRestore) {
@@ -266,6 +266,12 @@ export class ChronoKnightsEngine {
         maxHp: classDef.baseHp,
         mp: classDef.baseMp,
         maxMp: classDef.baseMp,
+        regenDelayTimer: 0,
+        spinAttackTimer: 0,
+        spinAttackMaxTimer: 0,
+        spinTickTimer: 0,
+        orbitBladesTimer: 0,
+        orbitTickTimer: 0,
         level: 1,
         exp: 0,
         gold: 150,
@@ -936,9 +942,14 @@ export class ChronoKnightsEngine {
       }
     );
 
-    // Passive mana regeneration (3.5 MP/sec so mana management matters in combat)
-    if (player.mp < player.maxMp) {
-      player.mp = Math.min(player.maxMp, player.mp + 3.5 * delta);
+    // Souls-style Stamina / Mana regeneration (pauses briefly while swinging or casting!)
+    if (player.regenDelayTimer > 0) {
+      player.regenDelayTimer = Math.max(0, player.regenDelayTimer - delta);
+    } else if (player.mp < player.maxMp && !player.isDowned) {
+      const isStamina = classDef.resourceType === 'stamina';
+      const baseRegen = isStamina ? 14.5 : 11.5;
+      const idleBonus = player.isMoving ? 1.0 : 1.3;
+      player.mp = Math.min(player.maxMp, player.mp + baseRegen * idleBonus * delta);
     }
 
     // Handle Downed state (No free Second Wind inside sealed Boss Sanctums!)
@@ -946,6 +957,8 @@ export class ChronoKnightsEngine {
       player.downedTimer -= delta;
       player.vx = 0;
       player.vy = 0;
+      player.spinAttackTimer = 0;
+      player.orbitBladesTimer = 0;
       if (player.downedTimer <= 0 && !this.partyWipePending && !this.bossRoomSealed) {
         player.isDowned = false;
         player.hp = Math.floor(player.maxHp * 0.25);
@@ -954,15 +967,15 @@ export class ChronoKnightsEngine {
       return;
     }
 
-    // Movement: left stick or D-pad
+    // Movement: left stick or D-pad (Can still steer while spinning weapon!)
     const { leftX, leftY } = input.axes;
     const deadzone = 0.16;
     const mag = Math.hypot(leftX, leftY);
 
-    if (mag > deadzone && !player.attackState.isAttacking) {
+    if (mag > deadzone && (!player.attackState.isAttacking || player.spinAttackTimer > 0)) {
       const normX = leftX / (mag || 1);
       const normY = leftY / (mag || 1);
-      const speed = classDef.baseSpd;
+      const speed = player.spinAttackTimer > 0 ? classDef.baseSpd * 0.92 : classDef.baseSpd;
 
       player.vx = normX * speed;
       player.vy = normY * speed;
@@ -1067,6 +1080,24 @@ export class ChronoKnightsEngine {
     type: 'A',
     skill: (typeof HERO_CLASSES)[HeroClassId]['skills']['A']
   ): void {
+    const classDef = HERO_CLASSES[player.classId];
+    const isStamina = classDef.resourceType === 'stamina';
+    const cost = Math.max(6, skill.manaCost || 8);
+
+    if (player.mp < cost) {
+      SoundFX.playCountdownBeep(false);
+      this.spawnFloatingText(
+        player.x,
+        player.y - 30,
+        isStamina ? 'LOW STAMINA!' : 'LOW MANA!',
+        isStamina ? '#F59E0B' : '#60A5FA'
+      );
+      return;
+    }
+
+    player.mp = Math.max(0, player.mp - cost);
+    player.regenDelayTimer = 0.65;
+
     player.attackState.isAttacking = true;
     player.attackState.attackType = type;
     player.attackState.timer = 0;
@@ -1098,22 +1129,41 @@ export class ChronoKnightsEngine {
     button: 'B' | 'X' | 'Y' | 'L1' | 'R1',
     skill: (typeof HERO_CLASSES)[HeroClassId]['skills']['B']
   ): void {
+    const classDef = HERO_CLASSES[player.classId];
+    const isStamina = classDef.resourceType === 'stamina';
+    const resLabel = classDef.resourceLabel || (isStamina ? 'STA' : 'MP');
+
     if (player.mp < skill.manaCost) {
-      this.spawnFloatingText(player.x, player.y - 30, 'LOW MANA!', '#9CA3AF');
+      SoundFX.playCountdownBeep(false);
+      this.spawnFloatingText(
+        player.x,
+        player.y - 30,
+        isStamina ? 'LOW STAMINA!' : 'LOW MANA!',
+        isStamina ? '#F59E0B' : '#60A5FA'
+      );
       return;
     }
 
-    player.mp -= skill.manaCost;
+    player.mp = Math.max(0, player.mp - skill.manaCost);
+    if (skill.manaCost > 0) {
+      player.regenDelayTimer = 0.85;
+    }
     player.skillCooldowns[button] = skill.cooldownSec;
     const atk = this.getPlayerAtk(player);
 
     // L1: Restorative Class Flask
     if (button === 'L1') {
       const healAmt = Math.floor(player.maxHp * 0.28);
-      const manaAmt = Math.floor(player.maxMp * 0.2);
+      const resAmt = Math.floor(player.maxMp * 0.35);
       player.hp = Math.min(player.maxHp, player.hp + healAmt);
-      player.mp = Math.min(player.maxMp, player.mp + manaAmt);
-      this.spawnFloatingText(player.x, player.y - 30, `+${healAmt} HP / +${manaAmt} MP`, '#10B981');
+      player.mp = Math.min(player.maxMp, player.mp + resAmt);
+      player.regenDelayTimer = 0;
+      this.spawnFloatingText(
+        player.x,
+        player.y - 30,
+        `+${healAmt} HP / +${resAmt} ${resLabel}`,
+        '#10B981'
+      );
       this.spawnAuraParticles(player.x, player.y, '#10B981', 26);
       SoundFX.playHeal();
       return;
@@ -1122,25 +1172,33 @@ export class ChronoKnightsEngine {
     // --- KNIGHT PALADIN SKILLS ---
     if (player.classId === 'knight') {
       if (button === 'B') {
-        // Shield Slam: dash forward + stun enemies
-        const angle = this.getFacingAngle(player.facing);
-        player.x += Math.cos(angle) * 55;
-        player.y += Math.sin(angle) * 55;
-        SoundFX.playHeavySlam();
-        this.spawnAuraParticles(player.x, player.y, '#3B82F6', 25);
-        this.checkAreaDamage(player.x, player.y, 85, atk * skill.damageMultiplier, 'physical', 1.4);
+        // Tempest Blade Spin: 360-degree spinning broadsword cyclone!
+        player.spinAttackTimer = 0.9;
+        player.spinAttackMaxTimer = 0.9;
+        player.spinTickTimer = 0.22;
+        SoundFX.playSwordSlash();
+        this.spawnAuraParticles(player.x, player.y, '#38BDF8', 35);
+        this.spawnFloatingText(player.x, player.y - 30, 'TEMPEST BLADE SPIN!', '#38BDF8');
+        this.checkAreaDamage(player.x, player.y, skill.range, atk * 0.85, 'physical', 0.45);
         return;
       }
       if (button === 'X') {
-        // Iron Bulwark: 1.4s Aegis Shield
+        // Aegis Shield Charge: 1.4s Invulnerability + forward shield bash stun!
         player.invulnerableTimer = 1.4;
+        const angle = this.getFacingAngle(player.facing);
+        player.x += Math.cos(angle) * 60;
+        player.y += Math.sin(angle) * 60;
         SoundFX.playShieldActivate();
+        SoundFX.playHeavySlam();
         this.spawnAuraParticles(player.x, player.y, '#60A5FA', 35);
-        this.spawnFloatingText(player.x, player.y - 30, 'IRON BULWARK (1.4s)', '#60A5FA');
+        this.spawnFloatingText(player.x, player.y - 30, 'AEGIS CHARGE (1.4s)', '#60A5FA');
+        this.checkAreaDamage(player.x, player.y, 90, atk * skill.damageMultiplier, 'physical', 1.4);
         return;
       }
       if (button === 'Y') {
-        // Aegis Sanctuary Ultimate: party invulnerability + holy burst
+        // Whirling Blade Sanctuary Ultimate: 4 orbiting golden greatswords for 5s + party Aegis & heal!
+        player.orbitBladesTimer = 5.0;
+        player.orbitTickTimer = 0.25;
         SoundFX.playShieldActivate();
         this.triggerScreenShake(6, 0.3);
         for (const ally of this.players) {
@@ -1149,16 +1207,21 @@ export class ChronoKnightsEngine {
           const heal = Math.floor(ally.maxHp * 0.18);
           ally.hp = Math.min(ally.maxHp, ally.hp + heal);
           this.spawnAuraParticles(ally.x, ally.y, '#FBBF24', 35);
-          this.spawnFloatingText(ally.x, ally.y - 30, 'AEGIS SANCTUARY (2.2s)!', '#FBBF24');
+          this.spawnFloatingText(ally.x, ally.y - 30, 'WHIRLING SANCTUARY!', '#FBBF24');
         }
         this.checkAreaDamage(player.x, player.y, skill.range, atk * 1.4, 'holy', 1.2);
         return;
       }
       if (button === 'R1') {
-        // Judgment Slash: heavy armor-piercing cleave
+        // Crescent Sword Wave: heavy cleave + piercing golden sword beam!
+        player.attackState.isAttacking = true;
+        player.attackState.attackType = 'R1';
+        player.attackState.timer = 0;
+        player.attackState.duration = 0.32;
         SoundFX.playHeavySlam();
         this.triggerScreenShake(5, 0.2);
         this.checkMeleeHitbox(player, skill.range + 20, skill.damageMultiplier);
+        this.fireProjectile(player, 'fire_wave', 520, 18, atk * 1.25, 'holy');
         this.spawnAuraParticles(player.x, player.y, '#3B82F6', 24);
         return;
       }
@@ -1292,7 +1355,7 @@ export class ChronoKnightsEngine {
           if (!p.connected) continue;
           const dist = Math.hypot(p.x - player.x, p.y - player.y);
           if (dist <= skill.range + 60) {
-            const heal = Math.floor(p.maxHp * 0.22);
+            const heal = Math.floor(p.maxHp * 0.24);
             p.hp = Math.min(p.maxHp, p.hp + heal);
             this.spawnFloatingText(p.x, p.y - 25, `+${heal} HP`, '#10B981');
           }
@@ -1300,12 +1363,12 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'X') {
-        // Valor Aegis: Party shield + Mana restore
+        // Valor Aegis: Party shield + resource boost
         SoundFX.playShieldActivate();
         for (const p of this.players) {
           if (!p.connected) continue;
           p.invulnerableTimer = 1.5;
-          p.mp = Math.min(p.maxMp, p.mp + 25);
+          p.mp = Math.min(p.maxMp, p.mp + 18);
           this.spawnAuraParticles(p.x, p.y, '#38BDF8', 25);
           this.spawnFloatingText(p.x, p.y - 28, 'VALOR AEGIS (1.5s)!', '#38BDF8');
         }
@@ -1349,27 +1412,32 @@ export class ChronoKnightsEngine {
     // --- BERSERKER SKILLS ---
     if (player.classId === 'berserker') {
       if (button === 'B') {
-        // Death Whirlwind: 360 cleave + life leech
+        // Cyclone Axe Whirlwind: 1.05s dual battleaxe 360-degree whirlwind + life leech!
+        player.spinAttackTimer = 1.05;
+        player.spinAttackMaxTimer = 1.05;
+        player.spinTickTimer = 0.22;
         SoundFX.playSwordSlash();
         SoundFX.playHeavySlam();
         this.spawnAuraParticles(player.x, player.y, '#F97316', 45);
-        this.checkAreaDamage(player.x, player.y, skill.range + 20, atk * skill.damageMultiplier, 'physical', 0.5);
-        const leech = Math.floor(player.maxHp * 0.07);
+        this.checkAreaDamage(player.x, player.y, skill.range, atk * 0.9, 'physical', 0.5);
+        const leech = Math.floor(player.maxHp * 0.08);
         player.hp = Math.min(player.maxHp, player.hp + leech);
-        this.spawnFloatingText(player.x, player.y - 28, `+${leech} LEECH`, '#10B981');
+        this.spawnFloatingText(player.x, player.y - 28, `CYCLONE +${leech} HP`, '#10B981');
         return;
       }
       if (button === 'X') {
-        // Battle Cry: Stun/stagger surrounding foes + shield
+        // Bloodlust Warcry: Stun/stagger surrounding foes + shield
         SoundFX.playHeavySlam();
         player.invulnerableTimer = 1.0;
         this.spawnAuraParticles(player.x, player.y, '#EF4444', 35);
-        this.spawnFloatingText(player.x, player.y - 30, 'WAR CRY!', '#F97316');
-        this.checkAreaDamage(player.x, player.y, skill.range, atk * 0.85, 'physical', 1.4);
+        this.spawnFloatingText(player.x, player.y - 30, 'BLOODLUST WARCRY!', '#F97316');
+        this.checkAreaDamage(player.x, player.y, skill.range, atk * 0.9, 'physical', 1.4);
         return;
       }
       if (button === 'Y') {
-        // Berserk Rampage Ultimate: Massive AoE + heal + cooldown reset
+        // Ragnarok Axe Storm Ultimate: 4 orbiting crimson war axes for 5s + heal + cooldown reset
+        player.orbitBladesTimer = 5.0;
+        player.orbitTickTimer = 0.25;
         SoundFX.playHeavySlam();
         this.triggerScreenShake(9, 0.35);
         player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.22));
@@ -1377,19 +1445,26 @@ export class ChronoKnightsEngine {
         player.skillCooldowns.B = 0;
         player.skillCooldowns.R1 = 0;
         this.spawnAuraParticles(player.x, player.y, '#EF4444', 60);
-        this.spawnFloatingText(player.x, player.y - 35, 'BERSERK RAMPAGE!', '#EF4444');
+        this.spawnFloatingText(player.x, player.y - 35, 'RAGNAROK AXE STORM!', '#EF4444');
         this.checkAreaDamage(player.x, player.y, 170, atk * 2.1, 'physical', 1.1);
         return;
       }
       if (button === 'R1') {
-        // Skull Crusher: Forward leap + earth shatter
+        // Tectonic Skull Crusher: Forward leap + earth shatter + 3 molten shockwaves!
         const angle = this.getFacingAngle(player.facing);
         player.x += Math.cos(angle) * 65;
         player.y += Math.sin(angle) * 65;
+        player.attackState.isAttacking = true;
+        player.attackState.attackType = 'R1';
+        player.attackState.timer = 0;
+        player.attackState.duration = 0.3;
         SoundFX.playHeavySlam();
         this.triggerScreenShake(6, 0.25);
         this.spawnAuraParticles(player.x, player.y, '#F97316', 35);
         this.checkAreaDamage(player.x, player.y, 105, atk * skill.damageMultiplier, 'physical', 0.8);
+        for (let i = -1; i <= 1; i++) {
+          this.fireProjectileWithAngle(player, 'fire_wave', angle + i * 0.25, 440, 14, atk * 0.8, 'fire');
+        }
         return;
       }
     }
@@ -1397,16 +1472,24 @@ export class ChronoKnightsEngine {
     // --- SHADOW BLADE ROGUE SKILLS ---
     if (player.classId === 'rogue') {
       if (button === 'B') {
-        // Smoke Bomb: Stealth invulnerability + blind AoE
-        player.invulnerableTimer = 1.4;
+        // Razor Fan Vortex: 360-degree venom dagger spin + 8-way poison throwing knives + stealth!
+        player.spinAttackTimer = 0.85;
+        player.spinAttackMaxTimer = 0.85;
+        player.spinTickTimer = 0.2;
+        player.invulnerableTimer = 1.2;
+        SoundFX.playSwordSlash();
         SoundFX.playDash();
         this.spawnAuraParticles(player.x, player.y, '#A855F7', 40);
-        this.spawnFloatingText(player.x, player.y - 30, 'SHADOW STEALTH (1.4s)', '#A855F7');
-        this.checkAreaDamage(player.x, player.y, 110, atk * 0.95, 'poison', 1.4);
+        this.spawnFloatingText(player.x, player.y - 30, 'RAZOR FAN VORTEX!', '#10B981');
+        this.checkAreaDamage(player.x, player.y, 110, atk * 1.1, 'poison', 1.1);
+        for (let k = 0; k < 8; k++) {
+          const kAngle = (k * Math.PI) / 4;
+          this.fireProjectileWithAngle(player, 'arrow', kAngle, 520, 10, atk * 0.65, 'poison');
+        }
         return;
       }
       if (button === 'X') {
-        // Blink Backstab: Teleport behind nearest target + guaranteed crit
+        // Shadowstep Backstab: Teleport behind nearest target + guaranteed crit cross-slash
         const target = this.findNearestEnemyTarget(player.x, player.y, 320);
         if (target) {
           this.spawnAuraParticles(player.x, player.y, '#A855F7', 20);
@@ -1414,27 +1497,39 @@ export class ChronoKnightsEngine {
           player.y = target.y + 24;
           player.facing = 'up';
         }
+        player.attackState.isAttacking = true;
+        player.attackState.attackType = 'X';
+        player.attackState.timer = 0;
+        player.attackState.duration = 0.28;
         SoundFX.playSwordSlash();
         this.spawnAuraParticles(player.x, player.y, '#EC4899', 30);
-        this.checkAreaDamage(player.x, player.y, 90, atk * 1.85, 'physical', 0.6);
+        this.checkAreaDamage(player.x, player.y, 95, atk * 1.85, 'physical', 0.6);
         return;
       }
       if (button === 'Y') {
-        // Dance of Daggers Ultimate
+        // Phantom Dance of 1000 Blades Ultimate: 6 orbiting phantom daggers for 5s + shadow storm!
+        player.orbitBladesTimer = 5.0;
+        player.orbitTickTimer = 0.22;
         SoundFX.playSwordSlash();
         SoundFX.playDash();
         this.triggerScreenShake(7, 0.3);
-        player.invulnerableTimer = 1.4;
+        player.invulnerableTimer = 1.5;
         this.spawnAuraParticles(player.x, player.y, '#A855F7', 60);
-        this.spawnFloatingText(player.x, player.y - 35, 'DANCE OF DAGGERS!', '#A855F7');
+        this.spawnFloatingText(player.x, player.y - 35, 'PHANTOM BLADE STORM!', '#A855F7');
         this.checkAreaDamage(player.x, player.y, skill.range, atk * skill.damageMultiplier, 'physical', 1.0);
         return;
       }
       if (button === 'R1') {
-        // Throat Cutter: Lethal execution strike
+        // Spinning Fang Lunge: High-speed forward dash + spinning dagger drill!
+        const angle = this.getFacingAngle(player.facing);
+        player.x += Math.cos(angle) * 70;
+        player.y += Math.sin(angle) * 70;
+        player.spinAttackTimer = 0.45;
+        player.spinAttackMaxTimer = 0.45;
+        player.spinTickTimer = 0.18;
         SoundFX.playSwordSlash();
-        this.checkMeleeHitbox(player, skill.range + 24, skill.damageMultiplier);
-        this.spawnAuraParticles(player.x, player.y, '#EC4899', 25);
+        this.checkAreaDamage(player.x, player.y, 90, atk * skill.damageMultiplier, 'physical', 0.5);
+        this.spawnAuraParticles(player.x, player.y, '#10B981', 28);
         return;
       }
     }
@@ -1487,7 +1582,6 @@ export class ChronoKnightsEngine {
 
           d.hp = Math.max(0, d.hp - dmg);
           d.hurtTimer = 0.2;
-          player.mp = Math.min(player.maxMp, player.mp + 4);
 
           SoundFX.playHit(isCrit);
           this.spawnFloatingText(
@@ -1528,7 +1622,6 @@ export class ChronoKnightsEngine {
           if (!enemy.isBoss) {
             enemy.state = 'hurt';
           }
-          player.mp = Math.min(player.maxMp, player.mp + 4);
 
           SoundFX.playHit(isCrit);
           this.spawnFloatingText(
@@ -1945,10 +2038,6 @@ export class ChronoKnightsEngine {
               p.hitTargetIds.push(d.id);
               d.hp = Math.max(0, d.hp - p.damage);
               d.hurtTimer = 0.2;
-              if (ownerPlayer) {
-                ownerPlayer.mp = Math.min(ownerPlayer.maxMp, ownerPlayer.mp + 4);
-              }
-
               this.spawnFloatingText(d.x, d.y - 20, `${Math.floor(p.damage)}`, p.color);
               this.spawnHitSparks(d.x, d.y, p.color);
               SoundFX.playHit();
@@ -1984,9 +2073,6 @@ export class ChronoKnightsEngine {
               enemy.hurtTimer = enemy.isBoss ? 0.06 : 0.2;
               if (!enemy.isBoss) {
                 enemy.state = 'hurt';
-              }
-              if (ownerPlayer) {
-                ownerPlayer.mp = Math.min(ownerPlayer.maxMp, ownerPlayer.mp + 3);
               }
 
               this.spawnFloatingText(enemy.x, enemy.y - 25, `${Math.floor(appliedDmg)}`, p.color);
@@ -2191,7 +2277,7 @@ export class ChronoKnightsEngine {
       !this.bossRoomSealed
     ) {
       const enteredSanctum = alivePlayers.some(
-        (p) => p.y < 670 && p.x > 980 && p.x < 1820
+        (p) => (p.y < 685 && p.x > 1260 && p.x < 1540) || (p.y < 670 && p.x > 980 && p.x < 1820)
       );
       if (enteredSanctum) {
         this.engageBossSanctum();
@@ -2419,11 +2505,15 @@ export class ChronoKnightsEngine {
 
     for (const obs of obstacles) {
       if (obs.type === 'lantern') continue;
+      // In dungeons, sanctum dividing walls at y = 700 are handled explicitly by doorway logic
+      if (obs.id.includes('sanctum-wall')) continue;
 
-      const left = obs.x - pr;
-      const right = obs.x + obs.width + pr;
-      const top = obs.y - pr;
-      const bottom = obs.y + obs.height + pr;
+      const halfW = obs.width / 2;
+      const halfH = obs.height / 2;
+      const left = obs.x - halfW - pr;
+      const right = obs.x + halfW + pr;
+      const top = obs.y - halfH - pr;
+      const bottom = obs.y + halfH + pr;
 
       if (player.x > left && player.x < right && player.y > top && player.y < bottom) {
         const wasOutsideX = prevX <= left || prevX >= right;
@@ -2566,6 +2656,43 @@ export class ChronoKnightsEngine {
       if (player.attackState.timer >= player.attackState.duration) {
         player.attackState.isAttacking = false;
         player.attackState.hitboxActive = false;
+      }
+    }
+
+    // Tick active spinning weapon cyclone skills
+    if (player.spinAttackTimer > 0) {
+      player.spinAttackTimer = Math.max(0, player.spinAttackTimer - delta);
+      player.spinTickTimer -= delta;
+      if (player.spinTickTimer <= 0) {
+        player.spinTickTimer = 0.16;
+        const isBerserker = player.classId === 'berserker';
+        const isRogue = player.classId === 'rogue';
+        const spinRadius = isBerserker ? 96 : isRogue ? 80 : 88;
+        const spinDmg = this.getPlayerAtk(player) * (isBerserker ? 0.78 : isRogue ? 0.62 : 0.72);
+        SoundFX.playSwordSlash();
+        this.checkAreaDamage(player.x, player.y, spinRadius, spinDmg, 'physical', 0.2);
+        this.spawnSlashParticles(player);
+      }
+    }
+
+    // Tick active orbiting spectral blades ultimates
+    if (player.orbitBladesTimer > 0) {
+      player.orbitBladesTimer = Math.max(0, player.orbitBladesTimer - delta);
+      player.orbitTickTimer -= delta;
+      if (player.orbitTickTimer <= 0) {
+        player.orbitTickTimer = 0.22;
+        const isBerserker = player.classId === 'berserker';
+        const isRogue = player.classId === 'rogue';
+        const orbitRadius = 105;
+        const orbitDmg = this.getPlayerAtk(player) * (isBerserker ? 0.95 : isRogue ? 0.8 : 0.85);
+        SoundFX.playHit();
+        this.checkAreaDamage(player.x, player.y, orbitRadius, orbitDmg, 'physical', 0.25);
+        this.spawnAuraParticles(
+          player.x,
+          player.y,
+          isBerserker ? '#EF4444' : isRogue ? '#A855F7' : '#38BDF8',
+          14
+        );
       }
     }
   }
@@ -4104,6 +4231,24 @@ export class ChronoKnightsEngine {
     ctx.lineWidth = 1;
     ctx.strokeRect(bx, by, bw, bh);
 
+    // Overhead Stamina (Amber) or Mana (Cyan) Resource Bar
+    const classDef = HERO_CLASSES[player.classId];
+    const isStamina = classDef?.resourceType === 'stamina';
+    const resourceColor = isStamina ? '#F59E0B' : '#38BDF8';
+    const mpPct = Math.max(0, player.mp / player.maxMp);
+    const mpy = by + bh + 1;
+    const mph = 3;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(bx, mpy, bw, mph);
+
+    ctx.fillStyle = resourceColor;
+    ctx.fillRect(bx, mpy, bw * mpPct, mph);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(bx, mpy, bw, mph);
+
     if (player.isDowned) {
       ctx.fillStyle = '#EF4444';
       ctx.font = '700 9px "JetBrains Mono", monospace';
@@ -4112,7 +4257,7 @@ export class ChronoKnightsEngine {
           ? `REVIVING ${(player.reviveProgress * 100).toFixed(0)}%`
           : `DOWNED (${Math.ceil(player.downedTimer)}s)`,
         ox,
-        by + 14
+        by + 17
       );
     }
   }

@@ -95,19 +95,138 @@ export class PixelArtRenderer {
         break;
     }
 
-    // Attack Slash Arc Overlay
+    // Attack Slash Arc Overlay (Directional crescent swing)
     if (isAttacking) {
+      const progress = Math.min(1, player.attackState.timer / Math.max(0.05, player.attackState.duration));
+      const swingStart = -0.85 + progress * 0.4;
+      const swingEnd = 0.75 + progress * 0.45;
       ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3.5;
       ctx.beginPath();
-      ctx.arc(10, by + 2, 26, -0.6, 0.9);
+      ctx.arc(10, by + 2, 28, swingStart, swingEnd);
       ctx.stroke();
 
       ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.arc(10, by + 2, 24, -0.4, 0.7);
+      ctx.arc(10, by + 2, 25, swingStart + 0.15, swingEnd - 0.15);
       ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Render 360-degree Cyclone Weapon Spin & Ultimate Orbiting Blades in unflipped world space around player!
+    if (player.spinAttackTimer > 0) {
+      this.drawCycloneWeaponSpin(ctx, player, classDef, now);
+    }
+    if (player.orbitBladesTimer > 0) {
+      this.drawOrbitingBlades(ctx, player, classDef, now);
+    }
+  }
+
+  private static drawCycloneWeaponSpin(
+    ctx: CanvasRenderingContext2D,
+    player: PlayerEntity,
+    classDef: HeroClassDefinition,
+    now: number
+  ): void {
+    ctx.save();
+    ctx.translate(Math.round(player.x), Math.round(player.y - 4));
+
+    const spinAngle = now * 0.026;
+    const radius = player.classId === 'berserker' ? 44 : player.classId === 'knight' ? 42 : 38;
+
+    // Outer glowing 360-degree cyclone slash ring
+    ctx.strokeStyle = classDef.accentColor;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, spinAngle, spinAngle + Math.PI * 1.65);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius - 3, spinAngle + 0.3, spinAngle + Math.PI * 1.45);
+    ctx.stroke();
+
+    // Draw the actual pixel-art weapon blades spinning 360 degrees around the hero!
+    const bladeCount = player.classId === 'rogue' ? 4 : 2;
+    for (let i = 0; i < bladeCount; i++) {
+      const a = spinAngle + (i * Math.PI * 2) / bladeCount;
+      ctx.save();
+      ctx.rotate(a);
+
+      if (player.classId === 'knight') {
+        // Spinning Runed Broadsword
+        this.px(ctx, 14, -3, 28, 6, '#E2E8F0'); // Gleaming steel blade
+        this.px(ctx, 16, -1, 22, 2, '#38BDF8'); // Glowing rune fuller
+        this.px(ctx, 10, -7, 4, 14, '#F59E0B'); // Golden crossguard
+        this.px(ctx, 4, -2, 6, 4, '#451A03'); // Hilt
+      } else if (player.classId === 'berserker') {
+        // Spinning Giant Double-Headed Battleaxe
+        this.px(ctx, 10, -2, 32, 4, '#78350F'); // Long oak haft
+        this.px(ctx, 28, -11, 12, 22, '#94A3B8'); // Twin crescent axe head
+        this.px(ctx, 36, -12, 5, 24, '#F97316'); // Blazing molten edge
+        this.px(ctx, 39, -10, 2, 20, '#FFFFFF'); // White-hot edge
+      } else {
+        // Spinning Venom Curved Dagger (Rogue)
+        this.px(ctx, 14, -2, 22, 4, '#10B981'); // Venom emerald blade
+        this.px(ctx, 16, -1, 18, 2, '#A855F7'); // Shadow core
+        this.px(ctx, 11, -5, 3, 10, '#F59E0B'); // Guard
+      }
+
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  private static drawOrbitingBlades(
+    ctx: CanvasRenderingContext2D,
+    player: PlayerEntity,
+    classDef: HeroClassDefinition,
+    now: number
+  ): void {
+    ctx.save();
+    ctx.translate(Math.round(player.x), Math.round(player.y - 4));
+
+    const count = player.classId === 'rogue' ? 6 : 4;
+    const orbitRadius = 56;
+    const baseAngle = now * 0.012;
+
+    // Subtle sacred/shadow orbit ring
+    ctx.strokeStyle = `${classDef.accentColor}55`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, orbitRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    for (let i = 0; i < count; i++) {
+      const a = baseAngle + (i * Math.PI * 2) / count;
+      const bx = Math.cos(a) * orbitRadius;
+      const by = Math.sin(a) * orbitRadius;
+
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(a + Math.PI / 2);
+
+      if (player.classId === 'knight') {
+        // Golden Spectral Greatsword
+        this.px(ctx, -2, -14, 4, 24, '#FDE047');
+        this.px(ctx, -1, -12, 2, 20, '#FFFFFF');
+        this.px(ctx, -6, 6, 12, 3, '#F59E0B');
+      } else if (player.classId === 'berserker') {
+        // Crimson Bloodrage War Axe
+        this.px(ctx, -2, -12, 4, 24, '#78350F');
+        this.px(ctx, -9, -10, 18, 10, '#EF4444');
+        this.px(ctx, -10, -8, 20, 4, '#FBBF24');
+      } else {
+        // Phantom Shadow Dagger
+        this.px(ctx, -2, -12, 4, 20, '#A855F7');
+        this.px(ctx, -1, -10, 2, 16, '#10B981');
+      }
+
+      ctx.restore();
     }
 
     ctx.restore();

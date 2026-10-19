@@ -626,12 +626,20 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       </div>
 
                       <div className="flex justify-between items-center text-white/70">
-                        <span>MANA</span>
-                        <span className="font-bold text-blue-400">{classDef.baseMp} MP</span>
+                        <span>{classDef.resourceType === 'stamina' ? 'STAMINA' : 'MANA'}</span>
+                        <span
+                          className={`font-bold ${
+                            classDef.resourceType === 'stamina' ? 'text-amber-400' : 'text-blue-400'
+                          }`}
+                        >
+                          {classDef.baseMp} {classDef.resourceLabel}
+                        </span>
                       </div>
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-500"
+                          className={`h-full ${
+                            classDef.resourceType === 'stamina' ? 'bg-amber-500' : 'bg-blue-500'
+                          }`}
                           style={{ width: `${Math.min(100, (classDef.baseMp / 260) * 100)}%` }}
                         />
                       </div>
@@ -840,7 +848,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                         className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
                       >
                         <Flask size={16} />
-                        <span>[X] RESTORE FULL PARTY (100% HP/MP) [65G]</span>
+                        <span>[X] RESTORE FULL PARTY (100% HP & STA/MP) [65G]</span>
                       </button>
                     )}
 
@@ -860,7 +868,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                         className="px-3.5 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
                       >
                         <Sparkle size={16} />
-                        <span>[X] ASTRAL INFUSION (+40 MP & FULL RESTORE) [160G]</span>
+                        <span>[X] ASTRAL INFUSION (+40 MAX STA/MP & RESTORE) [160G]</span>
                       </button>
                     )}
                   </div>
@@ -1004,17 +1012,21 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       </div>
                     </div>
 
-                    {/* Mana Bar */}
+                    {/* Stamina / Mana Resource Bar */}
                     <div className="space-y-1 mb-2.5">
                       <div className="flex justify-between text-[10px] font-['JetBrains_Mono'] text-white/80">
-                        <span>MP</span>
-                        <span>
+                        <span className={classDef.resourceType === 'stamina' ? 'text-amber-400 font-bold' : 'text-blue-400 font-bold'}>
+                          {classDef.resourceLabel}
+                        </span>
+                        <span className={classDef.resourceType === 'stamina' ? 'text-amber-300' : 'text-blue-300'}>
                           {Math.floor(player.mp)} / {player.maxMp}
                         </span>
                       </div>
                       <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
                         <div
-                          className="h-full bg-blue-500 transition-all duration-150"
+                          className={`h-full transition-all duration-150 ${
+                            classDef.resourceType === 'stamina' ? 'bg-amber-500' : 'bg-blue-500'
+                          }`}
                           style={{ width: `${mpPct * 100}%` }}
                         />
                       </div>

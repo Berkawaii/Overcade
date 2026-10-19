@@ -24,6 +24,8 @@ export interface HeroClassDefinition {
   name: string;
   title: string;
   role: 'Tank' | 'Mage' | 'Ranger' | 'Healer' | 'Berserker' | 'Assassin';
+  resourceType?: 'stamina' | 'mana';
+  resourceLabel?: 'STA' | 'MP';
   accentColor: string;
   badgeBg: string;
   baseHp: number;
@@ -71,6 +73,12 @@ export interface PlayerEntity {
   maxHp: number;
   mp: number;
   maxMp: number;
+  regenDelayTimer: number;
+  spinAttackTimer: number;
+  spinAttackMaxTimer: number;
+  spinTickTimer: number;
+  orbitBladesTimer: number;
+  orbitTickTimer: number;
   level: number;
   exp: number;
   gold: number;

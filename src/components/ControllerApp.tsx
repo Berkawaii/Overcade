@@ -473,18 +473,38 @@ export const ControllerApp: React.FC = () => {
                 </div>
               </div>
 
-              {/* Live MP / Door Progress Bar */}
+              {/* Live MP / STA / Goal Progress Bar */}
               <div className="flex flex-col gap-0.5">
-                <div className="flex items-center justify-between text-sky-300 font-bold">
+                <div
+                  className={`flex items-center justify-between font-bold ${
+                    isPicoMode
+                      ? 'text-sky-300'
+                      : activeHeroClass?.resourceType === 'stamina'
+                      ? 'text-amber-300'
+                      : 'text-sky-300'
+                  }`}
+                >
                   <span className="inline-flex items-center gap-1">
-                    <Drop size={10} weight="fill" className="text-sky-400" />
-                    {isPicoMode ? 'GOAL' : 'MP'}
+                    {isPicoMode ? (
+                      <Drop size={10} weight="fill" className="text-sky-400" />
+                    ) : activeHeroClass?.resourceType === 'stamina' ? (
+                      <Lightning size={10} weight="fill" className="text-amber-400" />
+                    ) : (
+                      <Drop size={10} weight="fill" className="text-sky-400" />
+                    )}
+                    {isPicoMode ? 'GOAL' : activeHeroClass?.resourceLabel || 'MP'}
                   </span>
                   <span>{mpPercent}%</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-black/70 overflow-hidden border border-white/10">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-600 to-sky-400 transition-all duration-150"
+                    className={`h-full transition-all duration-150 ${
+                      isPicoMode
+                        ? 'bg-gradient-to-r from-blue-600 to-sky-400'
+                        : activeHeroClass?.resourceType === 'stamina'
+                        ? 'bg-gradient-to-r from-amber-600 to-yellow-400'
+                        : 'bg-gradient-to-r from-blue-600 to-sky-400'
+                    }`}
                     style={{ width: `${Math.max(0, Math.min(100, mpPercent))}%` }}
                   />
                 </div>

@@ -582,29 +582,47 @@ export class PicoParkEngine {
           if (p.isGrounded && Math.random() < 0.035) wantJump = true;
         } else {
           // Cooperative Squad Follow: follow leader or help push nearby number blocks!
-          const orderOffset = (i - 1) * -40;
-          const targetX = leaderUnit.x + orderOffset;
-          const dx = targetX - p.x;
+          const stageDef = PICO_STAGES[this.currentStageIdx];
+          const isLeaderDanglingInChasm =
+            Boolean(stageDef.tetherEnabled) &&
+            leaderUnit.y > 445 &&
+            leaderUnit.x > 575 &&
+            leaderUnit.x < 705;
 
-          // If leader is pushing a number block, help push in the same direction!
-          const leaderPushingRight = leaderInput.axes.leftX > 0.25;
-          const leaderPushingLeft = leaderInput.axes.leftX < -0.25;
-          if (leaderPushingRight && Math.abs(leaderUnit.x - p.x) < 150) {
-            axisX = 1;
-          } else if (leaderPushingLeft && Math.abs(leaderUnit.x - p.x) < 150) {
-            axisX = -1;
-          } else if (Math.abs(dx) > 26) {
-            axisX = dx > 0 ? 1 : -1;
-          }
+          if (isLeaderDanglingInChasm) {
+            // In Tethered Fate, squadmates brace as firm anchors on the left center ledge while leader dangles!
+            const anchorTargetX = 560 - i * 24;
+            const anchorDx = anchorTargetX - p.x;
+            if (Math.abs(anchorDx) > 8) {
+              axisX = anchorDx > 0 ? 0.75 : -0.75;
+            } else {
+              axisX = 0;
+            }
+          } else {
+            const orderOffset = (i - 1) * -36;
+            const targetX = leaderUnit.x + orderOffset;
+            const dx = targetX - p.x;
 
-          // Jump when leader jumps or when blocked by a step
-          if (
-            leaderInput.buttons.A &&
-            !leaderPrev.A &&
-            p.isGrounded &&
-            p.ridingOnPlayerId === null
-          ) {
-            wantJump = true;
+            // If leader is pushing a number block, help line up and push in the same direction!
+            const leaderPushingRight = leaderInput.axes.leftX > 0.25;
+            const leaderPushingLeft = leaderInput.axes.leftX < -0.25;
+            if (leaderPushingRight && Math.abs(leaderUnit.x - p.x) < 160) {
+              axisX = 1;
+            } else if (leaderPushingLeft && Math.abs(leaderUnit.x - p.x) < 160) {
+              axisX = -1;
+            } else if (Math.abs(dx) > 18) {
+              axisX = dx > 0 ? 1 : -1;
+            }
+
+            // Jump when leader jumps or when blocked by a step
+            if (
+              leaderInput.buttons.A &&
+              !leaderPrev.A &&
+              p.isGrounded &&
+              p.ridingOnPlayerId === null
+            ) {
+              wantJump = true;
+            }
           }
         }
       }
@@ -621,8 +639,23 @@ export class PicoParkEngine {
         p.coyoteTimer = Math.max(0, p.coyoteTimer - dt);
       }
 
-      if (wantJump && p.coyoteTimer > 0) {
-        p.vy = jumpImpulse;
+      // Check if dangling on a taut tether rope below a grounded anchor teammate
+      const stageDef = PICO_STAGES[this.currentStageIdx];
+      const canRopeHoist =
+        Boolean(stageDef.tetherEnabled) &&
+        !p.isGrounded &&
+        this.players.some(
+          (other) =>
+            other.slotIndex !== p.slotIndex &&
+            !other.enteredDoor &&
+            !other.isDead &&
+            other.isGrounded &&
+            p.y > other.y + 45 &&
+            Math.hypot(other.x - p.x, other.y - p.y) >= (stageDef.tetherLength || 210) * 0.72
+        );
+
+      if (wantJump && (p.coyoteTimer > 0 || canRopeHoist)) {
+        p.vy = canRopeHoist ? jumpImpulse * 0.96 : jumpImpulse;
         p.isGrounded = false;
         p.coyoteTimer = 0;
         p.ridingOnPlayerId = null;
@@ -729,8 +762,26 @@ export class PicoParkEngine {
       for (const plat of this.platforms) {
         if (plat.type === 'bridge' && !plat.isOpen) continue;
         if (this.aabbOverlap(p.x, p.y, p.width, p.height, plat.x, plat.y, plat.width, plat.height)) {
-          if (dx > 0) p.x = plat.x - p.width;
-          else if (dx < 0) p.x = plat.x + plat.width;
+          if (p.y + p.height > plat.y + 6 && p.y < plat.y + plat.height - 6) {
+            if (dx > 0 || p.x + p.width / 2 < plat.x + plat.width / 2) {
+              p.x = plat.x - p.width;
+            } else {
+              p.x = plat.x + plat.width;
+            }
+          }
+        }
+      }
+
+      // Horizontal Collision with Number Blocks (Stop flush against block sides!)
+      for (const blk of this.numberBlocks) {
+        if (this.aabbOverlap(p.x, p.y, p.width, p.height, blk.x, blk.y, blk.width, blk.height)) {
+          if (p.y + p.height > blk.y + 8 && p.y < blk.y + blk.height - 6) {
+            if (dx > 0 || p.x + p.width / 2 < blk.x + blk.width / 2) {
+              p.x = blk.x - p.width;
+            } else {
+              p.x = blk.x + blk.width;
+            }
+          }
         }
       }
 
@@ -747,23 +798,23 @@ export class PicoParkEngine {
         if (plat.type === 'bridge' && !plat.isOpen) continue;
         if (this.aabbOverlap(p.x, p.y, p.width, p.height, plat.x, plat.y, plat.width, plat.height)) {
           if (this.gravityDir === 1) {
-            if (p.vy >= 0 && prevY + p.height <= plat.y + 16) {
+            if (p.vy >= 0 && prevY + p.height <= plat.y + 18) {
               p.y = plat.y - p.height;
               p.vy = 0;
               p.isGrounded = true;
               p.ridingOnPlatformId = plat.id;
-            } else if (p.vy < 0 && prevY >= plat.y + plat.height - 16) {
+            } else if (p.vy < 0 && prevY >= plat.y + plat.height - 18) {
               p.y = plat.y + plat.height;
               p.vy = 0;
             }
           } else {
             // Inverted gravity (-1): players stand upside down on bottom of ceiling!
-            if (p.vy <= 0 && prevY >= plat.y + plat.height - 16) {
+            if (p.vy <= 0 && prevY >= plat.y + plat.height - 18) {
               p.y = plat.y + plat.height;
               p.vy = 0;
               p.isGrounded = true;
               p.ridingOnPlatformId = plat.id;
-            } else if (p.vy > 0 && prevY + p.height <= plat.y + 16) {
+            } else if (p.vy > 0 && prevY + p.height <= plat.y + 18) {
               p.y = plat.y - p.height;
               p.vy = 0;
             }
@@ -774,7 +825,7 @@ export class PicoParkEngine {
       // Vertical Collisions with Number Blocks (Can stand on top of Number Blocks!)
       for (const blk of this.numberBlocks) {
         if (this.aabbOverlap(p.x, p.y, p.width, p.height, blk.x, blk.y, blk.width, blk.height)) {
-          if (p.vy >= 0 && prevY + p.height <= blk.y + 16) {
+          if (p.vy >= 0 && prevY + p.height <= blk.y + 18) {
             p.y = blk.y - p.height;
             p.vy = 0;
             p.isGrounded = true;
@@ -784,56 +835,81 @@ export class PicoParkEngine {
       }
     }
 
-    // Player-on-Player Solid Stacking ("Human Tower") & Battle Head Stomp!
-    for (let i = 0; i < this.players.length; i++) {
-      const a = this.players[i];
-      if (a.enteredDoor || a.isDead) continue;
+    // Player-on-Player Solid Stacking ("Human Tower"), Queue Contact & Battle Head Stomp!
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 0; i < this.players.length; i++) {
+        const a = this.players[i];
+        if (a.enteredDoor || a.isDead) continue;
 
-      for (let j = 0; j < this.players.length; j++) {
-        if (i === j) continue;
-        const b = this.players[j];
-        if (b.enteredDoor || b.isDead) continue;
+        for (let j = 0; j < this.players.length; j++) {
+          if (i === j) continue;
+          const b = this.players[j];
+          if (b.enteredDoor || b.isDead) continue;
 
-        if (this.aabbOverlap(a.x, a.y, a.width, a.height, b.x, b.y, b.width, b.height)) {
-          const overlapX =
-            Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
-          const overlapY =
-            Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+          if (this.aabbOverlap(a.x, a.y, a.width, a.height, b.x, b.y, b.width, b.height)) {
+            const overlapX =
+              Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+            const overlapY =
+              Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
 
-          if (
-            this.gravityDir === 1 &&
-            a.vy >= 0 &&
-            a.y + a.height - b.y <= 20 &&
-            overlapX > 8
-          ) {
-            if (isBattle) {
-              // Battle Mode: Stomp rival head to steal the Crown!
-              a.y = b.y - a.height;
-              a.vy = -440;
-              b.stunTimer = 0.85;
-              SoundFX.playHit(true);
-              this.spawnBurst(b.x + 18, b.y, '#FACC15', 14);
-              if (b.hasCrown) {
-                b.hasCrown = false;
-                a.hasCrown = true;
-                this.key.carrierSlot = a.slotIndex;
+            if (
+              this.gravityDir === 1 &&
+              a.vy >= 0 &&
+              a.y + a.height - b.y <= 20 &&
+              overlapX > 8
+            ) {
+              if (isBattle) {
+                // Battle Mode: Stomp rival head to steal the Crown!
+                a.y = b.y - a.height;
+                a.vy = -440;
+                b.stunTimer = 0.85;
+                SoundFX.playHit(true);
+                this.spawnBurst(b.x + 18, b.y, '#FACC15', 14);
+                if (b.hasCrown) {
+                  b.hasCrown = false;
+                  a.hasCrown = true;
+                  this.key.carrierSlot = a.slotIndex;
+                }
+              } else {
+                // Co-op Mode: Stand solidly on teammate head!
+                a.y = b.y - a.height;
+                a.vy = 0;
+                a.isGrounded = true;
+                a.ridingOnPlayerId = b.slotIndex;
               }
-            } else {
-              // Co-op Mode: Stand solidly on teammate head!
-              a.y = b.y - a.height;
-              a.vy = 0;
-              a.isGrounded = true;
-              a.ridingOnPlayerId = b.slotIndex;
-            }
-          } else if (overlapX < overlapY && a.ridingOnPlayerId !== b.slotIndex && b.ridingOnPlayerId !== a.slotIndex) {
-            // Side-by-side solid push separation
-            const push = overlapX / 2;
-            if (a.x < b.x) {
-              a.x -= push;
-              b.x += push;
-            } else {
-              a.x += push;
-              b.x -= push;
+            } else if (
+              overlapX < overlapY &&
+              a.ridingOnPlayerId !== b.slotIndex &&
+              b.ridingOnPlayerId !== a.slotIndex
+            ) {
+              // Side-by-side solid push separation (if one player is blocked against a Number Block, keep them flush!)
+              const aAgainstBlockRight = this.numberBlocks.some(
+                (blk) =>
+                  Math.abs(a.x + a.width - blk.x) <= 2 &&
+                  a.y + a.height > blk.y + 6 &&
+                  a.y < blk.y + blk.height - 6
+              );
+              const bAgainstBlockRight = this.numberBlocks.some(
+                (blk) =>
+                  Math.abs(b.x + b.width - blk.x) <= 2 &&
+                  b.y + b.height > blk.y + 6 &&
+                  b.y < blk.y + blk.height - 6
+              );
+
+              if (bAgainstBlockRight && a.x < b.x) {
+                a.x = b.x - a.width;
+              } else if (aAgainstBlockRight && b.x < a.x) {
+                b.x = a.x - b.width;
+              } else {
+                const push = overlapX / 2;
+                if (a.x < b.x) {
+                  a.x -= push;
+                  b.x += push;
+                } else {
+                  a.x += push;
+                  b.x -= push;
+                }
+              }
             }
           }
         }
@@ -850,7 +926,7 @@ export class PicoParkEngine {
       blk.y += blk.vy * dt;
       blk.isGrounded = false;
 
-      // Collide Number Block with Platforms
+      // Collide Number Block Vertically with Platforms
       for (const plat of this.platforms) {
         if (plat.type === 'bridge' && !plat.isOpen) continue;
         if (
@@ -873,55 +949,64 @@ export class PicoParkEngine {
         }
       }
 
-      // Count how many players are pushing right (+1) or left (-1) against this block
-      // Includes players pushing into the back of a teammate who touches the block, or stacked on top!
-      let rightPushers = 0;
-      let leftPushers = 0;
+      // Strict Physical Contact Chain Detection for Pushing Right (+1) or Left (-1)
+      // A player only counts as pushing if they are actively pressing toward the block AND
+      // are either directly touching the block's side face OR physically touching the back/head
+      // of a teammate who is in an unbroken physical contact chain with the block!
+      const rightPusherSlots = new Set<number>();
+      const leftPusherSlots = new Set<number>();
 
+      // Pass 1: Direct physical contact with the block's left or right face
       for (const p of this.players) {
         if (p.enteredDoor || p.isDead) continue;
-
-        const verticalOverlap = p.y + p.height > blk.y + 4 && p.y < blk.y + blk.height - 4;
+        const verticalOverlap = p.y + p.height > blk.y + 6 && p.y < blk.y + blk.height - 6;
         if (!verticalOverlap) continue;
 
-        // Check if player (or a chain of players) is touching left side of block and pressing right
-        if (p.vx > 20 && p.x + p.width >= blk.x - 42 * 3 && p.x < blk.x) {
-          // Verify continuous chain of players between p and blk.x
-          const touchingLeft = this.players.some(
-            (front) =>
-              !front.enteredDoor &&
-              Math.abs(front.x + front.width - blk.x) <= 8 &&
-              front.y + front.height > blk.y + 4 &&
-              front.y < blk.y + blk.height - 4
-          );
-          if (touchingLeft) {
-            rightPushers += 1;
-            // Also count any players stacked on this pusher's head who are holding right!
-            rightPushers += this.players.filter(
-              (rider) => rider.ridingOnPlayerId === p.slotIndex && rider.vx >= 0
-            ).length;
-          }
+        if (p.vx > 15 && Math.abs(p.x + p.width - blk.x) <= 2.5) {
+          rightPusherSlots.add(p.slotIndex);
         }
+        if (p.vx < -15 && Math.abs(p.x - (blk.x + blk.width)) <= 2.5) {
+          leftPusherSlots.add(p.slotIndex);
+        }
+      }
 
-        if (p.vx < -20 && p.x <= blk.x + blk.width + 42 * 3 && p.x + p.width > blk.x + blk.width) {
-          const touchingRight = this.players.some(
-            (front) =>
-              !front.enteredDoor &&
-              Math.abs(front.x - (blk.x + blk.width)) <= 8 &&
-              front.y + front.height > blk.y + 4 &&
-              front.y < blk.y + blk.height - 4
-          );
-          if (touchingRight) {
-            leftPushers += 1;
-            leftPushers += this.players.filter(
-              (rider) => rider.ridingOnPlayerId === p.slotIndex && rider.vx <= 0
-            ).length;
+      // Pass 2..4: Propagate along unbroken physical contact chain (behind or stacked on top)
+      for (let step = 0; step < this.players.length; step++) {
+        for (const p of this.players) {
+          if (p.enteredDoor || p.isDead) continue;
+
+          if (!rightPusherSlots.has(p.slotIndex) && p.vx > 15) {
+            const touchesRightChain = this.players.some(
+              (front) =>
+                rightPusherSlots.has(front.slotIndex) &&
+                (p.ridingOnPlayerId === front.slotIndex ||
+                  (Math.abs(p.x + p.width - front.x) <= 3.0 &&
+                    p.y + p.height > front.y + 6 &&
+                    p.y < front.y + front.height - 6))
+            );
+            if (touchesRightChain) {
+              rightPusherSlots.add(p.slotIndex);
+            }
+          }
+
+          if (!leftPusherSlots.has(p.slotIndex) && p.vx < -15) {
+            const touchesLeftChain = this.players.some(
+              (front) =>
+                leftPusherSlots.has(front.slotIndex) &&
+                (p.ridingOnPlayerId === front.slotIndex ||
+                  (Math.abs(p.x - (front.x + front.width)) <= 3.0 &&
+                    p.y + p.height > front.y + 6 &&
+                    p.y < front.y + front.height - 6))
+            );
+            if (touchesLeftChain) {
+              leftPusherSlots.add(p.slotIndex);
+            }
           }
         }
       }
 
-      rightPushers = Math.min(this.players.length, rightPushers);
-      leftPushers = Math.min(this.players.length, leftPushers);
+      const rightPushers = rightPusherSlots.size;
+      const leftPushers = leftPusherSlots.size;
 
       if (rightPushers >= leftPushers && rightPushers > 0) {
         blk.currentPushers = rightPushers;
@@ -935,16 +1020,19 @@ export class PicoParkEngine {
       }
 
       if (blk.currentPushers >= blk.requiredPlayers) {
-        const moveDx = blk.pushDirection * 110 * dt;
+        const moveDx = blk.pushDirection * 112 * dt;
         blk.x += moveDx;
+        const activeChain = blk.pushDirection === 1 ? rightPusherSlots : leftPusherSlots;
         for (const p of this.players) {
           if (p.ridingOnBlockId === blk.id) {
             this.movePlayerAndRiders(p, moveDx, 0);
+          } else if (activeChain.has(p.slotIndex) && p.ridingOnPlayerId === null) {
+            p.x += moveDx;
           }
         }
       }
 
-      // Solid horizontal block collision against players so players cannot walk through an unpushed block
+      // Final solid horizontal block collision against players
       for (const p of this.players) {
         if (p.enteredDoor || p.isDead) continue;
         if (this.aabbOverlap(p.x, p.y, p.width, p.height, blk.x, blk.y, blk.width, blk.height)) {
@@ -960,42 +1048,127 @@ export class PicoParkEngine {
     }
   }
 
-  private updateTetherConstraint(maxLen: number, dt: number): void {
+  private resolveSolidPlatformForPlayer(p: PicoPlayer, prevX: number, prevY: number): void {
+    p.x = Math.max(8, Math.min(PICO_STAGE_WIDTH - p.width - 8, p.x));
+
+    for (const plat of this.platforms) {
+      if (plat.type === 'bridge' && !plat.isOpen) continue;
+      if (!this.aabbOverlap(p.x, p.y, p.width, p.height, plat.x, plat.y, plat.width, plat.height)) {
+        continue;
+      }
+
+      const wasAbove = prevY + p.height <= plat.y + 14;
+      const wasBelow = prevY >= plat.y + plat.height - 14;
+      const wasLeft = prevX + p.width <= plat.x + 10;
+      const wasRight = prevX >= plat.x + plat.width - 10;
+
+      if (wasAbove) {
+        p.y = plat.y - p.height;
+        if (p.vy > 0) p.vy = 0;
+        p.isGrounded = true;
+        p.ridingOnPlatformId = plat.id;
+      } else if (wasBelow) {
+        p.y = plat.y + plat.height;
+        if (p.vy < 0) p.vy = 0;
+      } else if (wasLeft) {
+        p.x = plat.x - p.width;
+      } else if (wasRight) {
+        p.x = plat.x + plat.width;
+      } else {
+        // Fallback minimum penetration pushout so tether never traps a player inside a platform
+        const penTop = p.y + p.height - plat.y;
+        const penBottom = plat.y + plat.height - p.y;
+        const penLeft = p.x + p.width - plat.x;
+        const penRight = plat.x + plat.width - p.x;
+        const minPen = Math.min(penTop, penBottom, penLeft, penRight);
+        if (minPen === penTop) {
+          p.y = plat.y - p.height;
+          if (p.vy > 0) p.vy = 0;
+          p.isGrounded = true;
+          p.ridingOnPlatformId = plat.id;
+        } else if (minPen === penBottom) {
+          p.y = plat.y + plat.height;
+          if (p.vy < 0) p.vy = 0;
+        } else if (minPen === penLeft) {
+          p.x = plat.x - p.width;
+        } else {
+          p.x = plat.x + plat.width;
+        }
+      }
+    }
+  }
+
+  private updateTetherConstraint(maxLen: number, _dt: number): void {
     const active = this.players.filter((p) => !p.enteredDoor && !p.isDead);
     if (active.length < 2) return;
 
-    for (let i = 0; i < active.length - 1; i++) {
-      const a = active[i];
-      const b = active[i + 1];
-      const ax = a.x + a.width / 2;
-      const ay = a.y + a.height / 2;
-      const bx = b.x + b.width / 2;
-      const by = b.y + b.height / 2;
+    // 2-pass Position-Based Rope Constraint + Radial Velocity Projection
+    for (let iter = 0; iter < 2; iter++) {
+      for (let i = 0; i < active.length - 1; i++) {
+        const a = active[i];
+        const b = active[i + 1];
 
-      const dx = bx - ax;
-      const dy = by - ay;
-      const dist = Math.hypot(dx, dy);
+        const prevAX = a.x;
+        const prevAY = a.y;
+        const prevBX = b.x;
+        const prevBY = b.y;
 
-      if (dist > maxLen && dist > 0.001) {
-        const excess = dist - maxLen;
-        const nx = dx / dist;
-        const ny = dy / dist;
+        const ax = a.x + a.width / 2;
+        const ay = a.y + a.height / 2;
+        const bx = b.x + b.width / 2;
+        const by = b.y + b.height / 2;
 
-        // Grounded players act as stronger anchors so they can hoist dangling teammates!
-        const weightA = a.isGrounded ? 0.25 : 0.75;
-        const weightB = b.isGrounded ? 0.25 : 0.75;
-        const sumW = weightA + weightB || 1;
+        const dx = bx - ax;
+        const dy = by - ay;
+        const dist = Math.hypot(dx, dy);
 
-        a.x += nx * excess * (weightA / sumW);
-        a.y += ny * excess * (weightA / sumW);
-        b.x -= nx * excess * (weightB / sumW);
-        b.y -= ny * excess * (weightB / sumW);
+        if (dist > maxLen && dist > 0.001) {
+          const excess = dist - maxLen;
+          const nx = dx / dist;
+          const ny = dy / dist;
 
-        const pullForce = excess * 12 * dt;
-        a.vx += nx * pullForce;
-        a.vy += ny * pullForce;
-        b.vx -= nx * pullForce;
-        b.vy -= ny * pullForce;
+          // Grounded players act as heavy ledge anchors (0.06 vs 0.94) so dangling works smoothly!
+          let weightA = 0.5;
+          let weightB = 0.5;
+          if (a.isGrounded && !b.isGrounded) {
+            weightA = 0.06;
+            weightB = 0.94;
+          } else if (b.isGrounded && !a.isGrounded) {
+            weightA = 0.94;
+            weightB = 0.06;
+          }
+
+          const corrAX = nx * excess * weightA;
+          const corrAY = a.isGrounded && ny > 0 ? 0 : ny * excess * weightA;
+          const corrBX = -nx * excess * weightB;
+          const corrBY = b.isGrounded && -ny > 0 ? 0 : -ny * excess * weightB;
+
+          a.x += corrAX;
+          a.y += corrAY;
+          b.x += corrBX;
+          b.y += corrBY;
+
+          // Project out outward radial velocity along the taut rope so velocity never explodes!
+          const relVx = b.vx - a.vx;
+          const relVy = b.vy - a.vy;
+          const radialVel = relVx * nx + relVy * ny;
+          if (radialVel > 0) {
+            if (!a.isGrounded) {
+              a.vx += nx * radialVel * weightA;
+              a.vy += ny * radialVel * weightA;
+            }
+            if (!b.isGrounded) {
+              b.vx -= nx * radialVel * weightB;
+              b.vy -= ny * radialVel * weightB;
+              // Gentle pendulum horizontal swing damping while dangling
+              b.vx *= 0.98;
+            }
+          }
+
+          // Re-resolve solid platform collisions immediately so the rope never pulls anyone inside a wall/floor!
+          this.resolveSolidPlatformForPlayer(a, prevAX, prevAY);
+          this.resolveSolidPlatformForPlayer(b, prevBX, prevBY);
+        }
       }
     }
   }
