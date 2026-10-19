@@ -105,6 +105,7 @@ export interface Projectile {
   lifeTimer: number;
   piercing: boolean;
   color: string;
+  hitTargetIds?: string[];
 }
 
 export interface ParticleEffect {

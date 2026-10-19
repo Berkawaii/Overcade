@@ -1167,7 +1167,7 @@ export class ChronoKnightsEngine {
     // --- PYROMANCER SKILLS ---
     if (player.classId === 'pyromancer') {
       if (button === 'B') {
-        // Inferno Cone: 5-way piercing flame wave + close AoE
+        // Inferno Cone: 5-way piercing flame wave
         SoundFX.playSpellCast();
         let baseAngle = this.getFacingAngle(player.facing);
         const target = this.findNearestEnemyTarget(player.x, player.y, 550);
@@ -1178,14 +1178,13 @@ export class ChronoKnightsEngine {
           this.fireProjectileWithAngle(
             player,
             'fire_wave',
-            baseAngle + i * 0.18,
-            420,
-            18,
-            atk * skill.damageMultiplier * 0.72,
+            baseAngle + i * 0.19,
+            410,
+            15,
+            atk * skill.damageMultiplier * 0.45,
             'fire'
           );
         }
-        this.checkAreaDamage(player.x, player.y, 120, atk * 0.9, 'fire');
         return;
       }
       if (button === 'X') {
@@ -1846,7 +1845,7 @@ export class ChronoKnightsEngine {
 
   private fireProjectileWithAngle(
     player: PlayerEntity,
-    _type: string,
+    type: string,
     angle: number,
     speed: number,
     radius: number,
@@ -1871,9 +1870,10 @@ export class ChronoKnightsEngine {
       radius,
       damage,
       element,
-      lifeTimer: 1.6,
-      piercing: element === 'fire',
+      lifeTimer: 1.4,
+      piercing: type === 'fire_wave' || type === 'sniper_arrow',
       color: colorMap[element] || '#F59E0B',
+      hitTargetIds: [],
     });
   }
 
@@ -1902,6 +1902,7 @@ export class ChronoKnightsEngine {
 
       // Block projectiles from crossing the Boss Sanctum Fog Wall before the fight begins
       if (this.isDungeonZone() && !this.bossRoomSealed && p.y < 700) {
+        p.lifeTimer = 0;
         hit = true;
       }
 
@@ -1932,12 +1933,16 @@ export class ChronoKnightsEngine {
         }
       } else {
         const ownerPlayer = this.players[p.ownerSlot];
+        if (!p.hitTargetIds) p.hitTargetIds = [];
+
         // Player Projectile hitting Dummies in Oakhaven
         if (this.currentZone === 'oakhaven') {
           for (const d of this.dummies) {
+            if (p.hitTargetIds.includes(d.id)) continue;
             const dist = Math.hypot(d.x - p.x, d.y - p.y);
             if (dist <= d.radius + p.radius) {
               hit = true;
+              p.hitTargetIds.push(d.id);
               d.hp = Math.max(0, d.hp - p.damage);
               d.hurtTimer = 0.2;
               if (ownerPlayer) {
@@ -1958,10 +1963,12 @@ export class ChronoKnightsEngine {
             const enemy = this.enemies[eIdx];
             if (enemy.hp <= 0) continue;
             if (enemy.isBoss && this.isDungeonZone() && !this.bossRoomSealed) continue;
+            if (p.hitTargetIds.includes(enemy.id)) continue;
 
             const dist = Math.hypot(enemy.x - p.x, enemy.y - p.y);
             if (dist <= enemy.radius + p.radius) {
               hit = true;
+              p.hitTargetIds.push(enemy.id);
 
               if (enemy.isShielded) {
                 SoundFX.playShieldActivate();
@@ -1996,10 +2003,12 @@ export class ChronoKnightsEngine {
           if (this.currentZone === 'arachnid_caverns' && !this.cavernsWebWall.isBurned) {
             const wall = this.cavernsWebWall;
             if (
+              !p.hitTargetIds.includes(wall.id) &&
               Math.abs(p.x - (wall.x + wall.width / 2)) < wall.width / 2 + 12 &&
               Math.abs(p.y - wall.y) < wall.height + 12
             ) {
               hit = true;
+              p.hitTargetIds.push(wall.id);
               wall.hp -= p.element === 'fire' ? 75 : 35;
               this.spawnHitSparks(p.x, p.y, '#10B981');
               SoundFX.playHit();
