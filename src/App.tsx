@@ -27,6 +27,10 @@ const ChronoKnightsGame = lazy(() =>
   import('./components/ChronoKnightsGame').then((m) => ({ default: m.ChronoKnightsGame }))
 );
 
+const PicoParkGame = lazy(() =>
+  import('./components/PicoParkGame').then((m) => ({ default: m.PicoParkGame }))
+);
+
 function isControllerRoute(): boolean {
   const rootEl = document.getElementById('root');
   if (rootEl?.getAttribute('data-mode') === 'controller') return true;
@@ -43,7 +47,7 @@ export const App: React.FC = () => {
   const [authReady, setAuthReady] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
   const [activeView, setActiveView] = useState<
-    'catalog' | 'chronoknights' | 'firedup' | 'vortex' | 'ironclad' | 'arena'
+    'catalog' | 'picopark' | 'chronoknights' | 'firedup' | 'vortex' | 'ironclad' | 'arena'
   >('catalog');
   const [isPairingOpen, setIsPairingOpen] = useState(false);
 
@@ -133,7 +137,8 @@ export const App: React.FC = () => {
         setActiveView('catalog');
       } else if (
         btn === 'SELECT' &&
-        (activeView === 'chronoknights' ||
+        (activeView === 'picopark' ||
+          activeView === 'chronoknights' ||
           activeView === 'firedup' ||
           activeView === 'vortex' ||
           activeView === 'ironclad' ||
@@ -161,7 +166,9 @@ export const App: React.FC = () => {
   };
 
   const handleLaunchGame = (gameId: string) => {
-    if (gameId === 'chrono-knights') {
+    if (gameId === 'pico-protocol') {
+      setActiveView('picopark');
+    } else if (gameId === 'chrono-knights') {
       setActiveView('chronoknights');
     } else if (gameId === 'fired-up-overdrive') {
       setActiveView('firedup');
@@ -193,6 +200,19 @@ export const App: React.FC = () => {
           onGuestContinue={() => setGuestMode(true)}
           onOpenPairing={() => setIsPairingOpen(true)}
         />
+      ) : activeView === 'picopark' ? (
+        <Suspense
+          fallback={
+            <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#09090B] font-mono text-xs uppercase tracking-[0.2em] text-[#F97316]">
+              PICO PROTOCOL // CO-OP PARK ENGINE LOADING...
+            </div>
+          }
+        >
+          <PicoParkGame
+            onExitGame={() => setActiveView('catalog')}
+            onOpenPairing={() => setIsPairingOpen(true)}
+          />
+        </Suspense>
       ) : activeView === 'chronoknights' ? (
         <Suspense
           fallback={

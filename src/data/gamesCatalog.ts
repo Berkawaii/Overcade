@@ -23,6 +23,27 @@ export interface CatalogGameItem {
 
 export const GAMES_CATALOG: CatalogGameItem[] = [
   {
+    id: 'pico-protocol',
+    title: 'PICO PROTOCOL // CO-OP PARK',
+    subtitle: '1-4 Player Cooperative Puzzle Platformer: Human Ladders, Number Blocks, Tether Ropes & 8 Gimmick Stages',
+    genre: 'CO-OP ACTION PUZZLE // PARTY',
+    players: '1-4 Players (Co-op & Solo Squad)',
+    engineSpec: '2D Cooperative Stacking & Tether Physics @ 60 FPS',
+    status: 'playable_game',
+    statusLabel: 'NEW // PICO CO-OP EDITION',
+    coverImage: '/assets/game-orbital-strike.jpg',
+    bentoSpan: 'hero',
+    description:
+      'Inspired by Pico Park! Stack on teammates heads to form human ladders, push heavy numbered blocks together, survive elastic tether ropes, deflect lasers with the Riot Shield, relay ticking bomb keys, flip team gravity, and battle for the Golden Crown across 8 cooperative stages + Versus Mode.',
+    controlsMapping: {
+      leftStick: 'Move Left / Right & Cooperative Block Push',
+      rightStick: '[X] Callout Speech Bubble (JUMP! / PUSH! / WAIT!)',
+      buttonA: 'Jump & Stack on Teammates Heads',
+      buttonB: 'Pass Key to Teammate / Enter Goal Door',
+      triggers: 'L1 Toggle Squad Follow / R1 Instant Stage Retry',
+    },
+  },
+  {
     id: 'chrono-knights',
     title: 'CHRONO KNIGHTS // AETHELVALE',
     subtitle: '1-4 Player Shared-Screen Action RPG: 6 Hero Classes, Chrono Checkpoints & Sealed Boss Sanctums',

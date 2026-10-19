@@ -61,6 +61,7 @@ export const ControllerApp: React.FC = () => {
   );
 
   const [assignedSlot, setAssignedSlot] = useState<number>(0);
+  const [gameModeId, setGameModeId] = useState<number>(1);
   const [hpPercent, setHpPercent] = useState<number>(100);
   const [mpPercent, setMpPercent] = useState<number>(100);
   const [heroClassIdx, setHeroClassIdx] = useState<number>(0);
@@ -112,6 +113,7 @@ export const ControllerApp: React.FC = () => {
   const playerCallsign = PLAYER_CALLSIGNS[assignedSlot] || 'HERO-01 // P1';
   const activeClassId = CLASS_LIST[heroClassIdx] || 'knight';
   const activeHeroClass = HERO_CLASSES[activeClassId];
+  const isPicoMode = gameModeId === 2;
 
   const enableWakeLock = useCallback(async () => {
     try {
@@ -174,6 +176,9 @@ export const ControllerApp: React.FC = () => {
           setAssignedSlot(feedback.playerSlot);
           setHpPercent(feedback.hpPercent);
           setMpPercent(feedback.mpPercent ?? 100);
+          if (feedback.gameModeId !== undefined) {
+            setGameModeId(feedback.gameModeId);
+          }
           if (feedback.heroClassIndex !== undefined && feedback.heroClassIndex < CLASS_LIST.length) {
             setHeroClassIdx(feedback.heroClassIndex);
           }
@@ -369,9 +374,9 @@ export const ControllerApp: React.FC = () => {
         </div>
       )}
 
-      {/* TOP BAR: L1 Restorative Flask // Room & Hero Status // R1 Heavy Signature Skill */}
+      {/* TOP BAR: L1 // Room & Hero/Stage Status // R1 */}
       <div className="relative z-10 grid grid-cols-12 items-stretch gap-2">
-        {/* L1 Shoulder Trigger: Restorative Flask */}
+        {/* L1 Shoulder Trigger */}
         <button
           type="button"
           onPointerDown={(e) => setButtonState('L1', true, e.currentTarget)}
@@ -382,10 +387,10 @@ export const ControllerApp: React.FC = () => {
         >
           <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black tracking-wider">
             <Flask size={15} weight="fill" />
-            <span>[L1] FLASK</span>
+            <span>{isPicoMode ? '[L1] SQUAD' : '[L1] FLASK'}</span>
           </div>
           <span className="text-[9px] text-emerald-200/75 truncate max-w-full">
-            {activeHeroClass.skills.L1.name}
+            {isPicoMode ? 'Follow / Stay' : activeHeroClass.skills.L1.name}
           </span>
         </button>
 
@@ -451,12 +456,12 @@ export const ControllerApp: React.FC = () => {
             </form>
           ) : (
             <div className="mt-1 grid grid-cols-2 gap-2 font-mono text-[9px]">
-              {/* Live HP Bar */}
+              {/* Live HP / Team Status Bar */}
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center justify-between text-red-300 font-bold">
                   <span className="inline-flex items-center gap-1">
                     <Heart size={10} weight="fill" className="text-red-500" />
-                    HP
+                    {isPicoMode ? 'UNIT' : 'HP'}
                   </span>
                   <span>{hpPercent}%</span>
                 </div>
@@ -468,12 +473,12 @@ export const ControllerApp: React.FC = () => {
                 </div>
               </div>
 
-              {/* Live MP Bar */}
+              {/* Live MP / Door Progress Bar */}
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center justify-between text-sky-300 font-bold">
                   <span className="inline-flex items-center gap-1">
                     <Drop size={10} weight="fill" className="text-sky-400" />
-                    MP
+                    {isPicoMode ? 'GOAL' : 'MP'}
                   </span>
                   <span>{mpPercent}%</span>
                 </div>
@@ -488,7 +493,7 @@ export const ControllerApp: React.FC = () => {
           )}
         </div>
 
-        {/* R1 Shoulder Trigger: Heavy Signature Strike */}
+        {/* R1 Shoulder Trigger */}
         <button
           type="button"
           onPointerDown={(e) => setButtonState('R1', true, e.currentTarget)}
@@ -499,15 +504,15 @@ export const ControllerApp: React.FC = () => {
         >
           <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black tracking-wider">
             <Lightning size={15} weight="fill" />
-            <span>[R1] HEAVY</span>
+            <span>{isPicoMode ? '[R1] RETRY' : '[R1] HEAVY'}</span>
           </div>
           <span className="text-[9px] text-amber-200/75 truncate max-w-full">
-            {activeHeroClass.skills.R1.name}
+            {isPicoMode ? 'Reset Stage' : activeHeroClass.skills.R1.name}
           </span>
         </button>
       </div>
 
-      {/* MAIN ERGONOMIC CHRONO KNIGHTS CONTROLLER BODY (Single Left Stick + Center Hero Deck + Large Right Skill Diamond) */}
+      {/* MAIN ERGONOMIC CONTROLLER BODY */}
       <div className="relative z-10 grid flex-1 grid-cols-12 items-center gap-2 py-1">
         {/* LEFT DECK (Cols 1-4): Large High-Precision 8-Way Analog Stick */}
         <div className="col-span-4 flex flex-col items-center justify-center">
@@ -551,52 +556,67 @@ export const ControllerApp: React.FC = () => {
             </div>
           </div>
           <span className="mt-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-white/60">
-            8-DIR MOVEMENT STICK
+            {isPicoMode ? 'MOVE & PUSH STICK' : '8-DIR MOVEMENT STICK'}
           </span>
         </div>
 
-        {/* CENTER DECK (Cols 5-7): Hero Class Switcher & START Deploy Button */}
+        {/* CENTER DECK (Cols 5-7): Hero/Stage Card & START Deploy Button */}
         <div className="col-span-3 flex flex-col items-center justify-center gap-2.5 px-1">
-          {/* Active Hero Class Card */}
           <div className="w-full rounded-2xl border border-white/15 bg-[#101218]/90 p-2.5 text-center shadow-lg">
-            <div className="flex items-center justify-between gap-1">
-              <button
-                type="button"
-                onClick={() => pulseLobbyDirection('left')}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white active:scale-90 active:bg-amber-500 active:text-black"
-                title="Previous Hero Class (Lobby)"
-              >
-                <CaretLeft size={16} weight="bold" />
-              </button>
-
-              <div className="flex flex-col items-center min-w-0">
-                <span className="text-xl leading-none">{activeHeroClass.portraitSymbol}</span>
-                <span className="mt-1 font-mono text-[10px] font-black uppercase tracking-wide text-white truncate max-w-[100px]">
-                  {activeHeroClass.name}
+            {isPicoMode ? (
+              <div className="flex flex-col items-center py-1">
+                <span className="text-xl leading-none">🐱</span>
+                <span className="mt-1 font-mono text-[10px] font-black uppercase tracking-wide text-orange-400">
+                  PICO PROTOCOL
                 </span>
-                <span
-                  className="font-mono text-[9px] font-bold"
-                  style={{ color: activeHeroClass.accentColor }}
-                >
-                  LV {playerLevel} // {activeHeroClass.role.toUpperCase()}
+                <span className="font-mono text-[9px] font-bold text-white/80">
+                  STAGE 0{playerLevel} // CO-OP PARK
                 </span>
+                <div className="mt-1.5 border-t border-white/10 pt-1 font-mono text-[8px] text-white/50">
+                  STACK, PUSH &amp; GRAB KEY!
+                </div>
               </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-1">
+                  <button
+                    type="button"
+                    onClick={() => pulseLobbyDirection('left')}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white active:scale-90 active:bg-amber-500 active:text-black"
+                    title="Previous Hero Class (Lobby)"
+                  >
+                    <CaretLeft size={16} weight="bold" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => pulseLobbyDirection('right')}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white active:scale-90 active:bg-amber-500 active:text-black"
-                title="Next Hero Class (Lobby)"
-              >
-                <CaretRight size={16} weight="bold" />
-              </button>
-            </div>
-            <div className="mt-1.5 border-t border-white/10 pt-1 font-mono text-[8px] text-white/50">
-              USE &lt; &gt; IN LOBBY TO SWAP CLASS
-            </div>
+                  <div className="flex flex-col items-center min-w-0">
+                    <span className="text-xl leading-none">{activeHeroClass.portraitSymbol}</span>
+                    <span className="mt-1 font-mono text-[10px] font-black uppercase tracking-wide text-white truncate max-w-[100px]">
+                      {activeHeroClass.name}
+                    </span>
+                    <span
+                      className="font-mono text-[9px] font-bold"
+                      style={{ color: activeHeroClass.accentColor }}
+                    >
+                      LV {playerLevel} // {activeHeroClass.role.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => pulseLobbyDirection('right')}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white active:scale-90 active:bg-amber-500 active:text-black"
+                    title="Next Hero Class (Lobby)"
+                  >
+                    <CaretRight size={16} weight="bold" />
+                  </button>
+                </div>
+                <div className="mt-1.5 border-t border-white/10 pt-1 font-mono text-[8px] text-white/50">
+                  USE &lt; &gt; IN LOBBY TO SWAP CLASS
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Single Clean START // DEPLOY Button (Unused SELECT removed!) */}
           <button
             type="button"
             onPointerDown={(e) => setButtonState('START', true, e.currentTarget)}
@@ -606,14 +626,14 @@ export const ControllerApp: React.FC = () => {
             className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 py-2.5 px-3 font-mono text-[11px] font-black tracking-wider text-amber-300 shadow-md data-[pressed=true]:border-amber-400 data-[pressed=true]:bg-amber-500 data-[pressed=true]:text-black active:scale-95 transition-all"
           >
             <Play size={13} weight="fill" />
-            <span>START // DEPLOY</span>
+            <span>{isPicoMode ? 'NEXT // START' : 'START // DEPLOY'}</span>
           </button>
         </div>
 
-        {/* RIGHT DECK (Cols 8-12): Large Ergonomic RPG Action Diamond (Unused Right Stick Removed!) */}
+        {/* RIGHT DECK (Cols 8-12): Large Ergonomic Action Diamond */}
         <div className="col-span-5 flex items-center justify-center">
           <div className="grid grid-cols-3 grid-rows-3 gap-1.5 w-48 h-44 sm:w-56 sm:h-48">
-            {/* TOP: Y Button (Ultimate Skill) */}
+            {/* TOP: Y Button */}
             <div />
             <button
               type="button"
@@ -628,13 +648,15 @@ export const ControllerApp: React.FC = () => {
                 <span>Y</span>
               </div>
               <span className="text-[8px] font-bold uppercase tracking-tight text-white/90 truncate max-w-full">
-                {activeHeroClass.skills.Y.name.split(' ')[0]}
+                {isPicoMode ? 'SWAP UNIT' : activeHeroClass.skills.Y.name.split(' ')[0]}
               </span>
-              <span className="text-[7px] text-purple-300/80">ULTIMATE</span>
+              <span className="text-[7px] text-purple-300/80">
+                {isPicoMode ? 'SOLO SQUAD' : 'ULTIMATE'}
+              </span>
             </button>
             <div />
 
-            {/* LEFT: X Button (Defensive / Utility / Crowd Control) */}
+            {/* LEFT: X Button */}
             <button
               type="button"
               onPointerDown={(e) => setButtonState('X', true, e.currentTarget)}
@@ -648,9 +670,11 @@ export const ControllerApp: React.FC = () => {
                 <span>X</span>
               </div>
               <span className="text-[8px] font-bold uppercase tracking-tight text-white/90 truncate max-w-full">
-                {activeHeroClass.skills.X.name.split(' ')[0]}
+                {isPicoMode ? 'CALLOUT' : activeHeroClass.skills.X.name.split(' ')[0]}
               </span>
-              <span className="text-[7px] text-sky-300/80">GUARD / CC</span>
+              <span className="text-[7px] text-sky-300/80">
+                {isPicoMode ? 'JUMP! / PUSH!' : 'GUARD / CC'}
+              </span>
             </button>
 
             {/* Center Emblem */}
@@ -661,7 +685,7 @@ export const ControllerApp: React.FC = () => {
               />
             </div>
 
-            {/* RIGHT: B Button (Primary Class Skill) */}
+            {/* RIGHT: B Button */}
             <button
               type="button"
               onPointerDown={(e) => setButtonState('B', true, e.currentTarget)}
@@ -675,12 +699,14 @@ export const ControllerApp: React.FC = () => {
                 <span>B</span>
               </div>
               <span className="text-[8px] font-bold uppercase tracking-tight text-white/90 truncate max-w-full">
-                {activeHeroClass.skills.B.name.split(' ')[0]}
+                {isPicoMode ? 'PASS / DOOR' : activeHeroClass.skills.B.name.split(' ')[0]}
               </span>
-              <span className="text-[7px] text-orange-300/80">SKILL</span>
+              <span className="text-[7px] text-orange-300/80">
+                {isPicoMode ? 'ACTION' : 'SKILL'}
+              </span>
             </button>
 
-            {/* BOTTOM: A Button (Primary Attack / Talk / Open Chest / Revive) */}
+            {/* BOTTOM: A Button */}
             <div />
             <button
               type="button"
@@ -695,9 +721,11 @@ export const ControllerApp: React.FC = () => {
                 <span>A</span>
               </div>
               <span className="text-[8px] font-bold uppercase tracking-tight text-white truncate max-w-full">
-                ATTACK / TALK
+                {isPicoMode ? 'JUMP' : 'ATTACK / TALK'}
               </span>
-              <span className="text-[7px] text-emerald-300/90">OPEN CHEST</span>
+              <span className="text-[7px] text-emerald-300/90">
+                {isPicoMode ? 'HEAD STACK' : 'OPEN CHEST'}
+              </span>
             </button>
             <div />
           </div>
@@ -708,7 +736,11 @@ export const ControllerApp: React.FC = () => {
       <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-1 font-mono text-[9px] text-white/50">
         <div className="flex items-center gap-2">
           <WifiHigh size={11} style={{ color: playerAccentColor }} />
-          <span>CHRONO KNIGHTS // 60HZ WEBRTC GAMEPAD LINK</span>
+          <span>
+            {isPicoMode
+              ? 'PICO PROTOCOL // 60HZ CO-OP PUZZLE LINK'
+              : 'CHRONO KNIGHTS // 60HZ WEBRTC GAMEPAD LINK'}
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <Vibrate size={11} className="text-emerald-400" />
