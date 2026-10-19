@@ -436,20 +436,22 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                         setSelectedGame(game);
                         SoundFX.playArcadeWheel();
                       }}
-                      className={`relative flex flex-col justify-between rounded-xl overflow-hidden text-left border-2 transition-all duration-200 ${
+                      className={`group relative flex flex-col justify-between rounded-xl overflow-hidden text-left border-2 transition-all duration-200 ${
                         isCurrent
-                          ? 'border-[#FF5500] bg-[#1A120B] shadow-[0_0_20px_rgba(255,85,0,0.65)] scale-[1.03] z-10'
-                          : 'border-white/10 bg-black/60 opacity-65 hover:opacity-100 hover:border-white/30'
+                          ? 'border-[#FF5500] bg-[#1A120B] shadow-[0_0_22px_rgba(255,85,0,0.7)] scale-[1.03] z-10'
+                          : 'border-white/15 bg-black/70 opacity-80 hover:opacity-100 hover:border-amber-400/50'
                       }`}
-                      style={{ minHeight: '110px' }}
+                      style={{ minHeight: '115px' }}
                     >
                       {/* Background thumbnail */}
                       <img
                         src={game.coverImage}
                         alt={game.title}
-                        className="absolute inset-0 h-full w-full object-cover opacity-35"
+                        className={`absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+                          isCurrent ? 'opacity-90' : 'opacity-70 group-hover:opacity-90'
+                        }`}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent" />
 
                       {/* Cartridge Status Tag */}
                       <div className="relative z-10 p-2 flex items-center justify-between">
@@ -457,7 +459,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                           className={`rounded px-1.5 py-0.5 font-arcade text-[8px] font-bold ${
                             isCurrent
                               ? 'bg-[#FF5500] text-black shadow-sm'
-                              : 'bg-white/10 text-white/70'
+                              : 'bg-black/70 text-white/80 border border-white/20'
                           }`}
                         >
                           SLOT {idx + 1}
@@ -469,10 +471,10 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
 
                       {/* Cartridge Title */}
                       <div className="relative z-10 p-2">
-                        <div className="font-arcade text-[9px] sm:text-[10px] font-bold leading-tight text-white line-clamp-2">
+                        <div className="font-arcade text-[9px] sm:text-[10px] font-bold leading-tight text-white line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
                           {game.title}
                         </div>
-                        <div className="font-mono text-[8px] text-amber-400 mt-0.5 truncate">
+                        <div className="font-mono text-[8px] text-amber-300 mt-0.5 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
                           {game.genre}
                         </div>
                       </div>
@@ -496,14 +498,14 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
             <div className="relative z-30 grid grid-cols-1 md:grid-cols-12 gap-4 rounded-2xl border border-white/15 bg-black/80 p-4 sm:p-5 shadow-2xl backdrop-blur-md">
               {/* Left Column: Attract Mode Screen & Engine Specs */}
               <div className="md:col-span-5 flex flex-col justify-between">
-                <div className="relative aspect-video w-full rounded-xl overflow-hidden border-2 border-white/20 shadow-[0_0_15px_rgba(0,0,0,0.8)]">
+                <div className="relative aspect-video w-full rounded-xl overflow-hidden border-2 border-[#FF5500]/40 shadow-[0_0_25px_rgba(255,85,0,0.25)] bg-black">
                   <img
                     src={selectedGame.coverImage}
                     alt={selectedGame.title}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover object-center"
                   />
-                  <div className="arcade-scanlines pointer-events-none absolute inset-0" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+                  <div className="arcade-scanlines pointer-events-none absolute inset-0 opacity-35" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20 pointer-events-none" />
 
                   {/* Attract Mode Overlay Tag */}
                   <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded bg-black/80 px-2 py-0.5 border border-white/20 font-arcade text-[8px] text-amber-300">

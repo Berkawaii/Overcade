@@ -31,7 +31,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     engineSpec: '2D Cooperative Stacking & Tether Physics @ 60 FPS',
     status: 'playable_game',
     statusLabel: 'NEW // PICO CO-OP EDITION',
-    coverImage: '/assets/game-orbital-strike.jpg',
+    coverImage: '/assets/arcade-pico-party.jpg',
     bentoSpan: 'hero',
     description:
       'Inspired by Pico Park! Stack on teammates heads to form human ladders, push heavy numbered blocks together, survive elastic tether ropes, deflect lasers with the Riot Shield, relay ticking bomb keys, flip team gravity, and battle for the Golden Crown across 8 cooperative stages + Versus Mode.',
@@ -52,7 +52,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     engineSpec: 'RPG-JS v5 Pixel Engine @ 60 FPS',
     status: 'playable_game',
     statusLabel: 'FEATURED // COUCH CO-OP ARPG',
-    coverImage: '/assets/game-ironclad-mech.jpg',
+    coverImage: '/assets/arcade-chrono-knights.jpg',
     bentoSpan: 'hero',
     description:
       'Embark on an epic cooperative dungeon crawl across Aethelvale! Choose from 6 distinct classes (Knight, Pyromancer, Ranger, Cleric, Berserker, Rogue), kindle pre-boss Chrono Shrine Checkpoints, brave sealed Elden Ring-style Boss Sanctums with telegraphed boss patterns, and claim legendary chest loot.',
@@ -73,7 +73,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     engineSpec: '2080m Terrain + 3D Missile Collision',
     status: 'playable_game',
     statusLabel: 'PS2 RETRO EDITION',
-    coverImage: '/assets/game-havok-sandbox.jpg',
+    coverImage: '/assets/arcade-fired-up.jpg',
     bentoSpan: 'wide',
     description:
       'Inspired by the 2005 PSP classic Fired Up! Clash in armored buggies across a 2080x2080m military proving ground with 4-wheel slope suspension, 1-Hit KO Central Bridge Laser, Tunnel Hydra Javelins, and an 8-kill streak respawn bonus.',
@@ -94,7 +94,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     engineSpec: 'Three.js Multi-Camera + 3D Garage',
     status: 'playable_game',
     statusLabel: 'PLAYABLE // 1-4 SPLIT-SCREEN',
-    coverImage: '/assets/game-vortex-drift.jpg',
+    coverImage: '/assets/arcade-vortex-drift.jpg',
     bentoSpan: 'wide',
     description:
       'Choose from 4 tuned racecars in a 3D showroom, vote on 3 cybernetic tracks, and fight for first place against a 6-car grid using Shunt, Barge, Nitro, and Shield power-ups.',
@@ -115,7 +115,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     engineSpec: 'Three.js R3F + 4-Channel 8-Byte UDP',
     status: 'playable_game',
     statusLabel: 'PLAYABLE // 1-4 PLAYERS',
-    coverImage: '/assets/game-ironclad-mech.jpg',
+    coverImage: '/assets/arcade-ironclad-protocol.jpg',
     bentoSpan: 'standard',
     description:
       'Connect 1 to 4 smartphones to the same room code as wireless gamepads! Left stick pilots mech chassis, right stick aims 360-degree turret, A triggers thermal dash, B launches 6x guided missiles, and L1 unleashes an EMP pulse.',
@@ -136,7 +136,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     engineSpec: 'Three.js R3F + 8-Byte UDP',
     status: 'playable_testbed',
     statusLabel: 'ACTIVE SIMULATION',
-    coverImage: '/assets/hero-hardware.jpg',
+    coverImage: '/assets/arcade-telemetry-arena.jpg',
     bentoSpan: 'standard',
     description:
       'Test your smartphone gamepad 8-byte binary packets, dual analog stick fidelity, and zero-latency UDP responsiveness inside a 60 FPS 3D space arena.',
