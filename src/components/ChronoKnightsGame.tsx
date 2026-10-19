@@ -86,7 +86,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
   const [teamGold, setTeamGold] = useState(250);
   const [teamExp, setTeamExp] = useState(0);
   const [teamLevel, setTeamLevel] = useState(1);
-  const [expToNext, setExpToNext] = useState(100);
+  const [expToNext, setExpToNext] = useState(180);
   const [showVictoryModal, setShowVictoryModal] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -94,6 +94,11 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
 
   const connectedSlots = useConsoleConnectionStore((s) => s.connectedSlots);
   const connectedCount = useConsoleConnectionStore((s) => s.connectedCount);
+
+  const closeDialogue = () => {
+    setActiveNpc(null);
+    engineRef.current?.closeNpcDialogue();
+  };
 
   // Initialize Engine
   useEffect(() => {
@@ -154,6 +159,42 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Handle Gamepad & Keyboard inputs for closing NPC Dialogue in World Phase
+  useEffect(() => {
+    if (phase !== 'world' || !activeNpc) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Escape' || e.code === 'Backspace' || e.code === 'KeyB') {
+        e.preventDefault();
+        SoundFX.playMenuClick();
+        closeDialogue();
+      }
+    };
+
+    const unsubBtn = GameEngineBridge.onButtonPress((button) => {
+      if (button === 'B' || button === 'START' || button === 'SELECT') {
+        SoundFX.playMenuClick();
+        closeDialogue();
+      } else if (button === 'X') {
+        if (activeNpc.role === 'blacksmith') {
+          engineRef.current?.upgradeWeapons();
+        } else if (activeNpc.role === 'healer') {
+          engineRef.current?.buyPotions();
+        } else if (activeNpc.role === 'bazaar') {
+          engineRef.current?.buyBazaarArmor();
+        } else if (activeNpc.role === 'sorcerer') {
+          engineRef.current?.buyAstralInfusion();
+        }
+      }
+    });
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      unsubBtn();
+    };
+  }, [phase, activeNpc]);
 
   // Handle Gamepad / Keyboard inputs for Lobby Character Selection
   useEffect(() => {
@@ -504,7 +545,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-red-500"
-                          style={{ width: `${(classDef.baseHp / 650) * 100}%` }}
+                          style={{ width: `${Math.min(100, (classDef.baseHp / 400) * 100)}%` }}
                         />
                       </div>
 
@@ -515,7 +556,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-blue-500"
-                          style={{ width: `${(classDef.baseMp / 340) * 100}%` }}
+                          style={{ width: `${Math.min(100, (classDef.baseMp / 260) * 100)}%` }}
                         />
                       </div>
 
@@ -526,7 +567,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-amber-500"
-                          style={{ width: `${(classDef.baseAtk / 90) * 100}%` }}
+                          style={{ width: `${Math.min(100, (classDef.baseAtk / 55) * 100)}%` }}
                         />
                       </div>
                     </div>
@@ -765,8 +806,9 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                     </div>
                   </div>
                   <button
-                    onClick={() => setActiveNpc(null)}
+                    onClick={closeDialogue}
                     className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
+                    title="Close Dialogue [B / ESC]"
                   >
                     <X size={16} />
                   </button>
@@ -786,7 +828,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                         className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
                       >
                         <Hammer size={16} />
-                        <span>HONE WEAPONS (+15 ATK) [100G]</span>
+                        <span>[X] HONE WEAPONS (+8 ATK) [120G]</span>
                       </button>
                     )}
 
@@ -796,7 +838,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                         className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
                       >
                         <Flask size={16} />
-                        <span>RESTORE FULL PARTY (100% HP/MP) [50G]</span>
+                        <span>[X] RESTORE FULL PARTY (100% HP/MP) [65G]</span>
                       </button>
                     )}
 
@@ -806,7 +848,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                         className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
                       >
                         <ShieldStar size={16} />
-                        <span>FORTIFY IMPERIAL ARMOR (+100 HP, +15 DEF) [200G]</span>
+                        <span>[X] FORTIFY IMPERIAL ARMOR (+45 HP, +8 DEF) [220G]</span>
                       </button>
                     )}
 
@@ -816,16 +858,16 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                         className="px-3.5 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 font-bold active:scale-95 transition-all flex items-center gap-1.5"
                       >
                         <Sparkle size={16} />
-                        <span>ASTRAL INFUSION (+100 MP & FULL RESTORE) [150G]</span>
+                        <span>[X] ASTRAL INFUSION (+40 MP & FULL RESTORE) [160G]</span>
                       </button>
                     )}
                   </div>
 
                   <button
-                    onClick={() => setActiveNpc(null)}
+                    onClick={closeDialogue}
                     className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 active:scale-95 transition-all font-bold"
                   >
-                    <span>CLOSE [B]</span>
+                    <span>CLOSE [B / ESC]</span>
                   </button>
                 </div>
               </div>

@@ -1122,7 +1122,9 @@ export class PixelWorldRenderer {
   }
 
   /**
-   * Draw an illuminated runic gate portal archway
+   * Draw an authentic 16-bit Pixel-Art Stone Runic Waygate & Dimensional Vortex
+   * with twin carved stone obelisks, stepped stone threshold slabs, swirling pixel
+   * portal vortex rings, and an always-upright heraldic signboard banner.
    */
   public static drawGatePortal(
     ctx: CanvasRenderingContext2D,
@@ -1137,49 +1139,139 @@ export class PixelWorldRenderer {
   ): void {
     ctx.save();
 
-    // Portal energy field glow
-    const pulse = Math.sin(now * 0.004) * 0.15 + 0.35;
-    ctx.fillStyle = `${accentColor}2A`;
-    ctx.fillRect(x, y, w, h);
+    const cx = Math.round(x + w / 2);
+    const cy = Math.round(y + h / 2);
 
-    // Stone Archway Framing
-    this.px(ctx, x, y, w, 4, '#334155');
-    this.px(ctx, x, y + h - 4, w, 4, '#334155');
-    this.px(ctx, x, y, 4, h, '#334155');
-    this.px(ctx, x + w - 4, y, 4, h, '#334155');
+    // 1. Stepped Carved Stone Threshold Plinth
+    const padX = isVertical ? 14 : 10;
+    const padY = isVertical ? 10 : 14;
+    this.px(ctx, x - padX - 4, y - padY - 4, w + (padX + 4) * 2, h + (padY + 4) * 2, '#0F172A');
+    this.px(ctx, x - padX, y - padY, w + padX * 2, h + padY * 2, '#1E293B');
+    this.px(ctx, x - padX + 4, y - padY + 4, w + (padX - 4) * 2, h + (padY - 4) * 2, '#334155');
 
-    // Runic energy border
+    // Chiselled ashlar stone mortar lines on threshold
+    for (let sx = x - padX + 8; sx < x + w + padX - 8; sx += 24) {
+      this.px(ctx, sx, y - padY + 4, 2, h + (padY - 4) * 2, '#1E293B');
+    }
+    for (let sy = y - padY + 8; sy < y + h + padY - 8; sy += 20) {
+      this.px(ctx, x - padX + 4, sy, w + (padX - 4) * 2, 2, '#1E293B');
+    }
+
+    // 2. Ambient Portal Radial Glow on Stone
+    const pulse = 0.65 + Math.sin(now * 0.005) * 0.25;
+    const glowR = Math.max(w, h) * 0.68;
+    const radGrad = ctx.createRadialGradient(cx, cy, 6, cx, cy, glowR);
+    radGrad.addColorStop(0, `${accentColor}88`);
+    radGrad.addColorStop(0.55, `${accentColor}33`);
+    radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = radGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Multi-Layered 16-Bit Pixel Dimensional Vortex
+    const rx = Math.max(20, Math.round(w * 0.44));
+    const ry = Math.max(20, Math.round(h * 0.44));
+
+    // Outer abyssal vortex ring
+    ctx.fillStyle = '#090D16';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Glowing runic energy rim
     ctx.strokeStyle = accentColor;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+    ctx.lineWidth = 3;
+    ctx.stroke();
 
-    // Swirling portal vortex energy particles inside
-    for (let i = 0; i < 4; i++) {
-      const partProg = (now * 0.003 + i * 0.25) % 1;
-      const partX = x + 8 + partProg * (w - 16);
-      const partY = y + 8 + Math.sin(now * 0.008 + i) * (h * 0.28);
-      this.px(ctx, partX, partY, 3, 3, '#FFFFFF');
-    }
+    // Inner swirling energy bands
+    const bandPulse = Math.sin(now * 0.006) * 0.12 + 0.72;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * 0.68 * bandPulse, ry * 0.68 * bandPulse, 0, 0, Math.PI * 2);
+    ctx.stroke();
 
-    // Portal Banner Label
-    ctx.font = '700 9.5px "JetBrains Mono", monospace';
+    // Bright dimensional core
     ctx.fillStyle = accentColor;
-    ctx.textAlign = 'center';
-    if (isVertical) {
-      ctx.save();
-      ctx.translate(x + w / 2, y + h / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText(label, 0, 3);
-      ctx.restore();
-    } else {
-      ctx.fillText(label, x + w / 2, y + Math.round(h / 2) + 4);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * 0.38, ry * 0.38, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * 0.18, ry * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Orbiting pixel rune motes inside the vortex
+    for (let i = 0; i < 6; i++) {
+      const angle = now * 0.0035 + (i * Math.PI) / 3;
+      const mx = cx + Math.cos(angle) * (rx * 0.65);
+      const my = cy + Math.sin(angle) * (ry * 0.65);
+      this.px(ctx, mx - 2, my - 2, 4, 4, i % 2 === 0 ? '#FFFFFF' : accentColor);
     }
+
+    // 4. Twin Carved Runic Obelisk Pillars Flanking the Waygate
+    const drawObelisk = (ox: number, oy: number) => {
+      // Drop shadow
+      this.px(ctx, ox - 13, oy - 16, 26, 34, '#090D16');
+      // Plinth base
+      this.px(ctx, ox - 11, oy + 6, 22, 10, '#1E293B');
+      this.px(ctx, ox - 9, oy + 4, 18, 4, '#475569');
+      // Obelisk shaft
+      this.px(ctx, ox - 8, oy - 18, 16, 24, '#334155');
+      this.px(ctx, ox - 6, oy - 18, 5, 22, '#64748B'); // Highlight facet
+      // Pyramidion cap
+      this.px(ctx, ox - 6, oy - 22, 12, 4, '#475569');
+      this.px(ctx, ox - 3, oy - 25, 6, 3, accentColor);
+      // Glowing etched rune on obelisk face
+      this.px(ctx, ox - 2, oy - 10, 4, 8, accentColor);
+      this.px(ctx, ox - 1, oy - 8, 2, 4, '#FFFFFF');
+    };
+
+    if (isVertical) {
+      drawObelisk(cx, y - 6);
+      drawObelisk(cx, y + h + 6);
+    } else {
+      drawObelisk(x - 6, cy);
+      drawObelisk(x + w + 6, cy);
+    }
+
+    // 5. Always-Upright Pixel-Art Heraldic Signboard Banner (Never sideways rotated!)
+    ctx.font = '700 9.5px "JetBrains Mono", monospace';
+    const textW = Math.max(136, Math.round(ctx.measureText(label).width + 26));
+    const badgeW = textW;
+    const badgeH = 20;
+    const badgeX = Math.round(cx - badgeW / 2);
+    const badgeY = isVertical ? Math.round(y - 42) : Math.round(y - 34);
+
+    // Iron support chains / posts
+    this.px(ctx, cx - 28, badgeY + badgeH, 3, 8, '#475569');
+    this.px(ctx, cx + 25, badgeY + badgeH, 3, 8, '#475569');
+
+    // Dark oak & wrought-iron signboard frame
+    this.px(ctx, badgeX - 2, badgeY - 2, badgeW + 4, badgeH + 4, '#090D16');
+    this.px(ctx, badgeX, badgeY, badgeW, badgeH, '#161B26');
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(badgeX + 1, badgeY + 1, badgeW - 2, badgeH - 2);
+
+    // Corner gold/accent rivets
+    this.px(ctx, badgeX + 3, badgeY + 3, 2, 2, accentColor);
+    this.px(ctx, badgeX + badgeW - 5, badgeY + 3, 2, 2, accentColor);
+    this.px(ctx, badgeX + 3, badgeY + badgeH - 5, 2, 2, accentColor);
+    this.px(ctx, badgeX + badgeW - 5, badgeY + badgeH - 5, 2, 2, accentColor);
+
+    ctx.fillStyle = '#F8FAFC';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, cx, badgeY + 13);
 
     ctx.restore();
   }
 
   /**
-   * Draw Royal Capital Aethelgard Ground
+   * Draw Royal Capital Aethelgard Ground with 16-bit warm limestone masonry,
+   * Royal Crimson & Gold Pixel Carpet Runners, and Ornamental Garden Courtyards.
    */
   public static drawAethelgardGround(
     ctx: CanvasRenderingContext2D,
@@ -1188,64 +1280,100 @@ export class PixelWorldRenderer {
     const cx = WORLD_BOUNDS.hubCenterX;
     const cy = WORLD_BOUNDS.hubCenterY;
 
-    // 1. Imperial Granite & White Marble Plaza
-    ctx.fillStyle = '#0F121C';
+    // 1. Imperial Sandstone & Limestone Courtyard Base
+    ctx.fillStyle = '#181C2B';
     ctx.fillRect(900, 600, 1800, 1300);
 
-    // Polished granite floor slabs
-    for (let sx = 900; sx < 2700; sx += 64) {
-      for (let sy = 600; sy < 1900; sy += 64) {
-        this.px(ctx, sx, sy, 62, 62, '#1E2235');
-        this.px(ctx, sx, sy, 62, 2, '#2E3550'); // Highlight
-        this.px(ctx, sx, sy, 2, 62, '#2E3550');
+    // Varied 16-bit ashlar stone flagstones (warm slate & royal marble tones)
+    for (let sx = 900; sx < 2700; sx += 48) {
+      for (let sy = 600; sy < 1900; sy += 48) {
+        const seed = Math.sin(sx * 12.9898 + sy * 78.233) * 43758.5453;
+        const rand = seed - Math.floor(seed);
+        const tileColor =
+          rand > 0.66 ? '#23293E' : rand > 0.33 ? '#1F2538' : '#262D44';
+        this.px(ctx, sx + 1, sy + 1, 46, 46, tileColor);
+        // Subtle top-left bevel highlight
+        this.px(ctx, sx + 2, sy + 2, 44, 2, '#303956');
+        // Subtle bottom-right mortar shadow
+        this.px(ctx, sx + 1, sy + 45, 46, 2, '#121624');
       }
     }
 
-    // Outer Plaza Border with Indigo Filigree
-    ctx.strokeStyle = '#6366F1';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(900, 600, 1800, 1300);
+    // 2. Ornamental Royal Garden Planters in the 4 Quadrant Courtyards
+    const gardens = [
+      { x: 1120, y: 820, w: 220, h: 140 },
+      { x: 2260, y: 820, w: 220, h: 140 },
+      { x: 1120, y: 1540, w: 220, h: 140 },
+      { x: 2260, y: 1540, w: 220, h: 140 },
+    ];
+    for (const g of gardens) {
+      // Carved marble curb
+      this.px(ctx, g.x - 6, g.y - 6, g.w + 12, g.h + 12, '#0F172A');
+      this.px(ctx, g.x - 4, g.y - 4, g.w + 8, g.h + 8, '#475569');
+      // Lush manicured emerald turf
+      this.px(ctx, g.x, g.y, g.w, g.h, '#064E3B');
+      this.px(ctx, g.x + 6, g.y + 6, g.w - 12, g.h - 12, '#047857');
+      // Golden & azure royal blossoms
+      for (let bx = g.x + 18; bx < g.x + g.w - 14; bx += 32) {
+        this.px(ctx, bx, g.y + 22, 6, 6, '#FBBF24');
+        this.px(ctx, bx + 12, g.y + g.h - 28, 6, 6, '#38BDF8');
+      }
+    }
 
-    // 2. Imperial Crossway Avenues (Gold Filigree Inlays)
-    this.px(ctx, cx - 75, 600, 150, 1300, '#151928');
-    this.px(ctx, 900, cy - 75, 1800, 150, '#151928');
+    // 3. Castle Rampart Perimeter Walls with Battlement Merlons
+    this.px(ctx, 884, 584, 1832, 20, '#334155');
+    this.px(ctx, 884, 1896, 1832, 20, '#334155');
+    this.px(ctx, 884, 584, 20, 1332, '#334155');
+    this.px(ctx, 2696, 584, 20, 1332, '#334155');
 
-    // Golden inlay tracks
-    this.px(ctx, cx - 70, 600, 3, 1300, '#F59E0B');
-    this.px(ctx, cx + 67, 600, 3, 1300, '#F59E0B');
-    this.px(ctx, 900, cy - 70, 1800, 3, '#F59E0B');
-    this.px(ctx, 900, cy + 67, 1800, 3, '#F59E0B');
+    // 4. Grand Imperial Royal Crimson & Gold Carpet Avenues
+    // North-South Royal Processional Way
+    this.px(ctx, cx - 64, 620, 128, 1260, '#31102F');
+    this.px(ctx, cx - 56, 620, 112, 1260, '#7F1D1D');
+    this.px(ctx, cx - 50, 620, 4, 1260, '#F59E0B'); // Gold trim left
+    this.px(ctx, cx + 46, 620, 4, 1260, '#F59E0B'); // Gold trim right
 
-    // 3. Central Sun Circle Plaza
-    ctx.fillStyle = '#1C2237';
+    // East-West Bazaar & Forge Avenue
+    this.px(ctx, 920, cy - 60, 1760, 120, '#31102F');
+    this.px(ctx, 920, cy - 52, 1760, 104, '#7F1D1D');
+    this.px(ctx, 920, cy - 46, 1760, 4, '#F59E0B'); // Gold trim top
+    this.px(ctx, 920, cy + 42, 1760, 4, '#F59E0B'); // Gold trim bottom
+
+    // 5. Central Sun Circle Plaza Medallion
+    ctx.fillStyle = '#1E293B';
     ctx.beginPath();
-    ctx.arc(cx, cy, 180, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 196, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#273248';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 182, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = '#F59E0B';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Radial Sunburst Rays in stone
+    // Radial Sunburst Mosaic Inlay
     for (let ray = 0; ray < 12; ray++) {
       const angle = (ray * Math.PI) / 6;
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(angle) * 70, cy + Math.sin(angle) * 70);
-      ctx.lineTo(cx + Math.cos(angle) * 175, cy + Math.sin(angle) * 175);
+      ctx.moveTo(cx + Math.cos(angle) * 72, cy + Math.sin(angle) * 72);
+      ctx.lineTo(cx + Math.cos(angle) * 176, cy + Math.sin(angle) * 176);
       ctx.stroke();
     }
 
-    // 4. Gates to Other Regions
+    // 6. Pixel-Art Stone Runic Waygates to Adjacent Regions
     // East Gate: Whispering Plains
     this.drawGatePortal(
       ctx,
-      2550,
-      1230,
-      50,
-      140,
-      'EAST GATE: PLAINS',
+      2520,
+      1235,
+      64,
+      130,
+      '▶ EAST GATE: WHISPERING PLAINS ▶',
       '#F59E0B',
       now,
       true
@@ -1254,11 +1382,11 @@ export class PixelWorldRenderer {
     // West Gate: Molten Forge
     this.drawGatePortal(
       ctx,
-      1030,
-      1230,
-      50,
-      140,
-      'WEST GATE: FORGE',
+      1016,
+      1235,
+      64,
+      130,
+      '◀ WEST GATE: THE MOLTEN FORGE ◀',
       '#EA580C',
       now,
       true
@@ -1267,18 +1395,19 @@ export class PixelWorldRenderer {
     // North Gate: Citadel of Shadows
     this.drawGatePortal(
       ctx,
-      cx - 85,
-      630,
-      170,
-      50,
-      'NORTH SPIRE: CITADEL',
+      cx - 90,
+      625,
+      180,
+      54,
+      '▲ NORTH SPIRE: CITADEL OF SHADOWS ▲',
       '#A855F7',
       now
     );
   }
 
   /**
-   * Draw The Forgotten Crypt Ground & Gothic Walls
+   * Draw The Forgotten Crypt Ground & Multi-Wing Gothic Catacombs
+   * Bounds: x: 360..2440, y: 220..2480
    */
   public static drawCryptGround(
     ctx: CanvasRenderingContext2D,
@@ -1287,30 +1416,57 @@ export class PixelWorldRenderer {
   ): void {
     const cx = 1400;
 
-    // Dark tomb stone floor
-    ctx.fillStyle = '#0B0D14';
-    ctx.fillRect(960, 260, 880, 1400);
+    // 1. Grand Catacomb Complex Floor (x: 360..2440, y: 220..2480)
+    ctx.fillStyle = '#090B11';
+    ctx.fillRect(360, 220, 2080, 2260);
 
-    // Cracked tomb flagstones
-    for (let sx = 960; sx < 1840; sx += 64) {
-      for (let sy = 260; sy < 1660; sy += 64) {
-        this.px(ctx, sx, sy, 62, 62, '#151722');
-        this.px(ctx, sx, sy, 62, 2, '#25293A');
+    // Cracked Gothic Flagstone Masonry
+    for (let sx = 360; sx < 2440; sx += 64) {
+      for (let sy = 220; sy < 2480; sy += 64) {
+        const isWing = sx < 960 || sx >= 1840;
+        const isSanctum = sy < 700;
+        const tileTone = isSanctum
+          ? '#1A1426'
+          : isWing
+          ? '#121521'
+          : '#161926';
+        this.px(ctx, sx + 1, sy + 1, 62, 62, tileTone);
+        this.px(ctx, sx + 1, sy + 1, 62, 2, isSanctum ? '#3B2854' : '#252A3D');
       }
     }
 
-    // Outer Stone Walls with skull sconces
-    this.px(ctx, 920, 220, 40, 1480, '#1E1B2E');
-    this.px(ctx, 1840, 220, 40, 1480, '#1E1B2E');
-    this.px(ctx, 920, 220, 960, 40, '#1E1B2E');
+    // 2. Crimson & Indigo Necropolis Carpet Runner up the Central Nave
+    this.px(ctx, cx - 54, 710, 108, 1720, '#1E1B4B');
+    this.px(ctx, cx - 46, 710, 92, 1720, '#312E81');
+    this.px(ctx, cx - 42, 710, 3, 1720, '#818CF8');
+    this.px(ctx, cx + 39, 710, 3, 1720, '#818CF8');
 
-    // Wall Torch Sconces (flickering blue ghostfire)
-    for (let ty = 340; ty < 1600; ty += 220) {
-      this.drawWallTorch(ctx, 955, ty, '#60A5FA', now);
-      this.drawWallTorch(ctx, 1845, ty, '#60A5FA', now);
+    // Cross-corridor runners into West Ossuary & East Reliquary Wings (y = 1640)
+    this.px(ctx, 560, 1600, 1680, 80, '#1E1B4B');
+    this.px(ctx, 560, 1608, 1680, 64, '#312E81');
+
+    // 3. Outer Catacomb Perimeter Stone Walls
+    this.px(ctx, 320, 180, 40, 2340, '#1E1B2E');
+    this.px(ctx, 2440, 180, 40, 2340, '#1E1B2E');
+    this.px(ctx, 320, 180, 2160, 40, '#1E1B2E');
+    this.px(ctx, 320, 2480, 2160, 40, '#1E1B2E');
+
+    // Wing Title Floor Inscriptions
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#60A5FA';
+    ctx.fillText('WEST OSSUARY WING', 640, 1220);
+    ctx.fillText('EAST RELIQUARY WING', 2160, 1220);
+    ctx.fillStyle = '#818CF8';
+    ctx.fillText('CENTRAL NECROPOLIS NAVE', 1400, 2240);
+
+    // 4. Flickering Blue Ghostfire Wall Torches
+    for (let ty = 340; ty < 2420; ty += 260) {
+      this.drawWallTorch(ctx, 355, ty, '#60A5FA', now);
+      this.drawWallTorch(ctx, 2445, ty, '#60A5FA', now);
     }
 
-    // Render Sarcophagi & Crypt Obstacles
+    // 5. Render Sarcophagi & Crypt Obstacles
     for (const obs of obstacles) {
       if (obs.id.includes('sarc')) {
         this.drawPixelSarcophagus(ctx, obs);
@@ -1319,14 +1475,14 @@ export class PixelWorldRenderer {
       }
     }
 
-    // South Exit Gate (Back to Plains)
+    // 6. South Exit Waygate (Back to Whispering Plains)
     this.drawGatePortal(
       ctx,
       cx - 95,
-      1605,
+      2395,
       190,
-      50,
-      '▼ SOUTH ARCHWAY: WHISPERING PLAINS ▼',
+      54,
+      '▼ EXIT CATACOMBS: WHISPERING PLAINS ▼',
       '#6366F1',
       now
     );
@@ -1357,7 +1513,7 @@ export class PixelWorldRenderer {
   }
 
   /**
-   * Draw Crypt Puzzles: Runic Pressure Plates & Spiked Iron Portcullis
+   * Draw Crypt Puzzles: 3 Latching Runic Pressure Plates & Spiked Iron Portcullis
    */
   public static drawCryptPuzzlesAndGates(
     ctx: CanvasRenderingContext2D,
@@ -1365,10 +1521,24 @@ export class PixelWorldRenderer {
     gate: PortcullisGate,
     now: number
   ): void {
-    // 1. Dual Pressure Plates
+    const runes = ['ᚲ', 'ᛏ', 'ᛟ'];
+    // 1. Runic Pressure Plates across West Wing, East Wing, and Central Nave
     for (let i = 0; i < plates.length; i++) {
       const p = plates[i];
       const isPressed = p.isPressed;
+
+      // Energy leyline beam connecting active plate to the Portcullis Gate
+      if (isPressed) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(gate.x + gate.width / 2, gate.y + 18);
+        ctx.stroke();
+        ctx.restore();
+      }
 
       // Base Disk
       ctx.fillStyle = isPressed ? '#1E3A8A' : '#1E293B';
@@ -1382,33 +1552,32 @@ export class PixelWorldRenderer {
 
       // Inner Glowing Rune
       ctx.fillStyle = isPressed ? '#E0F2FE' : '#64748B';
-      ctx.font = '700 13px "JetBrains Mono", monospace';
+      ctx.font = '700 14px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(i === 0 ? 'ᚲ' : 'ᛏ', p.x, p.y + 5);
+      ctx.fillText(runes[i % runes.length], p.x, p.y + 5);
 
       ctx.font = '700 9.5px "JetBrains Mono", monospace';
       ctx.fillStyle = isPressed ? '#38BDF8' : '#94A3B8';
       ctx.fillText(
-        `PLATE ${i === 0 ? 'I' : 'II'}: ${isPressed ? 'ACTIVE' : 'STAND HERE'}`,
+        `${p.label}: ${isPressed ? 'UNSEALED [ACTIVE]' : 'STEP TO BIND RUNE'}`,
         p.x,
-        p.y - p.radius - 8
+        p.y - p.radius - 10
       );
     }
 
     // 2. Iron Portcullis Gate
     const isOpen = gate.openRatio >= 0.85;
     const h = gate.height * (1 - gate.openRatio * 0.9);
+    const activeCount = plates.filter((p) => p.isPressed).length;
 
     // Gate slot shadow
     this.px(ctx, gate.x - 4, gate.y - 2, gate.width + 8, gate.height + 4, '#090A0F');
 
     // Spiked Portcullis Grate
-    const barCount = 10;
+    const barCount = 12;
     for (let b = 1; b <= barCount; b++) {
       const bx = gate.x + (gate.width / (barCount + 1)) * b;
-      // Vertical Iron Bar
       this.px(ctx, bx - 2, gate.y, 4, h, isOpen ? '#38BDF8' : '#64748B');
-      // Sharpened bottom spike
       if (h > 6) {
         ctx.fillStyle = isOpen ? '#E0F2FE' : '#94A3B8';
         ctx.beginPath();
@@ -1420,27 +1589,28 @@ export class PixelWorldRenderer {
       }
     }
 
-    // Horizontal crossbars
     if (h > 12) {
       this.px(ctx, gate.x, gate.y + Math.round(h * 0.4), gate.width, 3, '#475569');
       this.px(ctx, gate.x, gate.y + Math.round(h * 0.8), gate.width, 3, '#475569');
     }
 
     // Status Banner
-    ctx.fillStyle = isOpen ? '#38BDF8' : '#CBD5E1';
+    const pulse = Math.sin(now * 0.006) * 0.2 + 0.8;
+    ctx.fillStyle = isOpen ? '#38BDF8' : `rgba(226, 232, 240, ${pulse})`;
     ctx.font = '700 10px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.fillText(
       isOpen
-        ? '▼ INNER SANCTUM UNSEALED // PROCEED TO BONE REAVER ▼'
-        : '▲ SEALED PORTCULLIS // BOTH PLATES MUST BE PRESSED ▲',
+        ? '▼ INNER SANCTUM UNSEALED // KINDLE THE SHRINE AHEAD ▼'
+        : `▲ SEALED PORTCULLIS // ACTIVATE ALL 3 RUNIC SEALS (${activeCount}/3) ▲`,
       gate.x + gate.width / 2,
       gate.y - 12
     );
   }
 
   /**
-   * Draw Arachnid Caverns Ground & Stalagmites
+   * Draw Arachnid Caverns Ground: Bioluminescent Subterranean Labyrinth
+   * Bounds: x: 360..2440, y: 220..2480
    */
   public static drawCavernsGround(
     ctx: CanvasRenderingContext2D,
@@ -1449,30 +1619,71 @@ export class PixelWorldRenderer {
   ): void {
     const cx = 1400;
 
-    // Dark venomous cave rock
-    ctx.fillStyle = '#060F0B';
-    ctx.fillRect(960, 260, 880, 1400);
+    // 1. Subterranean Cavern Floor (x: 360..2440, y: 220..2480)
+    ctx.fillStyle = '#050D09';
+    ctx.fillRect(360, 220, 2080, 2260);
 
-    // Bedrock fissures with green moss
-    for (let sx = 960; sx < 1840; sx += 64) {
-      for (let sy = 260; sy < 1660; sy += 64) {
-        this.px(ctx, sx, sy, 62, 62, '#0D1E16');
-        this.px(ctx, sx, sy, 62, 2, '#059669');
+    // Mossy bedrock slabs & bioluminescent spores
+    for (let sx = 360; sx < 2440; sx += 64) {
+      for (let sy = 220; sy < 2480; sy += 64) {
+        const isSanctum = sy < 700;
+        this.px(ctx, sx + 1, sy + 1, 62, 62, isSanctum ? '#0B2117' : '#0A1912');
+        this.px(ctx, sx + 1, sy + 1, 62, 2, '#065F46');
       }
     }
 
-    // Cavern Obstacles & Stalagmites
+    // 2. Bioluminescent Giant Mushroom Clusters & Silk Web Strands
+    const mushroomSpots = [
+      { x: 480, y: 2220 },
+      { x: 2320, y: 2220 },
+      { x: 480, y: 1480 },
+      { x: 2320, y: 1480 },
+      { x: 1120, y: 1960 },
+      { x: 1680, y: 1960 },
+      { x: 1120, y: 1140 },
+      { x: 1680, y: 1140 },
+    ];
+    for (const m of mushroomSpots) {
+      const glow = 24 + Math.sin(now * 0.004 + m.x) * 4;
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.22)';
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, glow, 0, Math.PI * 2);
+      ctx.fill();
+      // Stalk
+      this.px(ctx, m.x - 3, m.y - 4, 6, 12, '#D1FAE5');
+      // Glowing emerald cap
+      this.px(ctx, m.x - 10, m.y - 12, 20, 8, '#10B981');
+      this.px(ctx, m.x - 6, m.y - 15, 12, 4, '#34D399');
+      this.px(ctx, m.x - 5, m.y - 10, 3, 3, '#ECFDF5');
+      this.px(ctx, m.x + 3, m.y - 9, 3, 3, '#ECFDF5');
+    }
+
+    // 3. Outer Cavern Rock Walls
+    this.px(ctx, 320, 180, 40, 2340, '#062C1E');
+    this.px(ctx, 2440, 180, 40, 2340, '#062C1E');
+    this.px(ctx, 320, 180, 2160, 40, '#062C1E');
+    this.px(ctx, 320, 2480, 2160, 40, '#062C1E');
+
+    // Chamber Floor Callouts
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#34D399';
+    ctx.fillText('SOUTHWEST VENOM GROTTO', 640, 2240);
+    ctx.fillText('SOUTHEAST SPINNERET DEN', 2160, 2240);
+    ctx.fillText('NORTHERN CHITIN OVERLOOK', 1400, 1460);
+
+    // 4. Cavern Obstacles & Stalagmites
     for (const obs of obstacles) {
       this.drawPixelRock(ctx, obs);
     }
 
-    // South Exit Gate (Back to Plains)
+    // 5. South Exit Waygate (Back to Whispering Plains)
     this.drawGatePortal(
       ctx,
       cx - 95,
-      1605,
+      2395,
       190,
-      50,
+      54,
       '▼ CAVERN MOUTH: WHISPERING PLAINS ▼',
       '#10B981',
       now
@@ -1480,7 +1691,7 @@ export class PixelWorldRenderer {
   }
 
   /**
-   * Draw Caverns Puzzles: Braziers & Web Barrier
+   * Draw Caverns Puzzles: 4 Purification Braziers & Toxic Web Wall
    */
   public static drawCavernsPuzzlesAndGates(
     ctx: CanvasRenderingContext2D,
@@ -1488,8 +1699,22 @@ export class PixelWorldRenderer {
     wall: WebWall,
     now: number
   ): void {
-    // 1. Ancient Stone Braziers
+    const litCount = braziers.filter((b) => b.isLit).length;
+
+    // 1. Ancient Stone Braziers across the 4 Cavern Chambers
     for (const b of braziers) {
+      if (b.isLit && !wall.isBurned) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(wall.x + wall.width / 2, wall.y + 20);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       // Stone Pedestal
       ctx.fillStyle = '#1F2937';
       ctx.beginPath();
@@ -1511,7 +1736,6 @@ export class PixelWorldRenderer {
         this.px(ctx, b.x - 6, b.y - 12 + flameFlicker, 12, 14, '#34D399');
         this.px(ctx, b.x - 3, b.y - 10 + flameFlicker, 6, 8, '#FFFFFF');
       } else {
-        // Cold ash
         this.px(ctx, b.x - 4, b.y - 4, 8, 8, '#374151');
       }
 
@@ -1519,7 +1743,7 @@ export class PixelWorldRenderer {
       ctx.font = '700 9.5px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.fillText(
-        b.isLit ? '🔥 BRAZIER IGNITED' : 'UNLIT BRAZIER [WALK/STRIKE]',
+        b.isLit ? 'PURIFICATION BRAZIER [LIT]' : 'UNLIT BRAZIER [WALK NEAR]',
         b.x,
         b.y - b.radius - 8
       );
@@ -1527,20 +1751,19 @@ export class PixelWorldRenderer {
 
     // 2. Toxic Web Wall
     if (!wall.isBurned) {
-      // Silk Web Strands
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
       ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
 
       ctx.strokeStyle = '#A7F3D0';
       ctx.lineWidth = 2;
-      for (let s = 0; s < 8; s++) {
+      for (let s = 0; s < 10; s++) {
         ctx.beginPath();
         ctx.moveTo(wall.x + s * 20, wall.y);
         ctx.lineTo(wall.x + wall.width - s * 20, wall.y + wall.height);
         ctx.stroke();
       }
 
-      // Green Pulsing Spider Egg Sacs
+      // Pulsing Spider Egg Sacs
       this.px(ctx, wall.x + 30, wall.y + 12, 14, 14, '#10B981');
       this.px(ctx, wall.x + wall.width - 44, wall.y + 14, 16, 16, '#059669');
 
@@ -1553,16 +1776,16 @@ export class PixelWorldRenderer {
       ctx.font = '700 10px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.fillText(
-        'TOXIC WEB BARRIER (IGNITE BOTH BRAZIERS OR ATTACK)',
+        `LIVING WEB BARRIER // IGNITE 4 BRAZIERS (${litCount}/4) OR STRIKE`,
         wall.x + wall.width / 2,
-        wall.y - 20
+        wall.y - 22
       );
     } else {
       ctx.fillStyle = '#34D399';
       ctx.font = '700 10px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.fillText(
-        '▼ WEB BARRIER INCINERATED // PROCEED TO ARACHNE ▼',
+        '▼ WEB BARRIER INCINERATED // KINDLE THE SHRINE AHEAD ▼',
         wall.x + wall.width / 2,
         wall.y + 20
       );
@@ -1570,43 +1793,66 @@ export class PixelWorldRenderer {
   }
 
   /**
-   * Draw The Molten Forge Ground & Lava Channels
+   * Draw The Molten Forge Ground: Dwarven Volcanic Foundry & Twin Lava Rivers
+   * Bounds: x: 360..2440, y: 220..2480
    */
   public static drawForgeGround(
     ctx: CanvasRenderingContext2D,
     obstacles: WorldObstacle[],
     now: number
   ): void {
-    const cx = WORLD_BOUNDS.hubCenterX;
+    const cx = 1400;
 
-    // Dark volcanic basalt
-    ctx.fillStyle = '#0F0906';
-    ctx.fillRect(960, 260, 880, 1400);
+    // 1. Volcanic Basalt Foundry Floor (x: 360..2440, y: 220..2480)
+    ctx.fillStyle = '#0F0805';
+    ctx.fillRect(360, 220, 2080, 2260);
 
-    // Cracked basalt floor slabs with magma veins
-    for (let sx = 960; sx < 1840; sx += 64) {
-      for (let sy = 260; sy < 1660; sy += 64) {
-        this.px(ctx, sx, sy, 62, 62, '#1F140D');
-        this.px(ctx, sx, sy, 62, 2, '#EA580C');
+    // Cracked basalt floor slabs with glowing magma veins
+    for (let sx = 360; sx < 2440; sx += 64) {
+      for (let sy = 220; sy < 2480; sy += 64) {
+        const isSanctum = sy < 700;
+        this.px(ctx, sx + 1, sy + 1, 62, 62, isSanctum ? '#26120B' : '#1C110B');
+        this.px(ctx, sx + 1, sy + 1, 62, 2, '#EA580C');
       }
     }
 
-    // Molten Lava River Chasm
-    this.drawLavaRiver(ctx, 960, 880, 880, 100, now);
+    // 2. Lower Smelting Lava River (y = 1660) with Twin West & East Iron Bridges
+    this.drawLavaRiver(ctx, 360, 1660, 2080, 90, now);
+    // West Smelting Iron Bridge (x = 640..840)
+    this.drawPixelBridge(ctx, 640, 1650, 200, 110);
+    // East Crucible Iron Bridge (x = 1960..2160)
+    this.drawPixelBridge(ctx, 1960, 1650, 200, 110);
 
-    // Obstacles
+    // 3. Upper Sanctum Magma Chasm (y = 955) crossed by the Retractable Magma Drawbridge
+    this.drawLavaRiver(ctx, 360, 955, 2080, 90, now);
+
+    // 4. Outer Basalt Foundry Walls
+    this.px(ctx, 320, 180, 40, 2340, '#29150E');
+    this.px(ctx, 2440, 180, 40, 2340, '#29150E');
+    this.px(ctx, 320, 180, 2160, 40, '#29150E');
+    this.px(ctx, 320, 2480, 2160, 40, '#29150E');
+
+    // Foundry Wing Callouts
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FB923C';
+    ctx.fillText('WEST SMELTING WING', 640, 2260);
+    ctx.fillText('EAST CRUCIBLE WING', 2160, 2260);
+    ctx.fillText('UPPER ANVIL DECK', 1400, 1480);
+
+    // 5. Obstacles
     for (const obs of obstacles) {
       this.drawPixelRock(ctx, obs);
     }
 
-    // South Exit Gate back to Aethelgard
+    // 6. South Exit Waygate back to Aethelgard (Centered at cx = 1400!)
     this.drawGatePortal(
       ctx,
       cx - 95,
-      1605,
+      2395,
       190,
-      50,
-      '▼ EXIT ROAD: ROYAL CAPITAL AETHELGARD ▼',
+      54,
+      '▼ EXIT FOUNDRY: ROYAL CAPITAL AETHELGARD ▼',
       '#EA580C',
       now
     );
@@ -1627,21 +1873,21 @@ export class PixelWorldRenderer {
 
     // Deep Magma Channel
     this.px(ctx, x, y, w, h, '#991B1B');
-    this.px(ctx, x, y + 15, w, h - 30, '#DC2626');
-    this.px(ctx, x, y + 30, w, h - 60, '#F97316');
+    this.px(ctx, x, y + 14, w, h - 28, '#DC2626');
+    this.px(ctx, x, y + 26, w, h - 52, '#F97316');
 
     // Bubbling yellow hot spots
     const wave = (now * 0.003) % (Math.PI * 2);
-    for (let lx = x + 10; lx < x + w - 10; lx += 45) {
+    for (let lx = x + 16; lx < x + w - 16; lx += 52) {
       const bubble = Math.sin(wave + lx * 0.1) * 4;
-      this.px(ctx, lx, y + 40 + bubble, 8, 8, '#FEF08A');
+      this.px(ctx, lx, y + Math.round(h / 2) - 4 + bubble, 8, 8, '#FEF08A');
     }
 
     ctx.restore();
   }
 
   /**
-   * Draw Forge Puzzles: Steam Valves & Magma Bridge
+   * Draw Forge Puzzles: 3 Steam Valves & Retractable Magma Drawbridge
    */
   public static drawForgePuzzlesAndGates(
     ctx: CanvasRenderingContext2D,
@@ -1649,8 +1895,22 @@ export class PixelWorldRenderer {
     bridge: MagmaBridge,
     now: number
   ): void {
+    const turnedCount = valves.filter((v) => v.isTurned).length;
+
     // 1. Steam Valves
     for (const v of valves) {
+      if (v.isTurned) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(251, 146, 60, 0.45)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(v.x, v.y);
+        ctx.lineTo(bridge.x + bridge.width / 2, bridge.y + 22);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       // Valve Pedestal
       ctx.fillStyle = v.isTurned ? '#C2410C' : '#44403C';
       ctx.beginPath();
@@ -1672,7 +1932,6 @@ export class PixelWorldRenderer {
         ctx.stroke();
       }
 
-      // Hissing Steam Puffs when turned
       if (v.isTurned) {
         for (let sp = 0; sp < 2; sp++) {
           const steamY = v.y - 12 - ((now * 0.05 + sp * 10) % 20);
@@ -1684,22 +1943,28 @@ export class PixelWorldRenderer {
       ctx.font = '700 9.5px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.fillText(
-        v.isTurned ? 'VALVE RELEASED [OPEN]' : 'PRESSURE VALVE [WALK OVER]',
+        v.isTurned ? `${v.label} [OPEN]` : `${v.label} [WALK OVER]`,
         v.x,
         v.y - v.radius - 8
       );
     }
 
-    // 2. Magma Bridge
+    // 2. Magma Bridge over Upper Lava Chasm
     const isRaised = bridge.raiseRatio >= 0.85;
-    this.px(ctx, bridge.x, bridge.y, bridge.width, bridge.height, isRaised ? '#78350F' : 'rgba(220, 38, 38, 0.4)');
-    // Iron Grating
+    this.px(
+      ctx,
+      bridge.x,
+      bridge.y - 16,
+      bridge.width,
+      bridge.height + 36,
+      isRaised ? '#451A03' : 'rgba(220, 38, 38, 0.35)'
+    );
     ctx.strokeStyle = isRaised ? '#F59E0B' : '#EF4444';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(bridge.x, bridge.y, bridge.width, bridge.height);
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(bridge.x, bridge.y - 16, bridge.width, bridge.height + 36);
 
     for (let bx = bridge.x + 8; bx < bridge.x + bridge.width; bx += 14) {
-      this.px(ctx, bx, bridge.y, 2, bridge.height, isRaised ? '#FCD34D' : '#991B1B');
+      this.px(ctx, bx, bridge.y - 14, 3, bridge.height + 32, isRaised ? '#FCD34D' : '#991B1B');
     }
 
     ctx.fillStyle = isRaised ? '#FBBF24' : '#FCA5A5';
@@ -1707,15 +1972,16 @@ export class PixelWorldRenderer {
     ctx.textAlign = 'center';
     ctx.fillText(
       isRaised
-        ? '▼ MAGMA BRIDGE RAISED // PROCEED TO IGNIS ▼'
-        : '▲ MAGMA CHASM // TURN STEAM VALVES TO RAISE BRIDGE ▲',
+        ? '▼ MAGMA BRIDGE RAISED // KINDLE THE SHRINE AHEAD ▼'
+        : `▲ MAGMA CHASM // TURN ALL 3 STEAM VALVES (${turnedCount}/3) ▲`,
       bridge.x + bridge.width / 2,
-      bridge.y - 12
+      bridge.y - 24
     );
   }
 
   /**
-   * Draw The Citadel of Shadows Ground & Void Monoliths
+   * Draw The Citadel of Shadows Ground: 4 Cardinal Astral Sanctuaries
+   * Bounds: x: 360..2440, y: 220..2480
    */
   public static drawCitadelGround(
     ctx: CanvasRenderingContext2D,
@@ -1723,52 +1989,64 @@ export class PixelWorldRenderer {
     singularityActive: boolean,
     now: number
   ): void {
-    const cx = WORLD_BOUNDS.hubCenterX;
+    const cx = 1400;
 
-    // Cosmic Starfield Floor
+    // 1. Cosmic Starfield Bastion Floor (x: 360..2440, y: 220..2480)
     ctx.fillStyle = '#06030D';
-    ctx.fillRect(960, 260, 880, 1400);
+    ctx.fillRect(360, 220, 2080, 2260);
 
-    // Subtle Astral Grid & Stars
-    for (let sx = 960; sx < 1840; sx += 60) {
-      for (let sy = 260; sy < 1660; sy += 60) {
-        this.px(ctx, sx, sy, 58, 58, '#120B20');
-        this.px(ctx, sx, sy, 58, 2, '#7C3AED');
+    // Subtle Astral Obsidian Tiles & Twinkling Stars
+    for (let sx = 360; sx < 2440; sx += 64) {
+      for (let sy = 220; sy < 2480; sy += 64) {
+        const isSanctum = sy < 700;
+        this.px(ctx, sx + 1, sy + 1, 62, 62, isSanctum ? '#1B0E30' : '#110920');
+        this.px(ctx, sx + 1, sy + 1, 62, 2, '#6D28D9');
       }
     }
 
-    // Active Singularity Vortex
+    // 2. Glowing Violet Sky-Walkways connecting the 4 Cardinal Astral Sanctuaries
+    this.px(ctx, 560, 1280, 1680, 80, '#1E1038');
+    this.px(ctx, 560, 2040, 1680, 80, '#1E1038');
+    this.px(ctx, cx - 60, 710, 120, 1700, '#1E1038');
+
+    // 3. Outer Astral Bastion Walls
+    this.px(ctx, 320, 180, 40, 2340, '#2E1065');
+    this.px(ctx, 2440, 180, 40, 2340, '#2E1065');
+    this.px(ctx, 320, 180, 2160, 40, '#2E1065');
+    this.px(ctx, 320, 2480, 2160, 40, '#2E1065');
+
+    // Active Singularity Vortex in Boss Arena
     if (singularityActive) {
       ctx.save();
       const rot = now * 0.002;
-      ctx.translate(1400, 480);
+      ctx.translate(1400, 460);
       ctx.rotate(rot);
 
-      ctx.fillStyle = 'rgba(168, 85, 247, 0.3)';
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.32)';
       ctx.beginPath();
-      ctx.arc(0, 0, 130, 0, Math.PI * 2);
+      ctx.arc(0, 0, 145, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = '#000000';
       ctx.beginPath();
-      ctx.arc(0, 0, 42, 0, Math.PI * 2);
+      ctx.arc(0, 0, 46, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
     }
 
-    // Monolith Obstacles
+    // 4. Monolith Obstacles
     for (const obs of obstacles) {
       this.drawPixelRock(ctx, obs);
     }
 
-    // South Exit Gate back to Aethelgard
+    // 5. South Exit Waygate back to Aethelgard (Centered at cx = 1400!)
     this.drawGatePortal(
       ctx,
       cx - 95,
-      1605,
+      2395,
       190,
-      50,
+      54,
       '▼ ASTRAL RIFT: ROYAL CAPITAL AETHELGARD ▼',
       '#A855F7',
       now
@@ -1776,39 +2054,52 @@ export class PixelWorldRenderer {
   }
 
   /**
-   * Draw Citadel Puzzles: Astral Seals & Void Throne Gate
+   * Draw Citadel Puzzles: 4 Cardinal Astral Seals & Void Throne Gate
    */
   public static drawCitadelPuzzlesAndGates(
     ctx: CanvasRenderingContext2D,
     seals: AstralSealPillar[],
     gate: VoidThroneGate,
-    now: number
+    _now: number
   ): void {
-    // 1. Astral Seals
+    const activeCount = seals.filter((s) => s.isActivated).length;
+
+    // 1. Astral Seals in the 4 Cardinal Sanctuaries
     for (const seal of seals) {
+      if (seal.isActivated) {
+        ctx.save();
+        ctx.strokeStyle = `${seal.color}77`;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(seal.x, seal.y);
+        ctx.lineTo(gate.x + gate.width / 2, gate.y + 18);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       ctx.fillStyle = seal.isActivated ? '#4C1D95' : '#1E1B4B';
       ctx.beginPath();
       ctx.arc(seal.x, seal.y, seal.radius, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.strokeStyle = seal.isActivated ? seal.color : '#6B7280';
-      ctx.lineWidth = seal.isActivated ? 3 : 2;
+      ctx.lineWidth = seal.isActivated ? 3.5 : 2;
       ctx.stroke();
 
-      // Rune Glyph
       ctx.fillStyle = seal.isActivated ? '#FFFFFF' : '#9CA3AF';
-      ctx.font = '700 12px "JetBrains Mono", monospace';
+      ctx.font = '700 13px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       const runeChar =
         seal.rune === 'sun' ? '☀️' : seal.rune === 'moon' ? '🌙' : seal.rune === 'star' ? '⭐' : '🌀';
-      ctx.fillText(runeChar, seal.x, seal.y + 4);
+      ctx.fillText(runeChar, seal.x, seal.y + 5);
 
       ctx.fillStyle = seal.isActivated ? seal.color : '#9CA3AF';
       ctx.font = '700 9.5px "JetBrains Mono", monospace';
       ctx.fillText(
         seal.isActivated ? `${seal.label} [ALIGNED]` : `${seal.label} [STAND HERE]`,
         seal.x,
-        seal.y - seal.radius - 8
+        seal.y - seal.radius - 10
       );
     }
 
@@ -1824,8 +2115,8 @@ export class PixelWorldRenderer {
     ctx.textAlign = 'center';
     ctx.fillText(
       isOpen
-        ? '▼ VOID THRONE UNSEALED // DEFEAT DARK SOVEREIGN MALAKOR ▼'
-        : '▲ VOID THRONE SEALED // ALIGN 4 ASTRAL SEALS ▲',
+        ? '▼ VOID THRONE UNSEALED // KINDLE THE SHRINE AHEAD ▼'
+        : `▲ VOID THRONE SEALED // ALIGN ALL 4 CARDINAL SEALS (${activeCount}/4) ▲`,
       gate.x + gate.width / 2,
       gate.y - 12
     );

@@ -139,7 +139,7 @@ export class ChronoKnightsEngine {
   public teamGold = 250;
   public teamExp = 0;
   public teamLevel = 1;
-  public expToNextLevel = 100;
+  public expToNextLevel = 180;
   public partyBonusAtk = 0;
   public partyBonusDef = 0;
   public partyBonusHp = 0;
@@ -158,7 +158,7 @@ export class ChronoKnightsEngine {
 
   // Callbacks
   public onStateUpdate?: (players: PlayerEntity[]) => void;
-  public onNpcInteract?: (npc: NpcEntity) => void;
+  public onNpcInteract?: (npc: NpcEntity | null) => void;
   public onQuestUpdate?: (kills: number, goal: number, completed: boolean) => void;
   public onTeamStatsUpdate?: (gold: number, exp: number, level: number, expToNext: number) => void;
   public onBossUpdate?: (boss: EnemyEntity | null, sealed?: boolean) => void;
@@ -172,15 +172,23 @@ export class ChronoKnightsEngine {
     this.spawnWildernessEnemies();
   }
 
+  public closeNpcDialogue(): void {
+    if (!this.activeDialogueNpc) return;
+    this.activeDialogueNpc = null;
+    if (this.onNpcInteract) {
+      this.onNpcInteract(null);
+    }
+  }
+
   public getPlayerAtk(player: PlayerEntity): number {
     const base = HERO_CLASSES[player.classId].baseAtk;
-    const levelMult = 1 + (this.teamLevel - 1) * 0.16;
+    const levelMult = 1 + (this.teamLevel - 1) * 0.08;
     return Math.round(base * levelMult + this.partyBonusAtk);
   }
 
   public getPlayerDef(player: PlayerEntity): number {
     const base = HERO_CLASSES[player.classId].baseDef;
-    const levelMult = 1 + (this.teamLevel - 1) * 0.14;
+    const levelMult = 1 + (this.teamLevel - 1) * 0.07;
     return Math.round(base * levelMult + this.partyBonusDef);
   }
 
@@ -189,8 +197,8 @@ export class ChronoKnightsEngine {
     const hpPct = player.maxHp > 0 ? player.hp / player.maxHp : 1;
     const mpPct = player.maxMp > 0 ? player.mp / player.maxMp : 1;
 
-    player.maxHp = Math.round(def.baseHp + (this.teamLevel - 1) * 85 + this.partyBonusHp);
-    player.maxMp = Math.round(def.baseMp + (this.teamLevel - 1) * 40 + this.partyBonusMp);
+    player.maxHp = Math.round(def.baseHp + (this.teamLevel - 1) * 32 + this.partyBonusHp);
+    player.maxMp = Math.round(def.baseMp + (this.teamLevel - 1) * 15 + this.partyBonusMp);
     player.level = this.teamLevel;
 
     if (fullRestore) {
@@ -357,12 +365,16 @@ export class ChronoKnightsEngine {
   }
 
   public upgradeWeapons(): boolean {
-    if (this.teamGold < 100) return false;
-    this.teamGold -= 100;
-    this.partyBonusAtk += 15;
+    if (this.teamGold < 120) {
+      SoundFX.playCountdownBeep(false);
+      this.showDungeonNotice('INSUFFICIENT GOLD', 'You need 120 Gold to hone party weapons.', '#EF4444');
+      return false;
+    }
+    this.teamGold -= 120;
+    this.partyBonusAtk += 8;
     SoundFX.playFanfare();
     for (const p of this.players) {
-      this.spawnFloatingText(p.x, p.y - 30, '+15 WEAPON ATK!', '#F59E0B');
+      this.spawnFloatingText(p.x, p.y - 30, '+8 WEAPON ATK!', '#F59E0B');
       this.spawnAuraParticles(p.x, p.y, '#F59E0B', 20);
     }
     this.notifyTeamStats();
@@ -370,8 +382,12 @@ export class ChronoKnightsEngine {
   }
 
   public buyPotions(): boolean {
-    if (this.teamGold < 50) return false;
-    this.teamGold -= 50;
+    if (this.teamGold < 65) {
+      SoundFX.playCountdownBeep(false);
+      this.showDungeonNotice('INSUFFICIENT GOLD', 'You need 65 Gold for the apothecary restorative brew.', '#EF4444');
+      return false;
+    }
+    this.teamGold -= 65;
     SoundFX.playHeal();
     for (const p of this.players) {
       p.hp = p.maxHp;
@@ -473,6 +489,9 @@ export class ChronoKnightsEngine {
       this.checkNearbyNpc();
     } else {
       this.nearbyNpc = null;
+      if (this.activeDialogueNpc) {
+        this.closeNpcDialogue();
+      }
     }
 
     // Check Zone Gate Transitions (Blocked if Boss Sanctum is sealed!)
@@ -624,10 +643,24 @@ export class ChronoKnightsEngine {
       if (!p.connected || p.isDowned) continue;
       for (const npc of this.npcs) {
         const dist = Math.hypot(p.x - npc.x, p.y - npc.y);
-        if (dist <= 75) {
+        if (dist <= 82) {
           this.nearbyNpc = npc;
-          return;
+          break;
         }
+      }
+      if (this.nearbyNpc) break;
+    }
+
+    // Auto-close active NPC dialogue when all connected players walk away (> 115px)
+    if (this.activeDialogueNpc) {
+      const stillInRange = this.players.some(
+        (p) =>
+          p.connected &&
+          !p.isDowned &&
+          Math.hypot(p.x - this.activeDialogueNpc!.x, p.y - this.activeDialogueNpc!.y) <= 115
+      );
+      if (!stillInRange) {
+        this.closeNpcDialogue();
       }
     }
   }
@@ -644,9 +677,9 @@ export class ChronoKnightsEngine {
       if (leader.y > 2320 && Math.abs(leader.x - 1800) < 140) {
         this.transitionToZone('oakhaven', 1800, 840);
       } else if (leader.y < 260 && Math.abs(leader.x - 1800) < 140) {
-        this.transitionToZone('forgotten_crypt', 1400, 1520);
+        this.transitionToZone('forgotten_crypt', 1400, 2320);
       } else if (leader.x > 3300 && Math.abs(leader.y - 1100) < 140) {
-        this.transitionToZone('arachnid_caverns', 1400, 1520);
+        this.transitionToZone('arachnid_caverns', 1400, 2320);
       } else if (leader.x < 260 && Math.abs(leader.y - 1100) < 140) {
         this.transitionToZone('aethelgard', 2460, 1300);
       }
@@ -654,24 +687,24 @@ export class ChronoKnightsEngine {
       if (leader.x > 2520 && Math.abs(leader.y - 1300) < 140) {
         this.transitionToZone('whispering_plains', 360, 1100);
       } else if (leader.x < 1080 && Math.abs(leader.y - 1300) < 140) {
-        this.transitionToZone('molten_forge', 1400, 1520);
+        this.transitionToZone('molten_forge', 1400, 2320);
       } else if (leader.y < 660 && Math.abs(leader.x - 1800) < 140) {
-        this.transitionToZone('citadel_of_shadows', 1400, 1520);
+        this.transitionToZone('citadel_of_shadows', 1400, 2320);
       }
     } else if (this.currentZone === 'forgotten_crypt') {
-      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 140) {
+      if (leader.y > 2370 && Math.abs(leader.x - 1400) < 150) {
         this.transitionToZone('whispering_plains', 1800, 340);
       }
     } else if (this.currentZone === 'arachnid_caverns') {
-      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 140) {
+      if (leader.y > 2370 && Math.abs(leader.x - 1400) < 150) {
         this.transitionToZone('whispering_plains', 3240, 1100);
       }
     } else if (this.currentZone === 'molten_forge') {
-      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 140) {
+      if (leader.y > 2370 && Math.abs(leader.x - 1400) < 150) {
         this.transitionToZone('aethelgard', 1140, 1300);
       }
     } else if (this.currentZone === 'citadel_of_shadows') {
-      if (leader.y > 1580 && Math.abs(leader.x - 1400) < 140) {
+      if (leader.y > 2370 && Math.abs(leader.x - 1400) < 150) {
         this.transitionToZone('aethelgard', 1800, 740);
       }
     }
@@ -685,6 +718,7 @@ export class ChronoKnightsEngine {
   }
 
   public transitionToZone(zone: WorldZone, spawnX: number, spawnY: number): void {
+    this.closeNpcDialogue();
     this.currentZone = zone;
     this.bossRoomSealed = false;
     this.partyWipePending = false;
@@ -723,32 +757,47 @@ export class ChronoKnightsEngine {
     } else if (zone === 'forgotten_crypt') {
       this.npcs = [];
       this.spawnCryptEnemies();
-      this.showDungeonNotice('THE FORGOTTEN CRYPT', 'Catacombs of Malakor // Unlock the Gate & Kindle the Shrine', '#818CF8');
+      this.showDungeonNotice('THE FORGOTTEN CRYPT', '3-Wing Catacombs // Bind West, East & Altar Runic Seals', '#818CF8');
     } else if (zone === 'arachnid_caverns') {
       this.npcs = [];
       this.spawnCavernsEnemies();
-      this.showDungeonNotice('ARACHNID CAVERNS', 'Broodmother Nest // Ignite Braziers & Kindle the Shrine', '#34D399');
+      this.showDungeonNotice('ARACHNID CAVERNS', 'Venomous Brood Grotto // Ignite All 4 Cavern Braziers', '#34D399');
     } else if (zone === 'aethelgard') {
       this.npcs = AETHELGARD_NPCS;
       this.showDungeonNotice('ROYAL CAPITAL AETHELGARD', 'Grand Citadel // Imperial Bazaar & Court Sorcery', '#6366F1');
     } else if (zone === 'molten_forge') {
       this.npcs = [];
       this.spawnForgeEnemies();
-      this.showDungeonNotice('THE MOLTEN FORGE', 'Infernal Smelting Core // Turn Valves & Kindle the Shrine', '#EA580C');
+      this.showDungeonNotice('THE MOLTEN FORGE', 'Twin Smelting Foundries // Turn All 3 Steam Valves', '#EA580C');
     } else if (zone === 'citadel_of_shadows') {
       this.npcs = [];
       this.spawnCitadelEnemies();
-      this.showDungeonNotice('THE CITADEL OF SHADOWS', 'Cosmic Astral Void // Align 4 Seals & Enter the Throne', '#A855F7');
+      this.showDungeonNotice('THE CITADEL OF SHADOWS', 'Cosmic Void Sanctuaries // Align All 4 Cardinal Seals', '#A855F7');
     }
   }
 
   public spawnCryptEnemies(): void {
     this.enemies = [
-      createEnemy('crypt-skel-1', 'skeleton_warrior', 1220, 1340),
-      createEnemy('crypt-skel-2', 'skeleton_warrior', 1580, 1340),
-      createEnemy('crypt-necro-1', 'crypt_necromancer', 1400, 1220),
-      createEnemy('crypt-wraith-1', 'tomb_wraith', 1180, 1060),
-      createEnemy('crypt-wraith-2', 'tomb_wraith', 1620, 1060),
+      // South Narthex Entry Guard
+      createEnemy('crypt-skel-entry-1', 'skeleton_warrior', 1240, 2060),
+      createEnemy('crypt-skel-entry-2', 'skeleton_warrior', 1560, 2060),
+      createEnemy('crypt-wraith-entry', 'tomb_wraith', 1400, 1920),
+      // West Ossuary Wing (Guarding West Seal at 620, 1640)
+      createEnemy('crypt-skel-west-1', 'skeleton_warrior', 680, 1840),
+      createEnemy('crypt-skel-west-2', 'skeleton_warrior', 540, 1680),
+      createEnemy('crypt-necro-west', 'crypt_necromancer', 620, 1500),
+      createEnemy('crypt-wraith-west', 'tomb_wraith', 740, 1420),
+      // East Reliquary Wing (Guarding East Seal at 2180, 1640)
+      createEnemy('crypt-skel-east-1', 'skeleton_warrior', 2120, 1840),
+      createEnemy('crypt-skel-east-2', 'skeleton_warrior', 2260, 1680),
+      createEnemy('crypt-necro-east', 'crypt_necromancer', 2180, 1500),
+      createEnemy('crypt-wraith-east', 'tomb_wraith', 2060, 1420),
+      // Central Nave & North Altar (Guarding North Seal at 1400, 1220)
+      createEnemy('crypt-skel-nave-1', 'skeleton_warrior', 1220, 1560),
+      createEnemy('crypt-skel-nave-2', 'skeleton_warrior', 1580, 1560),
+      createEnemy('crypt-necro-nave', 'crypt_necromancer', 1400, 1340),
+      createEnemy('crypt-wraith-nave-1', 'tomb_wraith', 1180, 1140),
+      createEnemy('crypt-wraith-nave-2', 'tomb_wraith', 1620, 1140),
     ];
 
     if (!this.cryptChest.isOpen) {
@@ -760,12 +809,39 @@ export class ChronoKnightsEngine {
 
   public spawnCavernsEnemies(): void {
     this.enemies = [
-      createEnemy('cav-spin-1', 'spider_spinner', 1220, 1340),
-      createEnemy('cav-spin-2', 'spider_spinner', 1580, 1340),
-      createEnemy('cav-spit-1', 'spider_spitter', 1200, 1200),
-      createEnemy('cav-spit-2', 'spider_spitter', 1600, 1200),
-      createEnemy('cav-hatch-1', 'spider_hatchling', 1350, 1250),
-      createEnemy('cav-hatch-2', 'spider_hatchling', 1450, 1250),
+      // South Cavern Mouth
+      createEnemy('cav-hatch-1', 'spider_hatchling', 1280, 2120),
+      createEnemy('cav-hatch-2', 'spider_hatchling', 1520, 2120),
+      createEnemy('cav-spin-entry', 'spider_spinner', 1400, 1960),
+      // Southwest Acid Alcove (Brazier 1 at 580, 2020)
+      createEnemy('cav-spin-sw', 'spider_spinner', 680, 1980),
+      createEnemy('cav-spit-sw', 'spider_spitter', 540, 1860),
+      createEnemy('cav-hatch-sw', 'spider_hatchling', 640, 2120),
+      // Southeast Spore Hollow (Brazier 2 at 2220, 2020)
+      createEnemy('cav-spin-se', 'spider_spinner', 2120, 1980),
+      createEnemy('cav-spit-se', 'spider_spitter', 2260, 1860),
+      createEnemy('cav-hatch-se', 'spider_hatchling', 2160, 2120),
+      // Northwest Brood Gallery (Brazier 3 at 720, 1240)
+      createEnemy('cav-spin-nw', 'spider_spinner', 760, 1380),
+      createEnemy('cav-spit-nw-1', 'spider_spitter', 620, 1220),
+      createEnemy('cav-spit-nw-2', 'spider_spitter', 820, 1160),
+      // Northeast Venom Gallery (Brazier 4 at 2080, 1240)
+      createEnemy('cav-spin-ne', 'spider_spinner', 2040, 1380),
+      createEnemy('cav-spit-ne-1', 'spider_spitter', 2180, 1220),
+      createEnemy('cav-spit-ne-2', 'spider_spitter', 1980, 1160),
+      // Central Web Causeway
+      createEnemy('cav-spin-mid-1', 'spider_spinner', 1240, 1520),
+      createEnemy('cav-spin-mid-2', 'spider_spinner', 1560, 1520),
+      createEnemy('cav-spit-mid', 'spider_spitter', 1400, 1320),
+      createEnemy('cav-hatch-mid-1', 'spider_hatchling', 1300, 1140),
+      createEnemy('cav-hatch-mid-2', 'spider_hatchling', 1500, 1140),
+    ];
+
+    // Persistent Venom Pools in the Caverns
+    this.hazardPools = [
+      { id: 'cav-pool-1', x: 740, y: 1680, radius: 58, type: 'acid', duration: 999, maxDuration: 999, damagePerSec: 18, color: '#84CC16' },
+      { id: 'cav-pool-2', x: 2060, y: 1680, radius: 58, type: 'acid', duration: 999, maxDuration: 999, damagePerSec: 18, color: '#84CC16' },
+      { id: 'cav-pool-3', x: 1400, y: 1680, radius: 52, type: 'acid', duration: 999, maxDuration: 999, damagePerSec: 18, color: '#84CC16' },
     ];
 
     if (!this.cavernsChest.isOpen) {
@@ -777,12 +853,27 @@ export class ChronoKnightsEngine {
 
   public spawnForgeEnemies(): void {
     this.enemies = [
-      createEnemy('forge-golem-1', 'magma_golem', 1220, 1340),
-      createEnemy('forge-golem-2', 'magma_golem', 1580, 1340),
-      createEnemy('forge-imp-1', 'fire_imp', 1200, 1200),
-      createEnemy('forge-imp-2', 'fire_imp', 1600, 1200),
-      createEnemy('forge-scorp-1', 'obsidian_scorpian', 1320, 1080),
-      createEnemy('forge-scorp-2', 'obsidian_scorpian', 1480, 1080),
+      // South Slag Approach
+      createEnemy('forge-imp-south-1', 'fire_imp', 1220, 2100),
+      createEnemy('forge-imp-south-2', 'fire_imp', 1580, 2100),
+      createEnemy('forge-scorp-south', 'obsidian_scorpian', 1400, 1940),
+      // West Foundry Wing (Valve 1 at 600, 2140 & West Iron Bridge at x: 740)
+      createEnemy('forge-golem-west-1', 'magma_golem', 660, 2020),
+      createEnemy('forge-imp-west-1', 'fire_imp', 540, 1920),
+      createEnemy('forge-scorp-west-bridge', 'obsidian_scorpian', 740, 1580),
+      createEnemy('forge-golem-west-2', 'magma_golem', 680, 1360),
+      // East Crucible Wing (Valve 2 at 2200, 2140 & East Iron Bridge at x: 2060)
+      createEnemy('forge-golem-east-1', 'magma_golem', 2140, 2020),
+      createEnemy('forge-imp-east-1', 'fire_imp', 2260, 1920),
+      createEnemy('forge-scorp-east-bridge', 'obsidian_scorpian', 2060, 1580),
+      createEnemy('forge-golem-east-2', 'magma_golem', 2120, 1360),
+      // Central Smelting Core (Valve 3 at 1400, 1280)
+      createEnemy('forge-golem-core-1', 'magma_golem', 1220, 1420),
+      createEnemy('forge-golem-core-2', 'magma_golem', 1580, 1420),
+      createEnemy('forge-imp-core-1', 'fire_imp', 1180, 1220),
+      createEnemy('forge-imp-core-2', 'fire_imp', 1620, 1220),
+      createEnemy('forge-scorp-core-1', 'obsidian_scorpian', 1310, 1120),
+      createEnemy('forge-scorp-core-2', 'obsidian_scorpian', 1490, 1120),
     ];
 
     if (!this.forgeChest.isOpen) {
@@ -794,11 +885,30 @@ export class ChronoKnightsEngine {
 
   public spawnCitadelEnemies(): void {
     this.enemies = [
-      createEnemy('cit-assassin-1', 'shadow_assassin', 1200, 1350),
-      createEnemy('cit-assassin-2', 'shadow_assassin', 1600, 1350),
-      createEnemy('cit-summoner-1', 'void_summoner', 1400, 1200),
-      createEnemy('cit-assassin-3', 'shadow_assassin', 1250, 1060),
-      createEnemy('cit-summoner-2', 'void_summoner', 1550, 1060),
+      // South Astral Threshold
+      createEnemy('cit-assassin-south-1', 'shadow_assassin', 1240, 2100),
+      createEnemy('cit-assassin-south-2', 'shadow_assassin', 1560, 2100),
+      createEnemy('cit-summoner-south', 'void_summoner', 1400, 1920),
+      // Southwest Void Sanctuary (Astral Seal III at 600, 2080)
+      createEnemy('cit-assassin-sw-1', 'shadow_assassin', 700, 2040),
+      createEnemy('cit-summoner-sw', 'void_summoner', 560, 1920),
+      // Southeast Void Sanctuary (Astral Seal IV at 2200, 2080)
+      createEnemy('cit-assassin-se-1', 'shadow_assassin', 2100, 2040),
+      createEnemy('cit-summoner-se', 'void_summoner', 2240, 1920),
+      // Northwest Eclipse Sanctuary (Astral Seal I at 600, 1320)
+      createEnemy('cit-assassin-nw-1', 'shadow_assassin', 720, 1440),
+      createEnemy('cit-assassin-nw-2', 'shadow_assassin', 540, 1260),
+      createEnemy('cit-summoner-nw', 'void_summoner', 640, 1180),
+      // Northeastnova Sanctuary (Astral Seal II at 2200, 1320)
+      createEnemy('cit-assassin-ne-1', 'shadow_assassin', 2080, 1440),
+      createEnemy('cit-assassin-ne-2', 'shadow_assassin', 2260, 1260),
+      createEnemy('cit-summoner-ne', 'void_summoner', 2160, 1180),
+      // Central Void Conduit & Gate Guard
+      createEnemy('cit-assassin-mid-1', 'shadow_assassin', 1220, 1520),
+      createEnemy('cit-assassin-mid-2', 'shadow_assassin', 1580, 1520),
+      createEnemy('cit-summoner-mid-1', 'void_summoner', 1260, 1160),
+      createEnemy('cit-summoner-mid-2', 'void_summoner', 1540, 1160),
+      createEnemy('cit-assassin-gate', 'shadow_assassin', 1400, 1080),
     ];
 
     if (!this.citadelChest.isOpen) {
@@ -826,19 +936,19 @@ export class ChronoKnightsEngine {
       }
     );
 
-    // Passive mana regeneration (10 MP/sec so combat stays fluid)
+    // Passive mana regeneration (3.5 MP/sec so mana management matters in combat)
     if (player.mp < player.maxMp) {
-      player.mp = Math.min(player.maxMp, player.mp + 10 * delta);
+      player.mp = Math.min(player.maxMp, player.mp + 3.5 * delta);
     }
 
-    // Handle Downed state
+    // Handle Downed state (No free Second Wind inside sealed Boss Sanctums!)
     if (player.isDowned) {
       player.downedTimer -= delta;
       player.vx = 0;
       player.vy = 0;
-      if (player.downedTimer <= 0 && !this.partyWipePending) {
+      if (player.downedTimer <= 0 && !this.partyWipePending && !this.bossRoomSealed) {
         player.isDowned = false;
-        player.hp = Math.floor(player.maxHp * 0.3);
+        player.hp = Math.floor(player.maxHp * 0.25);
         this.spawnFloatingText(player.x, player.y - 20, 'SECOND WIND!', '#3B82F6');
       }
       return;
@@ -869,6 +979,35 @@ export class ChronoKnightsEngine {
       if (Math.abs(player.vx) < 5) player.vx = 0;
       if (Math.abs(player.vy) < 5) player.vy = 0;
       player.isMoving = false;
+    }
+
+    // If an NPC dialogue modal is currently open, handle dialogue controls first!
+    if (this.activeDialogueNpc) {
+      if ((input.buttons.B && !prev.B) || (input.buttons.START && !prev.START) || (input.buttons.SELECT && !prev.SELECT)) {
+        SoundFX.playMenuClick();
+        this.closeNpcDialogue();
+        Object.assign(prev, input.buttons);
+        return;
+      }
+      if (input.buttons.X && !prev.X) {
+        if (this.activeDialogueNpc.role === 'blacksmith') {
+          this.upgradeWeapons();
+        } else if (this.activeDialogueNpc.role === 'healer') {
+          this.buyPotions();
+        } else if (this.activeDialogueNpc.role === 'bazaar') {
+          this.buyBazaarArmor();
+        } else if (this.activeDialogueNpc.role === 'sorcerer') {
+          this.buyAstralInfusion();
+        }
+        Object.assign(prev, input.buttons);
+        return;
+      }
+      if (input.buttons.A && !prev.A) {
+        SoundFX.playMenuClick();
+        this.closeNpcDialogue();
+        Object.assign(prev, input.buttons);
+        return;
+      }
     }
 
     // Action A: Context-sensitive NPC Talk -> Checkpoint Shrine -> Treasure Chest -> Primary Attack!
@@ -970,8 +1109,8 @@ export class ChronoKnightsEngine {
 
     // L1: Restorative Class Flask
     if (button === 'L1') {
-      const healAmt = Math.floor(player.maxHp * 0.42);
-      const manaAmt = Math.floor(player.maxMp * 0.35);
+      const healAmt = Math.floor(player.maxHp * 0.28);
+      const manaAmt = Math.floor(player.maxMp * 0.2);
       player.hp = Math.min(player.maxHp, player.hp + healAmt);
       player.mp = Math.min(player.maxMp, player.mp + manaAmt);
       this.spawnFloatingText(player.x, player.y - 30, `+${healAmt} HP / +${manaAmt} MP`, '#10B981');
@@ -989,15 +1128,15 @@ export class ChronoKnightsEngine {
         player.y += Math.sin(angle) * 55;
         SoundFX.playHeavySlam();
         this.spawnAuraParticles(player.x, player.y, '#3B82F6', 25);
-        this.checkAreaDamage(player.x, player.y, 85, atk * skill.damageMultiplier, 'physical', 1.8);
+        this.checkAreaDamage(player.x, player.y, 85, atk * skill.damageMultiplier, 'physical', 1.4);
         return;
       }
       if (button === 'X') {
-        // Iron Bulwark: 3.5s Aegis Shield
-        player.invulnerableTimer = 3.5;
+        // Iron Bulwark: 1.4s Aegis Shield
+        player.invulnerableTimer = 1.4;
         SoundFX.playShieldActivate();
         this.spawnAuraParticles(player.x, player.y, '#60A5FA', 35);
-        this.spawnFloatingText(player.x, player.y - 30, 'IRON BULWARK (3.5s)', '#60A5FA');
+        this.spawnFloatingText(player.x, player.y - 30, 'IRON BULWARK (1.4s)', '#60A5FA');
         return;
       }
       if (button === 'Y') {
@@ -1006,13 +1145,13 @@ export class ChronoKnightsEngine {
         this.triggerScreenShake(6, 0.3);
         for (const ally of this.players) {
           if (!ally.connected) continue;
-          ally.invulnerableTimer = 5.0;
-          const heal = Math.floor(ally.maxHp * 0.3);
+          ally.invulnerableTimer = 2.2;
+          const heal = Math.floor(ally.maxHp * 0.18);
           ally.hp = Math.min(ally.maxHp, ally.hp + heal);
           this.spawnAuraParticles(ally.x, ally.y, '#FBBF24', 35);
-          this.spawnFloatingText(ally.x, ally.y - 30, 'AEGIS SANCTUARY (5s)!', '#FBBF24');
+          this.spawnFloatingText(ally.x, ally.y - 30, 'AEGIS SANCTUARY (2.2s)!', '#FBBF24');
         }
-        this.checkAreaDamage(player.x, player.y, skill.range, atk * 1.6, 'holy', 1.5);
+        this.checkAreaDamage(player.x, player.y, skill.range, atk * 1.4, 'holy', 1.2);
         return;
       }
       if (button === 'R1') {
@@ -1042,19 +1181,19 @@ export class ChronoKnightsEngine {
             baseAngle + i * 0.18,
             420,
             18,
-            atk * skill.damageMultiplier * 0.85,
+            atk * skill.damageMultiplier * 0.72,
             'fire'
           );
         }
-        this.checkAreaDamage(player.x, player.y, 120, atk * 1.1, 'fire');
+        this.checkAreaDamage(player.x, player.y, 120, atk * 0.9, 'fire');
         return;
       }
       if (button === 'X') {
-        // Glacial Nova: freezes nearby enemies for 2.4s
+        // Glacial Nova: freezes nearby enemies for 1.8s
         SoundFX.playSpellCast();
         this.spawnAuraParticles(player.x, player.y, '#38BDF8', 45);
         this.spawnFloatingText(player.x, player.y - 30, 'GLACIAL NOVA!', '#38BDF8');
-        this.checkAreaDamage(player.x, player.y, skill.range + 25, atk * skill.damageMultiplier, 'ice', 2.4);
+        this.checkAreaDamage(player.x, player.y, skill.range + 25, atk * skill.damageMultiplier, 'ice', 1.8);
         return;
       }
       if (button === 'Y') {
@@ -1069,7 +1208,7 @@ export class ChronoKnightsEngine {
         this.spawnAuraParticles(target.x, target.y, '#EF4444', 65);
         this.spawnAuraParticles(target.x, target.y, '#F59E0B', 40);
         this.spawnFloatingText(target.x, target.y - 45, 'ARMAGEDDON METEOR!', '#F59E0B');
-        this.checkAreaDamage(target.x, target.y, skill.range, atk * skill.damageMultiplier, 'fire', 1.2);
+        this.checkAreaDamage(target.x, target.y, skill.range, atk * skill.damageMultiplier, 'fire', 1.0);
         return;
       }
       if (button === 'R1') {
@@ -1078,10 +1217,10 @@ export class ChronoKnightsEngine {
         this.spawnAuraParticles(player.x, player.y, '#A855F7', 20);
         player.x += Math.cos(angle) * skill.range;
         player.y += Math.sin(angle) * skill.range;
-        player.invulnerableTimer = 0.8;
+        player.invulnerableTimer = 0.5;
         SoundFX.playDash();
         this.spawnAuraParticles(player.x, player.y, '#38BDF8', 25);
-        this.checkAreaDamage(player.x, player.y, 95, atk * 1.35, 'fire');
+        this.checkAreaDamage(player.x, player.y, 95, atk * 1.15, 'fire');
         return;
       }
     }
@@ -1104,7 +1243,7 @@ export class ChronoKnightsEngine {
             spreadAngle,
             560,
             11,
-            atk * 0.9,
+            atk * 0.72,
             'poison'
           );
         }
@@ -1115,11 +1254,11 @@ export class ChronoKnightsEngine {
         SoundFX.playGateClick();
         this.spawnAuraParticles(player.x, player.y, '#10B981', 30);
         this.spawnFloatingText(player.x, player.y - 28, 'SNARE TRAP ARMED!', '#10B981');
-        this.checkAreaDamage(player.x, player.y, 130, atk * skill.damageMultiplier, 'poison', 2.6);
+        this.checkAreaDamage(player.x, player.y, 130, atk * skill.damageMultiplier, 'poison', 2.0);
         const angle = this.getFacingAngle(player.facing);
         player.x -= Math.cos(angle) * 55;
         player.y -= Math.sin(angle) * 55;
-        player.invulnerableTimer = 0.6;
+        player.invulnerableTimer = 0.45;
         return;
       }
       if (button === 'Y') {
@@ -1133,7 +1272,7 @@ export class ChronoKnightsEngine {
         };
         this.spawnAuraParticles(target.x, target.y, '#10B981', 60);
         this.spawnFloatingText(target.x, target.y - 40, 'ARROW STORM!', '#10B981');
-        this.checkAreaDamage(target.x, target.y, skill.range, atk * skill.damageMultiplier, 'poison', 1.0);
+        this.checkAreaDamage(target.x, target.y, skill.range, atk * skill.damageMultiplier, 'poison', 0.9);
         return;
       }
       if (button === 'R1') {
@@ -1154,7 +1293,7 @@ export class ChronoKnightsEngine {
           if (!p.connected) continue;
           const dist = Math.hypot(p.x - player.x, p.y - player.y);
           if (dist <= skill.range + 60) {
-            const heal = Math.floor(p.maxHp * 0.38);
+            const heal = Math.floor(p.maxHp * 0.22);
             p.hp = Math.min(p.maxHp, p.hp + heal);
             this.spawnFloatingText(p.x, p.y - 25, `+${heal} HP`, '#10B981');
           }
@@ -1166,10 +1305,10 @@ export class ChronoKnightsEngine {
         SoundFX.playShieldActivate();
         for (const p of this.players) {
           if (!p.connected) continue;
-          p.invulnerableTimer = 2.5;
-          p.mp = Math.min(p.maxMp, p.mp + 45);
+          p.invulnerableTimer = 1.5;
+          p.mp = Math.min(p.maxMp, p.mp + 25);
           this.spawnAuraParticles(p.x, p.y, '#38BDF8', 25);
-          this.spawnFloatingText(p.x, p.y - 28, 'VALOR AEGIS!', '#38BDF8');
+          this.spawnFloatingText(p.x, p.y - 28, 'VALOR AEGIS (1.5s)!', '#38BDF8');
         }
         return;
       }
@@ -1183,16 +1322,16 @@ export class ChronoKnightsEngine {
           if (p.isDowned) {
             p.isDowned = false;
             p.downedTimer = 0;
-            p.hp = Math.floor(p.maxHp * 0.75);
+            p.hp = Math.floor(p.maxHp * 0.5);
             this.spawnFloatingText(p.x, p.y - 35, 'RESURRECTED!', '#FBBF24');
           } else {
-            p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.5));
+            p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.35));
             this.spawnFloatingText(p.x, p.y - 30, 'DIVINE GRACE!', '#FBBF24');
           }
-          p.invulnerableTimer = 3.0;
+          p.invulnerableTimer = 1.8;
           this.spawnAuraParticles(p.x, p.y, '#FBBF24', 40);
         }
-        this.checkAreaDamage(player.x, player.y, skill.range, atk * 2.0, 'holy', 1.4);
+        this.checkAreaDamage(player.x, player.y, skill.range, atk * 1.6, 'holy', 1.1);
         return;
       }
       if (button === 'R1') {
@@ -1203,7 +1342,7 @@ export class ChronoKnightsEngine {
           y: player.y,
         };
         this.spawnAuraParticles(target.x, target.y, '#FBBF24', 40);
-        this.checkAreaDamage(target.x, target.y, 125, atk * skill.damageMultiplier, 'holy', 1.0);
+        this.checkAreaDamage(target.x, target.y, 125, atk * skill.damageMultiplier, 'holy', 0.8);
         return;
       }
     }
@@ -1215,8 +1354,8 @@ export class ChronoKnightsEngine {
         SoundFX.playSwordSlash();
         SoundFX.playHeavySlam();
         this.spawnAuraParticles(player.x, player.y, '#F97316', 45);
-        this.checkAreaDamage(player.x, player.y, skill.range + 20, atk * skill.damageMultiplier, 'physical', 0.6);
-        const leech = Math.floor(player.maxHp * 0.12);
+        this.checkAreaDamage(player.x, player.y, skill.range + 20, atk * skill.damageMultiplier, 'physical', 0.5);
+        const leech = Math.floor(player.maxHp * 0.07);
         player.hp = Math.min(player.maxHp, player.hp + leech);
         this.spawnFloatingText(player.x, player.y - 28, `+${leech} LEECH`, '#10B981');
         return;
@@ -1224,23 +1363,23 @@ export class ChronoKnightsEngine {
       if (button === 'X') {
         // Battle Cry: Stun/stagger surrounding foes + shield
         SoundFX.playHeavySlam();
-        player.invulnerableTimer = 1.8;
+        player.invulnerableTimer = 1.0;
         this.spawnAuraParticles(player.x, player.y, '#EF4444', 35);
         this.spawnFloatingText(player.x, player.y - 30, 'WAR CRY!', '#F97316');
-        this.checkAreaDamage(player.x, player.y, skill.range, atk * 0.9, 'physical', 1.8);
+        this.checkAreaDamage(player.x, player.y, skill.range, atk * 0.85, 'physical', 1.4);
         return;
       }
       if (button === 'Y') {
         // Berserk Rampage Ultimate: Massive AoE + heal + cooldown reset
         SoundFX.playHeavySlam();
         this.triggerScreenShake(9, 0.35);
-        player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.4));
-        player.invulnerableTimer = 3.0;
+        player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.22));
+        player.invulnerableTimer = 1.8;
         player.skillCooldowns.B = 0;
         player.skillCooldowns.R1 = 0;
         this.spawnAuraParticles(player.x, player.y, '#EF4444', 60);
         this.spawnFloatingText(player.x, player.y - 35, 'BERSERK RAMPAGE!', '#EF4444');
-        this.checkAreaDamage(player.x, player.y, 170, atk * 2.8, 'physical', 1.4);
+        this.checkAreaDamage(player.x, player.y, 170, atk * 2.1, 'physical', 1.1);
         return;
       }
       if (button === 'R1') {
@@ -1251,7 +1390,7 @@ export class ChronoKnightsEngine {
         SoundFX.playHeavySlam();
         this.triggerScreenShake(6, 0.25);
         this.spawnAuraParticles(player.x, player.y, '#F97316', 35);
-        this.checkAreaDamage(player.x, player.y, 105, atk * skill.damageMultiplier, 'physical', 1.0);
+        this.checkAreaDamage(player.x, player.y, 105, atk * skill.damageMultiplier, 'physical', 0.8);
         return;
       }
     }
@@ -1260,11 +1399,11 @@ export class ChronoKnightsEngine {
     if (player.classId === 'rogue') {
       if (button === 'B') {
         // Smoke Bomb: Stealth invulnerability + blind AoE
-        player.invulnerableTimer = 2.6;
+        player.invulnerableTimer = 1.4;
         SoundFX.playDash();
         this.spawnAuraParticles(player.x, player.y, '#A855F7', 40);
-        this.spawnFloatingText(player.x, player.y - 30, 'SHADOW STEALTH (2.6s)', '#A855F7');
-        this.checkAreaDamage(player.x, player.y, 110, atk * 1.1, 'poison', 1.8);
+        this.spawnFloatingText(player.x, player.y - 30, 'SHADOW STEALTH (1.4s)', '#A855F7');
+        this.checkAreaDamage(player.x, player.y, 110, atk * 0.95, 'poison', 1.4);
         return;
       }
       if (button === 'X') {
@@ -1278,7 +1417,7 @@ export class ChronoKnightsEngine {
         }
         SoundFX.playSwordSlash();
         this.spawnAuraParticles(player.x, player.y, '#EC4899', 30);
-        this.checkAreaDamage(player.x, player.y, 90, atk * 2.3, 'physical', 0.8);
+        this.checkAreaDamage(player.x, player.y, 90, atk * 1.85, 'physical', 0.6);
         return;
       }
       if (button === 'Y') {
@@ -1286,10 +1425,10 @@ export class ChronoKnightsEngine {
         SoundFX.playSwordSlash();
         SoundFX.playDash();
         this.triggerScreenShake(7, 0.3);
-        player.invulnerableTimer = 2.5;
+        player.invulnerableTimer = 1.4;
         this.spawnAuraParticles(player.x, player.y, '#A855F7', 60);
         this.spawnFloatingText(player.x, player.y - 35, 'DANCE OF DAGGERS!', '#A855F7');
-        this.checkAreaDamage(player.x, player.y, skill.range, atk * skill.damageMultiplier, 'physical', 1.2);
+        this.checkAreaDamage(player.x, player.y, skill.range, atk * skill.damageMultiplier, 'physical', 1.0);
         return;
       }
       if (button === 'R1') {
@@ -1312,13 +1451,13 @@ export class ChronoKnightsEngine {
       const dist = Math.hypot(ally.x - player.x, ally.y - player.y);
       if (dist < 65) {
         player.revivingSlot = ally.slotIndex;
-        ally.reviveProgress += delta / 1.8;
+        ally.reviveProgress += delta / 2.2;
         this.spawnAuraParticles(ally.x, ally.y, '#3B82F6', 2);
 
         if (ally.reviveProgress >= 1.0) {
           ally.isDowned = false;
           ally.reviveProgress = 0;
-          ally.hp = Math.floor(ally.maxHp * 0.5);
+          ally.hp = Math.floor(ally.maxHp * 0.45);
           this.spawnFloatingText(ally.x, ally.y - 25, 'REVIVED!', '#10B981');
           SoundFX.playHeal();
         }
@@ -1344,12 +1483,12 @@ export class ChronoKnightsEngine {
         const dist = Math.hypot(d.x - hitX, d.y - hitY);
         if (dist <= d.radius + reach * 0.55) {
           const isCrit = Math.random() < classDef.critChance;
-          const rawDmg = atk * damageMultiplier * (isCrit ? 2.1 : 1.0);
+          const rawDmg = atk * damageMultiplier * (isCrit ? 1.85 : 1.0);
           const dmg = Math.floor(rawDmg * (0.92 + Math.random() * 0.16));
 
           d.hp = Math.max(0, d.hp - dmg);
           d.hurtTimer = 0.2;
-          player.mp = Math.min(player.maxMp, player.mp + 5);
+          player.mp = Math.min(player.maxMp, player.mp + 4);
 
           SoundFX.playHit(isCrit);
           this.spawnFloatingText(
@@ -1378,15 +1517,18 @@ export class ChronoKnightsEngine {
           }
 
           const isCrit = Math.random() < classDef.critChance;
-          const rawDmg = atk * damageMultiplier * (isCrit ? 2.1 : 1.0);
-          const dmg = Math.floor(rawDmg * (0.92 + Math.random() * 0.16));
+          const rawDmg = atk * damageMultiplier * (isCrit ? 1.85 : 1.0);
+          let dmg = Math.floor(rawDmg * (0.92 + Math.random() * 0.16));
+          if (enemy.isBoss) {
+            dmg = Math.min(Math.ceil(enemy.maxHp * 0.055), Math.max(10, Math.floor(dmg * 0.72)));
+          }
 
           enemy.hp -= dmg;
-          enemy.hurtTimer = enemy.isBoss ? 0.08 : 0.25;
+          enemy.hurtTimer = enemy.isBoss ? 0.06 : 0.22;
           if (!enemy.isBoss) {
             enemy.state = 'hurt';
           }
-          player.mp = Math.min(player.maxMp, player.mp + 5);
+          player.mp = Math.min(player.maxMp, player.mp + 4);
 
           SoundFX.playHit(isCrit);
           this.spawnFloatingText(
@@ -1458,9 +1600,12 @@ export class ChronoKnightsEngine {
             continue;
           }
 
-          const dmg = Math.floor(baseDamage * (0.9 + Math.random() * 0.2));
+          let dmg = Math.floor(baseDamage * (0.9 + Math.random() * 0.2));
+          if (enemy.isBoss) {
+            dmg = Math.min(Math.ceil(enemy.maxHp * 0.055), Math.max(10, Math.floor(dmg * 0.72)));
+          }
           enemy.hp -= dmg;
-          enemy.hurtTimer = enemy.isBoss ? Math.min(0.35, stunDuration * 0.25) : stunDuration;
+          enemy.hurtTimer = enemy.isBoss ? Math.min(0.28, stunDuration * 0.2) : stunDuration;
           if (!enemy.isBoss) {
             enemy.state = 'hurt';
           }
@@ -1611,7 +1756,7 @@ export class ChronoKnightsEngine {
   private triggerLevelUp(): void {
     this.teamLevel += 1;
     this.teamExp = Math.max(0, this.teamExp - this.expToNextLevel);
-    this.expToNextLevel = Math.floor(this.expToNextLevel * 1.45);
+    this.expToNextLevel = Math.floor(this.expToNextLevel * 1.55);
 
     SoundFX.playFanfare();
 
@@ -1816,16 +1961,19 @@ export class ChronoKnightsEngine {
                 break;
               }
 
-              enemy.hp -= p.damage;
-              enemy.hurtTimer = enemy.isBoss ? 0.08 : 0.22;
+              const appliedDmg = enemy.isBoss
+                ? Math.min(Math.ceil(enemy.maxHp * 0.055), Math.max(8, Math.floor(p.damage * 0.72)))
+                : p.damage;
+              enemy.hp -= appliedDmg;
+              enemy.hurtTimer = enemy.isBoss ? 0.06 : 0.2;
               if (!enemy.isBoss) {
                 enemy.state = 'hurt';
               }
               if (ownerPlayer) {
-                ownerPlayer.mp = Math.min(ownerPlayer.maxMp, ownerPlayer.mp + 4);
+                ownerPlayer.mp = Math.min(ownerPlayer.maxMp, ownerPlayer.mp + 3);
               }
 
-              this.spawnFloatingText(enemy.x, enemy.y - 25, `${Math.floor(p.damage)}`, p.color);
+              this.spawnFloatingText(enemy.x, enemy.y - 25, `${Math.floor(appliedDmg)}`, p.color);
               this.spawnHitSparks(enemy.x, enemy.y, p.color);
               SoundFX.playHit();
 
@@ -1875,9 +2023,9 @@ export class ChronoKnightsEngine {
     }
 
     const def = this.getPlayerDef(target);
-    const actualDmg = Math.max(6, Math.floor(rawDamage - def * 0.22));
+    const actualDmg = Math.max(9, Math.floor(rawDamage - def * 0.24));
     target.hp = Math.max(0, target.hp - actualDmg);
-    target.invulnerableTimer = 0.25; // Brief i-frame against multi-hit overlap
+    target.invulnerableTimer = 0.22; // Brief i-frame against multi-hit overlap
     SoundFX.playPlayerHurt();
 
     const hpPct = Math.max(0, target.hp / target.maxHp);
@@ -1960,7 +2108,7 @@ export class ChronoKnightsEngine {
       this.activeBoss.bossPhase = 1;
       this.activeBoss.isShielded = false;
       this.activeBoss.enraged = false;
-      this.activeBoss.specialTimer = 3.5;
+      this.activeBoss.specialTimer = 2.8;
 
       // Remove any boss-spawned clones or minions inside the Boss Sanctum (y < 700)
       this.enemies = this.enemies.filter((e) => e === this.activeBoss || e.y >= 700);
@@ -1968,7 +2116,7 @@ export class ChronoKnightsEngine {
 
     const checkpoint = this.getActiveCheckpoint();
     let respawnX = 1400;
-    let respawnY = 1500;
+    let respawnY = 2320;
 
     if (checkpoint && checkpoint.isKindled) {
       respawnX = checkpoint.x;
@@ -1998,7 +2146,7 @@ export class ChronoKnightsEngine {
       p.downedTimer = 0;
       p.hp = p.maxHp;
       p.mp = p.maxMp;
-      p.invulnerableTimer = 2.5;
+      p.invulnerableTimer = 2.0;
       this.spawnAuraParticles(p.x, p.y, '#FBBF24', 28);
     }
 
@@ -2025,7 +2173,7 @@ export class ChronoKnightsEngine {
       !this.bossRoomSealed
     ) {
       const enteredSanctum = alivePlayers.some(
-        (p) => p.y < 670 && p.x > 1000 && p.x < 1800
+        (p) => p.y < 670 && p.x > 980 && p.x < 1820
       );
       if (enteredSanctum) {
         this.engageBossSanctum();
@@ -2078,28 +2226,37 @@ export class ChronoKnightsEngine {
         this.updateBossMechanics(enemy, nearestPlayer, delta);
       }
 
-      // Handle Ranged attacks (Necromancer, Spitter, Imp, Void Summoner)
+      // Handle Ranged attacks (Necromancer, Tomb Wraith, Spitter, Imp, Void Summoner)
       if (enemy.shootCooldown !== undefined) {
         enemy.shootCooldown -= delta;
-        if (enemy.shootCooldown <= 0 && nearestDist < 360) {
-          enemy.shootCooldown = enemy.kind === 'crypt_necromancer' ? 2.5 : 2.2;
+        if (enemy.shootCooldown <= 0 && nearestDist < 420) {
+          enemy.shootCooldown = enemy.kind === 'crypt_necromancer' ? 2.0 : 1.75;
           const angle = Math.atan2(nearestPlayer.y - enemy.y, nearestPlayer.x - enemy.x);
-          const isNecro = enemy.kind === 'crypt_necromancer' || enemy.kind === 'void_summoner';
+          const isNecro =
+            enemy.kind === 'crypt_necromancer' ||
+            enemy.kind === 'void_summoner' ||
+            enemy.kind === 'tomb_wraith';
           this.fireEnemyProjectile(
             enemy.x,
             enemy.y,
             angle,
-            isNecro ? 280 : 310,
+            isNecro ? 310 : 340,
             isNecro ? 13 : 11,
-            enemy.baseAtk * 0.75,
-            isNecro ? '#8B5CF6' : enemy.kind === 'fire_imp' ? '#F97316' : '#84CC16',
+            enemy.baseAtk * 0.85,
+            enemy.kind === 'tomb_wraith'
+              ? '#38BDF8'
+              : isNecro
+              ? '#8B5CF6'
+              : enemy.kind === 'fire_imp'
+              ? '#F97316'
+              : '#84CC16',
             enemy.kind === 'spider_spitter'
           );
         }
       }
 
-      const aggroRange = enemy.isBoss ? 720 : 280;
-      const attackRange = enemy.isBoss ? 76 : enemy.kind === 'boar' ? 75 : 46;
+      const aggroRange = enemy.isBoss ? 850 : this.isDungeonZone() ? 420 : 310;
+      const attackRange = enemy.isBoss ? 78 : enemy.kind === 'boar' ? 75 : 48;
 
       if (nearestDist <= aggroRange) {
         const dx = nearestPlayer.x - enemy.x;
@@ -2119,7 +2276,7 @@ export class ChronoKnightsEngine {
 
         if (nearestDist > attackRange) {
           enemy.state = 'chase';
-          const curSpeed = enemy.enraged ? enemy.speed * 1.25 : enemy.speed;
+          const curSpeed = enemy.enraged ? enemy.speed * 1.28 : enemy.speed;
           enemy.vx = normX * curSpeed;
           enemy.vy = normY * curSpeed;
         } else {
@@ -2127,7 +2284,7 @@ export class ChronoKnightsEngine {
           enemy.vy = 0;
 
           if (enemy.attackCooldown <= 0) {
-            enemy.attackCooldown = enemy.isBoss ? 1.65 : enemy.kind === 'boar' ? 2.1 : 1.45;
+            enemy.attackCooldown = enemy.isBoss ? 1.35 : enemy.kind === 'boar' ? 1.7 : 1.15;
             this.executeEnemyAttack(enemy, nearestPlayer);
           }
         }
@@ -2140,10 +2297,10 @@ export class ChronoKnightsEngine {
       enemy.x += enemy.vx * delta;
       enemy.y += enemy.vy * delta;
 
-      let minX = 960;
-      let maxX = 1840;
-      let minY = 260;
-      let maxY = 1660;
+      let minX = 390;
+      let maxX = 2410;
+      let minY = 250;
+      let maxY = 2420;
 
       if (this.currentZone === 'whispering_plains') {
         minX = 200;
@@ -2152,13 +2309,17 @@ export class ChronoKnightsEngine {
         maxY = 2400;
       } else if (this.isDungeonZone()) {
         if (enemy.isBoss || (this.bossRoomSealed && enemy.y < 700)) {
-          // Boss and Sanctum minions stay inside the Boss Chamber (y: 270..665)
-          minY = 270;
+          // Boss and Sanctum minions stay inside the Boss Chamber (x: 810..1990, y: 250..665)
+          minX = 810;
+          maxX = 1990;
+          minY = 250;
           maxY = 665;
         } else if (enemy.y > 700) {
           // Outer hall enemies do not wander into the Boss Sanctum
+          minX = 390;
+          maxX = 2410;
           minY = 735;
-          maxY = 1640;
+          maxY = 2420;
         }
       }
 
@@ -2190,8 +2351,8 @@ export class ChronoKnightsEngine {
 
     SoundFX.playBossIntro();
     this.triggerScreenShake(9, 0.45);
-    this.activeBoss.attackCooldown = 1.8;
-    this.activeBoss.specialTimer = 2.6;
+    this.activeBoss.attackCooldown = 1.4;
+    this.activeBoss.specialTimer = 2.0;
 
     this.triggerCinematicBanner(
       'boss_intro',
@@ -2209,7 +2370,7 @@ export class ChronoKnightsEngine {
   }
 
   private executeEnemyAttack(enemy: EnemyEntity, target: PlayerEntity): void {
-    const rawDmg = enemy.baseAtk * (0.88 + Math.random() * 0.24);
+    const rawDmg = enemy.baseAtk * (0.92 + Math.random() * 0.24);
     this.damagePlayer(target, rawDmg);
 
     if (enemy.kind === 'spider_spinner') {
@@ -2221,6 +2382,52 @@ export class ChronoKnightsEngine {
     const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
     target.vx += Math.cos(angle) * 110;
     target.vy += Math.sin(angle) * 110;
+  }
+
+  private getZoneObstacles() {
+    if (this.currentZone === 'oakhaven') return OAKHAVEN_OBSTACLES;
+    if (this.currentZone === 'aethelgard') return AETHELGARD_OBSTACLES;
+    if (this.currentZone === 'whispering_plains') return WHISPERING_PLAINS_OBSTACLES;
+    if (this.currentZone === 'forgotten_crypt') return CRYPT_OBSTACLES;
+    if (this.currentZone === 'arachnid_caverns') return CAVERNS_OBSTACLES;
+    if (this.currentZone === 'molten_forge') return MOLTEN_FORGE_OBSTACLES;
+    if (this.currentZone === 'citadel_of_shadows') return CITADEL_OBSTACLES;
+    return [];
+  }
+
+  private resolveObstacleCollisions(player: PlayerEntity, prevX: number, prevY: number): void {
+    const obstacles = this.getZoneObstacles();
+    const pr = 16; // Player collision radius
+
+    for (const obs of obstacles) {
+      if (obs.type === 'lantern') continue;
+
+      const left = obs.x - pr;
+      const right = obs.x + obs.width + pr;
+      const top = obs.y - pr;
+      const bottom = obs.y + obs.height + pr;
+
+      if (player.x > left && player.x < right && player.y > top && player.y < bottom) {
+        const wasOutsideX = prevX <= left || prevX >= right;
+        const wasOutsideY = prevY <= top || prevY >= bottom;
+
+        if (wasOutsideX && !wasOutsideY) {
+          player.x = prevX <= left ? left : right;
+        } else if (wasOutsideY && !wasOutsideX) {
+          player.y = prevY <= top ? top : bottom;
+        } else {
+          const dLeft = Math.abs(player.x - left);
+          const dRight = Math.abs(right - player.x);
+          const dTop = Math.abs(player.y - top);
+          const dBottom = Math.abs(bottom - player.y);
+          const minD = Math.min(dLeft, dRight, dTop, dBottom);
+          if (minD === dLeft) player.x = left;
+          else if (minD === dRight) player.x = right;
+          else if (minD === dTop) player.y = top;
+          else player.y = bottom;
+        }
+      }
+    }
   }
 
   private updatePlayerPhysics(player: PlayerEntity, delta: number): void {
@@ -2255,14 +2462,17 @@ export class ChronoKnightsEngine {
       minY = 640;
       maxY = 1850;
     } else {
-      minX = 960;
-      maxX = 1840;
-      minY = 260;
-      maxY = this.bossRoomSealed ? 672 : 1660;
+      minX = player.y < 700 ? 795 : 380;
+      maxX = player.y < 700 ? 2005 : 2420;
+      minY = 245;
+      maxY = this.bossRoomSealed ? 672 : 2440;
     }
 
     player.x = Math.max(minX, Math.min(maxX, player.x));
     player.y = Math.max(minY, Math.min(maxY, player.y));
+
+    // Resolve solid obstacle collisions (Walls, Pillars, Sarcophagi, Houses)
+    this.resolveObstacleCollisions(player, prevX, prevY);
 
     // Boss Sanctum Partition Wall Collision at y = 700 (Solid outside doorway x: 1300..1500)
     if (this.isDungeonZone()) {
@@ -2275,30 +2485,47 @@ export class ChronoKnightsEngine {
     }
 
     // Collision blocking for closed Portcullis in Forgotten Crypt (y = 980)
-    if (this.currentZone === 'forgotten_crypt' && this.cryptGate.openRatio < 0.85) {
-      if (player.y < 1005 && player.y > 955) {
-        player.y = 1005;
+    if (this.currentZone === 'forgotten_crypt') {
+      const inGateY = player.y < 1005 && player.y > 955;
+      const inGateX = player.x >= 1315 && player.x <= 1485;
+      if (inGateY && (!inGateX || this.cryptGate.openRatio < 0.85)) {
+        player.y = prevY < 980 ? 955 : 1005;
       }
     }
 
     // Collision blocking for intact Web Wall in Arachnid Caverns (y = 980)
-    if (this.currentZone === 'arachnid_caverns' && !this.cavernsWebWall.isBurned) {
-      if (player.y < 1005 && player.y > 955) {
-        player.y = 1005;
+    if (this.currentZone === 'arachnid_caverns') {
+      const inGateY = player.y < 1005 && player.y > 955;
+      const inGateX = player.x >= 1315 && player.x <= 1485;
+      if (inGateY && (!inGateX || !this.cavernsWebWall.isBurned)) {
+        player.y = prevY < 980 ? 955 : 1005;
       }
     }
 
-    // Collision blocking for unraised Magma Bridge in The Molten Forge (y = 980)
-    if (this.currentZone === 'molten_forge' && this.forgeBridge.raiseRatio < 0.85) {
-      if (player.y < 1005 && player.y > 955) {
-        player.y = 1005;
+    // Collision blocking for Upper Magma Chasm (y = 980) & Lower Lava River (y = 1660..1750) in Molten Forge
+    if (this.currentZone === 'molten_forge') {
+      const inUpperChasmY = player.y < 1010 && player.y > 938;
+      const onUpperBridgeX = player.x >= 1315 && player.x <= 1485 && this.forgeBridge.raiseRatio >= 0.85;
+      if (inUpperChasmY && !onUpperBridgeX) {
+        player.y = prevY < 974 ? 938 : 1010;
+        this.damagePlayer(player, 24, 'MAGMA CHASM');
+      }
+
+      const inLowerLavaY = player.y > 1656 && player.y < 1754;
+      const onWestIronBridge = player.x >= 638 && player.x <= 842;
+      const onEastIronBridge = player.x >= 1958 && player.x <= 2162;
+      if (inLowerLavaY && !onWestIronBridge && !onEastIronBridge) {
+        player.y = prevY <= 1656 ? 1656 : 1754;
+        this.damagePlayer(player, 22, 'MOLTEN RIVER');
       }
     }
 
     // Collision blocking for unsealed Void Gate in The Citadel of Shadows (y = 980)
-    if (this.currentZone === 'citadel_of_shadows' && this.citadelGate.openRatio < 0.85) {
-      if (player.y < 1005 && player.y > 955) {
-        player.y = 1005;
+    if (this.currentZone === 'citadel_of_shadows') {
+      const inGateY = player.y < 1005 && player.y > 955;
+      const inGateX = player.x >= 1315 && player.x <= 1485;
+      if (inGateY && (!inGateX || this.citadelGate.openRatio < 0.85)) {
+        player.y = prevY < 980 ? 955 : 1005;
       }
     }
 
@@ -2308,11 +2535,11 @@ export class ChronoKnightsEngine {
       const sDy = 460 - player.y;
       const sDist = Math.hypot(sDx, sDy);
       if (sDist > 30) {
-        player.x += (sDx / sDist) * 75 * delta;
-        player.y += (sDy / sDist) * 75 * delta;
+        player.x += (sDx / sDist) * 88 * delta;
+        player.y += (sDy / sDist) * 88 * delta;
       }
-      if (sDist < 65 && Math.random() < 0.05) {
-        this.damagePlayer(player, 18, 'VOID RIFT');
+      if (sDist < 65 && Math.random() < 0.08) {
+        this.damagePlayer(player, 28, 'VOID RIFT');
       }
     }
 
@@ -2365,7 +2592,7 @@ export class ChronoKnightsEngine {
       if (boss.bossPhase === 2 && !boss.isShielded && boss.hp <= boss.maxHp * 0.25) {
         boss.bossPhase = 3;
         boss.enraged = true;
-        boss.speed = 205;
+        boss.speed = 215;
         SoundFX.playHeavySlam();
         this.showDungeonNotice(
           'FINAL PHASE // DEATHLORD UNBOUND',
@@ -2375,7 +2602,7 @@ export class ChronoKnightsEngine {
       }
 
       if (boss.specialTimer !== undefined && boss.specialTimer <= 0 && !boss.isShielded) {
-        boss.specialTimer = boss.enraged ? 3.8 : 4.8;
+        boss.specialTimer = boss.enraged ? 2.6 : 3.5;
         const patternIdx = this.bossPatternCycle % 3;
         this.bossPatternCycle += 1;
         SoundFX.playBossTelegraph();
@@ -2390,12 +2617,12 @@ export class ChronoKnightsEngine {
             shape: 'cone',
             x: boss.x,
             y: boss.y,
-            radius: 165,
+            radius: 175,
             angle,
-            spreadAngle: Math.PI * 0.65,
+            spreadAngle: Math.PI * 0.68,
             timer: 0,
-            maxTimer: 1.05,
-            damage: 58,
+            maxTimer: 0.92,
+            damage: 86,
             color: '#EF4444',
             label: 'DREAD SCYTHE CLEAVE',
           });
@@ -2408,10 +2635,10 @@ export class ChronoKnightsEngine {
             shape: 'circle',
             x: boss.x,
             y: boss.y,
-            radius: 135,
+            radius: 145,
             timer: 0,
-            maxTimer: 1.15,
-            damage: 64,
+            maxTimer: 1.0,
+            damage: 94,
             color: '#DC2626',
             label: 'CATACOMB SHATTER SLAM',
           });
@@ -2425,10 +2652,10 @@ export class ChronoKnightsEngine {
             x: boss.x,
             y: boss.y,
             innerRadius: 85,
-            radius: 225,
+            radius: 235,
             timer: 0,
-            maxTimer: 1.25,
-            damage: 60,
+            maxTimer: 1.08,
+            damage: 90,
             color: '#A855F7',
             label: 'NECROTIC RING [SAFE INSIDE]',
           });
@@ -2458,7 +2685,7 @@ export class ChronoKnightsEngine {
       if (boss.bossPhase === 2 && boss.hp <= boss.maxHp * 0.25) {
         boss.bossPhase = 3;
         boss.enraged = true;
-        boss.speed = 225;
+        boss.speed = 235;
         this.showDungeonNotice(
           'FINAL PHASE // ARACHNID FRENZY',
           'Broodmother Vespera strikes with lethal speed!',
@@ -2467,7 +2694,7 @@ export class ChronoKnightsEngine {
       }
 
       if (boss.specialTimer !== undefined && boss.specialTimer <= 0) {
-        boss.specialTimer = boss.enraged ? 3.6 : 4.6;
+        boss.specialTimer = boss.enraged ? 2.5 : 3.4;
         const patternIdx = this.bossPatternCycle % 3;
         this.bossPatternCycle += 1;
         SoundFX.playBossTelegraph();
@@ -2481,10 +2708,10 @@ export class ChronoKnightsEngine {
             shape: 'circle',
             x: nearestPlayer.x,
             y: nearestPlayer.y,
-            radius: 105,
+            radius: 112,
             timer: 0,
-            maxTimer: 1.1,
-            damage: 66,
+            maxTimer: 0.95,
+            damage: 98,
             color: '#10B981',
             label: 'PREDATOR AMBUSH LEAP',
           });
@@ -2498,12 +2725,12 @@ export class ChronoKnightsEngine {
             shape: 'cone',
             x: boss.x,
             y: boss.y,
-            radius: 195,
+            radius: 205,
             angle,
-            spreadAngle: Math.PI * 0.55,
+            spreadAngle: Math.PI * 0.58,
             timer: 0,
-            maxTimer: 0.95,
-            damage: 54,
+            maxTimer: 0.88,
+            damage: 88,
             color: '#84CC16',
             label: 'VENOMOUS WEB SPRAY',
           });
@@ -2511,8 +2738,8 @@ export class ChronoKnightsEngine {
           // Pattern 3: Tri-Acid Eruption Circles
           const spots = [
             { x: nearestPlayer.x, y: nearestPlayer.y },
-            { x: 1280, y: 480 },
-            { x: 1520, y: 480 },
+            { x: 1240, y: 480 },
+            { x: 1560, y: 480 },
           ];
           spots.forEach((pt, idx) => {
             this.bossTelegraphs.push({
@@ -2520,12 +2747,12 @@ export class ChronoKnightsEngine {
               bossId: boss.id,
               patternId: 'vespera_acid_eruption',
               shape: 'circle',
-              x: Math.max(1040, Math.min(1760, pt.x)),
-              y: Math.max(320, Math.min(640, pt.y)),
-              radius: 80,
+              x: Math.max(900, Math.min(1900, pt.x)),
+              y: Math.max(300, Math.min(640, pt.y)),
+              radius: 86,
               timer: 0,
-              maxTimer: 1.2,
-              damage: 56,
+              maxTimer: 1.02,
+              damage: 90,
               color: '#10B981',
               label: 'CAUSTIC VENOM GEYSER',
             });
@@ -2554,7 +2781,7 @@ export class ChronoKnightsEngine {
       if (boss.bossPhase === 2 && boss.hp <= boss.maxHp * 0.25) {
         boss.bossPhase = 3;
         boss.enraged = true;
-        boss.speed = 210;
+        boss.speed = 220;
         this.showDungeonNotice(
           'FINAL PHASE // CATACLYSMIC MELTDOWN',
           'Forgekeeper Ignis unleashes relentless magma storms!',
@@ -2563,7 +2790,7 @@ export class ChronoKnightsEngine {
       }
 
       if (boss.specialTimer !== undefined && boss.specialTimer <= 0) {
-        boss.specialTimer = boss.enraged ? 3.5 : 4.5;
+        boss.specialTimer = boss.enraged ? 2.4 : 3.3;
         const patternIdx = this.bossPatternCycle % 3;
         this.bossPatternCycle += 1;
         SoundFX.playBossTelegraph();
@@ -2577,10 +2804,10 @@ export class ChronoKnightsEngine {
             shape: 'circle',
             x: boss.x,
             y: boss.y,
-            radius: 145,
+            radius: 155,
             timer: 0,
-            maxTimer: 1.15,
-            damage: 74,
+            maxTimer: 0.98,
+            damage: 112,
             color: '#EA580C',
             label: 'TECTONIC ANVIL SLAM',
           });
@@ -2594,13 +2821,13 @@ export class ChronoKnightsEngine {
             shape: 'line',
             x: boss.x,
             y: boss.y,
-            radius: 70,
+            radius: 75,
             angle,
-            length: 340,
-            width: 72,
+            length: 360,
+            width: 78,
             timer: 0,
-            maxTimer: 1.05,
-            damage: 70,
+            maxTimer: 0.9,
+            damage: 106,
             color: '#F97316',
             label: 'MOLTEN FAULT FISSURE',
           });
@@ -2608,8 +2835,8 @@ export class ChronoKnightsEngine {
           // Pattern 3: Pyroclasm Meteor Rain (3 targeted impact zones)
           const offsets = [
             { x: nearestPlayer.x, y: nearestPlayer.y },
-            { x: nearestPlayer.x - 120, y: Math.max(330, nearestPlayer.y - 70) },
-            { x: nearestPlayer.x + 120, y: Math.min(630, nearestPlayer.y + 70) },
+            { x: nearestPlayer.x - 125, y: Math.max(310, nearestPlayer.y - 70) },
+            { x: nearestPlayer.x + 125, y: Math.min(640, nearestPlayer.y + 70) },
           ];
           offsets.forEach((pt, idx) => {
             this.bossTelegraphs.push({
@@ -2617,12 +2844,12 @@ export class ChronoKnightsEngine {
               bossId: boss.id,
               patternId: 'ignis_meteor_impact',
               shape: 'circle',
-              x: Math.max(1040, Math.min(1760, pt.x)),
-              y: Math.max(320, Math.min(640, pt.y)),
-              radius: 85,
+              x: Math.max(900, Math.min(1900, pt.x)),
+              y: Math.max(300, Math.min(640, pt.y)),
+              radius: 90,
               timer: 0,
-              maxTimer: 1.25,
-              damage: 68,
+              maxTimer: 1.05,
+              damage: 102,
               color: '#EF4444',
               label: 'PYROCLASM METEOR',
             });
@@ -2643,20 +2870,20 @@ export class ChronoKnightsEngine {
           '#8B5CF6'
         );
         const clone1 = createEnemy(`dark-clone-1-${Date.now()}`, 'boss_dark_malakor', 1220, 450);
-        clone1.hp = 750;
-        clone1.maxHp = 750;
+        clone1.hp = 1250;
+        clone1.maxHp = 1250;
         clone1.isClone = true;
         clone1.isReal = false;
         clone1.name = 'Astral Shadow Reflection';
-        clone1.specialTimer = 4.0;
+        clone1.specialTimer = 3.2;
 
         const clone2 = createEnemy(`dark-clone-2-${Date.now()}`, 'boss_dark_malakor', 1580, 450);
-        clone2.hp = 750;
-        clone2.maxHp = 750;
+        clone2.hp = 1250;
+        clone2.maxHp = 1250;
         clone2.isClone = true;
         clone2.isReal = false;
         clone2.name = 'Astral Shadow Reflection';
-        clone2.specialTimer = 4.5;
+        clone2.specialTimer = 3.6;
 
         this.enemies.push(clone1, clone2);
       }
@@ -2664,7 +2891,7 @@ export class ChronoKnightsEngine {
       if (boss.bossPhase === 2 && boss.hp <= boss.maxHp * 0.25 && !boss.isClone) {
         boss.bossPhase = 3;
         boss.enraged = true;
-        boss.speed = 215;
+        boss.speed = 225;
         this.singularityActive = true;
         SoundFX.playEmpShockwave();
         this.triggerScreenShake(11, 0.5);
@@ -2676,7 +2903,7 @@ export class ChronoKnightsEngine {
       }
 
       if (boss.specialTimer !== undefined && boss.specialTimer <= 0) {
-        boss.specialTimer = boss.isClone ? 5.5 : boss.enraged ? 3.3 : 4.2;
+        boss.specialTimer = boss.isClone ? 4.4 : boss.enraged ? 2.3 : 3.1;
         const patternIdx = this.bossPatternCycle % 3;
         this.bossPatternCycle += 1;
         SoundFX.playBossTelegraph();
@@ -2691,13 +2918,13 @@ export class ChronoKnightsEngine {
             shape: 'line',
             x: boss.x,
             y: boss.y,
-            radius: 75,
+            radius: 78,
             angle,
-            length: 340,
-            width: 76,
+            length: 370,
+            width: 82,
             timer: 0,
-            maxTimer: 0.95,
-            damage: boss.isClone ? 45 : 82,
+            maxTimer: 0.85,
+            damage: boss.isClone ? 68 : 132,
             color: '#A855F7',
             label: 'CHRONO-RIFT DASH CLEAVE',
           });
@@ -2711,10 +2938,10 @@ export class ChronoKnightsEngine {
             x: boss.x,
             y: boss.y,
             innerRadius: 90,
-            radius: 240,
+            radius: 250,
             timer: 0,
-            maxTimer: 1.15,
-            damage: boss.isClone ? 45 : 78,
+            maxTimer: 0.98,
+            damage: boss.isClone ? 68 : 124,
             color: '#EC4899',
             label: 'ABYSSAL COLLAPSE [SAFE INSIDE]',
           });
@@ -2730,12 +2957,12 @@ export class ChronoKnightsEngine {
               bossId: boss.id,
               patternId: 'dark_judgment_pillar',
               shape: 'circle',
-              x: Math.max(1040, Math.min(1760, pt.x)),
-              y: Math.max(320, Math.min(640, pt.y)),
-              radius: 85,
+              x: Math.max(900, Math.min(1900, pt.x)),
+              y: Math.max(300, Math.min(640, pt.y)),
+              radius: 90,
               timer: 0,
-              maxTimer: 1.15,
-              damage: boss.isClone ? 42 : 76,
+              maxTimer: 0.96,
+              damage: boss.isClone ? 64 : 118,
               color: '#8B5CF6',
               label: 'ASTRAL JUDGMENT PILLAR',
             });
@@ -2764,24 +2991,24 @@ export class ChronoKnightsEngine {
     // Move boss for leap / dash patterns
     if (boss) {
       if (t.patternId === 'vespera_ambush_leap') {
-        boss.x = Math.max(1040, Math.min(1760, t.x));
-        boss.y = Math.max(310, Math.min(640, t.y));
+        boss.x = Math.max(880, Math.min(1920, t.x));
+        boss.y = Math.max(290, Math.min(640, t.y));
         this.hazardPools.push({
           id: `leap-acid-${Date.now()}`,
           x: boss.x,
           y: boss.y,
-          radius: 52,
+          radius: 56,
           type: 'acid',
           duration: 6.5,
           maxDuration: 6.5,
-          damagePerSec: 15,
+          damagePerSec: 22,
           color: '#84CC16',
         });
       } else if (t.patternId === 'dark_rift_dash') {
         const angle = t.angle ?? 0;
         const len = t.length ?? 320;
-        boss.x = Math.max(1020, Math.min(1780, t.x + Math.cos(angle) * (len * 0.85)));
-        boss.y = Math.max(300, Math.min(650, t.y + Math.sin(angle) * (len * 0.85)));
+        boss.x = Math.max(860, Math.min(1940, t.x + Math.cos(angle) * (len * 0.85)));
+        boss.y = Math.max(280, Math.min(650, t.y + Math.sin(angle) * (len * 0.85)));
       }
     }
 
@@ -2793,40 +3020,40 @@ export class ChronoKnightsEngine {
       const bolts = 8;
       for (let b = 0; b < bolts; b++) {
         const a = (b * Math.PI * 2) / bolts;
-        this.fireEnemyProjectile(t.x, t.y, a, 290, 14, 34, t.color, false);
+        this.fireEnemyProjectile(t.x, t.y, a, 310, 14, 52, t.color, false);
       }
     } else if (t.patternId === 'vespera_venom_cone') {
       const baseA = t.angle ?? 0;
       for (let b = -2; b <= 2; b++) {
-        this.fireEnemyProjectile(t.x, t.y, baseA + b * 0.2, 340, 13, 32, '#84CC16', true);
+        this.fireEnemyProjectile(t.x, t.y, baseA + b * 0.2, 350, 13, 48, '#84CC16', true);
       }
     } else if (t.patternId === 'vespera_acid_eruption') {
       this.hazardPools.push({
         id: `acid-erupt-${Date.now()}-${Math.random()}`,
         x: t.x,
         y: t.y,
-        radius: 48,
+        radius: 52,
         type: 'acid',
-        duration: 6.0,
-        maxDuration: 6.0,
-        damagePerSec: 15,
+        duration: 6.5,
+        maxDuration: 6.5,
+        damagePerSec: 22,
         color: '#84CC16',
       });
     } else if (t.patternId === 'ignis_tectonic_slam') {
       for (let b = 0; b < 8; b++) {
         const a = (b * Math.PI * 2) / 8;
-        this.fireEnemyProjectile(t.x, t.y, a, 270, 15, 38, '#EA580C', false);
+        this.fireEnemyProjectile(t.x, t.y, a, 290, 15, 58, '#EA580C', false);
       }
     } else if (t.patternId === 'ignis_meteor_impact') {
       this.hazardPools.push({
         id: `fire-meteor-${Date.now()}-${Math.random()}`,
         x: t.x,
         y: t.y,
-        radius: 46,
+        radius: 50,
         type: 'fire',
-        duration: 6.0,
-        maxDuration: 6.0,
-        damagePerSec: 18,
+        duration: 6.5,
+        maxDuration: 6.5,
+        damagePerSec: 26,
         color: '#EA580C',
       });
     }
@@ -2977,12 +3204,12 @@ export class ChronoKnightsEngine {
     this.partyBonusAtk += chest.bonusAtk;
 
     if (this.currentZone === 'arachnid_caverns') {
-      this.partyBonusHp += 80;
+      this.partyBonusHp += 45;
     } else if (this.currentZone === 'molten_forge') {
-      this.partyBonusHp += 100;
+      this.partyBonusHp += 60;
     } else if (this.currentZone === 'citadel_of_shadows') {
-      this.partyBonusHp += 150;
-      this.partyBonusMp += 150;
+      this.partyBonusHp += 90;
+      this.partyBonusMp += 60;
     }
 
     for (const p of this.players) {
@@ -3011,30 +3238,30 @@ export class ChronoKnightsEngine {
   }
 
   public buyBazaarArmor(): void {
-    if (this.teamGold < 200) {
+    if (this.teamGold < 220) {
       SoundFX.playCountdownBeep(false);
-      this.showDungeonNotice('INSUFFICIENT GOLD', 'You need 200 Gold to fortify imperial armor.', '#EF4444');
+      this.showDungeonNotice('INSUFFICIENT GOLD', 'You need 220 Gold to fortify imperial armor.', '#EF4444');
       return;
     }
-    this.teamGold -= 200;
-    this.partyBonusDef += 15;
-    this.partyBonusHp += 100;
+    this.teamGold -= 220;
+    this.partyBonusDef += 8;
+    this.partyBonusHp += 45;
     SoundFX.playFanfare();
     for (const p of this.players) {
       this.recalculatePlayerMaxStats(p, true);
     }
-    this.showDungeonNotice('IMPERIAL ARMOR FORGED', 'Entire party gained +100 Max HP & +15 DEF!', '#F59E0B');
+    this.showDungeonNotice('IMPERIAL ARMOR FORGED', 'Entire party gained +45 Max HP & +8 DEF!', '#F59E0B');
     this.notifyTeamStats();
   }
 
   public buyAstralInfusion(): void {
-    if (this.teamGold < 150) {
+    if (this.teamGold < 160) {
       SoundFX.playCountdownBeep(false);
-      this.showDungeonNotice('INSUFFICIENT GOLD', 'You need 150 Gold for the Astral Infusion.', '#EF4444');
+      this.showDungeonNotice('INSUFFICIENT GOLD', 'You need 160 Gold for the Astral Infusion.', '#EF4444');
       return;
     }
-    this.teamGold -= 150;
-    this.partyBonusMp += 100;
+    this.teamGold -= 160;
+    this.partyBonusMp += 40;
     SoundFX.playHeal();
     for (const p of this.players) {
       this.recalculatePlayerMaxStats(p, true);
@@ -3043,7 +3270,7 @@ export class ChronoKnightsEngine {
     }
     this.showDungeonNotice(
       'ASTRAL INFUSION RESTORED',
-      'Party HP and MP 100% restored with +100 Max MP boost!',
+      'Party HP and MP 100% restored with +40 Max MP boost!',
       '#A855F7'
     );
     this.notifyTeamStats();
@@ -3068,27 +3295,34 @@ export class ChronoKnightsEngine {
 
     if (this.currentZone === 'forgotten_crypt') {
       for (const plate of this.cryptPlates) {
-        const isOccupied = this.players.some(
-          (p) => p.connected && !p.isDowned && Math.hypot(p.x - plate.x, p.y - plate.y) < plate.radius + 18
-        );
-        plate.isPressed = isOccupied;
+        if (!plate.isPressed) {
+          const isOccupied = this.players.some(
+            (p) => p.connected && !p.isDowned && Math.hypot(p.x - plate.x, p.y - plate.y) < plate.radius + 20
+          );
+          if (isOccupied) {
+            plate.isPressed = true;
+            SoundFX.playGateClick();
+            this.spawnAuraParticles(plate.x, plate.y, '#38BDF8', 35);
+            this.spawnFloatingText(plate.x, plate.y - 28, `${plate.label} BOUND!`, '#38BDF8');
+            // Spawn 2 ambush skeletons when a seal is bound
+            this.enemies.push(
+              createEnemy(`crypt-ambush-${Date.now()}-1`, 'skeleton_warrior', plate.x - 70, plate.y - 60),
+              createEnemy(`crypt-ambush-${Date.now()}-2`, 'skeleton_warrior', plate.x + 70, plate.y - 60)
+            );
+          }
+        }
       }
 
-      const activePlayersCount = this.players.filter((p) => p.connected).length;
-      const requiredPlatesPressed =
-        activePlayersCount <= 1
-          ? this.cryptPlates.some((p) => p.isPressed)
-          : this.cryptPlates.every((p) => p.isPressed);
-
-      if (requiredPlatesPressed && !this.cryptGate.isOpen) {
+      const allPlatesBound = this.cryptPlates.every((p) => p.isPressed);
+      if (allPlatesBound && !this.cryptGate.isOpen) {
         this.cryptGate.isOpen = true;
         SoundFX.playGateClick();
         this.showDungeonNotice(
-          'PORTCULLIS UNLOCKED',
+          'ALL 3 RUNIC SEALS BOUND // PORTCULLIS UNLOCKED',
           'Kindle the Shrine of Grace ahead before crossing the Boss Mist!',
           '#38BDF8'
         );
-        this.spawnAuraParticles(this.cryptGate.x + 80, this.cryptGate.y, '#38BDF8', 40);
+        this.spawnAuraParticles(this.cryptGate.x + 80, this.cryptGate.y, '#38BDF8', 45);
       }
 
       if (this.cryptGate.isOpen) {
@@ -3103,15 +3337,19 @@ export class ChronoKnightsEngine {
           if (isNear) {
             brazier.isLit = true;
             SoundFX.playSpellCast();
-            this.spawnAuraParticles(brazier.x, brazier.y, '#10B981', 30);
+            this.spawnAuraParticles(brazier.x, brazier.y, '#10B981', 35);
             this.spawnFloatingText(brazier.x, brazier.y - 25, 'BRAZIER IGNITED!', '#10B981');
+            this.enemies.push(
+              createEnemy(`cav-ambush-${Date.now()}-1`, 'spider_hatchling', brazier.x - 65, brazier.y - 55),
+              createEnemy(`cav-ambush-${Date.now()}-2`, 'spider_hatchling', brazier.x + 65, brazier.y - 55)
+            );
           }
         }
       }
 
       const allLit = this.cavernsBraziers.every((b) => b.isLit);
       if (allLit && !this.cavernsWebWall.isBurned) {
-        this.cavernsWebWall.hp -= delta * 110;
+        this.cavernsWebWall.hp -= delta * 130;
         if (Math.random() < 0.3) {
           this.spawnHitSparks(
             this.cavernsWebWall.x + Math.random() * this.cavernsWebWall.width,
@@ -3139,25 +3377,25 @@ export class ChronoKnightsEngine {
           if (isNear) {
             valve.isTurned = true;
             SoundFX.playDash();
-            this.spawnAuraParticles(valve.x, valve.y, '#EA580C', 25);
-            this.spawnFloatingText(valve.x, valve.y - 25, 'VALVE TURNED!', '#EA580C');
+            this.spawnAuraParticles(valve.x, valve.y, '#EA580C', 30);
+            this.spawnFloatingText(valve.x, valve.y - 25, `${valve.label} TURNED!`, '#EA580C');
+            this.enemies.push(
+              createEnemy(`forge-ambush-${Date.now()}`, 'fire_imp', valve.x, valve.y - 75)
+            );
           }
         }
       }
 
-      const activePlayersCount = this.players.filter((p) => p.connected).length;
-      const valvesTurned = this.forgeValves.filter((v) => v.isTurned).length;
-      const requiredValves = activePlayersCount <= 1 ? 1 : this.forgeValves.length;
-
-      if (valvesTurned >= requiredValves && !this.forgeBridge.isRaised) {
+      const allValvesTurned = this.forgeValves.every((v) => v.isTurned);
+      if (allValvesTurned && !this.forgeBridge.isRaised) {
         this.forgeBridge.isRaised = true;
         SoundFX.playGateClick();
         this.showDungeonNotice(
-          'MAGMA BRIDGE RAISED',
+          'ALL 3 VALVES TURNED // MAGMA BRIDGE RAISED',
           'Kindle the Shrine of the Immortal Flame ahead before facing Ignis!',
           '#EA580C'
         );
-        this.spawnAuraParticles(this.forgeBridge.x + 80, this.forgeBridge.y, '#EA580C', 40);
+        this.spawnAuraParticles(this.forgeBridge.x + 80, this.forgeBridge.y, '#EA580C', 45);
       }
 
       if (this.forgeBridge.isRaised) {
@@ -3167,26 +3405,26 @@ export class ChronoKnightsEngine {
       for (const seal of this.citadelSeals) {
         if (!seal.isActivated) {
           const isNear = this.players.some(
-            (p) => p.connected && !p.isDowned && Math.hypot(p.x - seal.x, p.y - seal.y) < seal.radius + 24
+            (p) => p.connected && !p.isDowned && Math.hypot(p.x - seal.x, p.y - seal.y) < seal.radius + 26
           );
           if (isNear) {
             seal.isActivated = true;
             SoundFX.playHeal();
             this.spawnAuraParticles(seal.x, seal.y, seal.color, 35);
             this.spawnFloatingText(seal.x, seal.y - 25, `${seal.label} ACTIVE!`, seal.color);
+            this.enemies.push(
+              createEnemy(`cit-ambush-${Date.now()}`, 'shadow_assassin', seal.x, seal.y - 75)
+            );
           }
         }
       }
 
-      const activePlayersCount = this.players.filter((p) => p.connected).length;
-      const sealsActive = this.citadelSeals.filter((s) => s.isActivated).length;
-      const requiredSeals = activePlayersCount <= 1 ? 1 : activePlayersCount === 2 ? 2 : 4;
-
-      if (sealsActive >= requiredSeals && !this.citadelGate.isOpen) {
+      const allSealsActive = this.citadelSeals.every((s) => s.isActivated);
+      if (allSealsActive && !this.citadelGate.isOpen) {
         this.citadelGate.isOpen = true;
         SoundFX.playGateClick();
         this.showDungeonNotice(
-          'VOID THRONE GATE UNSEALED',
+          'ALL 4 CARDINAL SEALS ALIGNED // VOID GATE UNSEALED',
           'Kindle the Shrine of Eternal Chronos ahead before facing Malakor!',
           '#A855F7'
         );
