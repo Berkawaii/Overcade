@@ -55,8 +55,8 @@ export const PairingModal: React.FC<PairingModalProps> = ({
         width: 248,
         margin: 1,
         color: {
-          dark: '#F4F4F5',
-          light: '#00000000',
+          dark: '#0A0A0F',
+          light: '#FFFFFF',
         },
         errorCorrectionLevel: 'M',
       },
@@ -120,11 +120,11 @@ export const PairingModal: React.FC<PairingModalProps> = ({
           <div className="mt-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             {/* Left Column: Dynamic QR Canvas */}
             <div className="md:col-span-5 flex flex-col items-center justify-center rounded-2xl border border-[#FF5500]/30 bg-[#07070A] p-5">
-              <div className="relative flex h-[248px] w-[248px] items-center justify-center rounded-xl border border-white/10 bg-[#12141D] p-2">
+              <div className="relative flex h-[248px] w-[248px] items-center justify-center rounded-xl bg-white p-2.5 shadow-[0_0_25px_rgba(255,85,0,0.3)]">
                 {roomId ? (
-                  <canvas ref={canvasRef} className="h-[232px] w-[232px]" />
+                  <canvas ref={canvasRef} className="h-[228px] w-[228px] rounded-lg" />
                 ) : (
-                  <div className="font-mono text-xs text-[#A1A1AA] animate-pulse">
+                  <div className="font-mono text-xs text-[#0A0A0F] font-bold animate-pulse">
                     ALLOCATING ROOM CODE...
                   </div>
                 )}
