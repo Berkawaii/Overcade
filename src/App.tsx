@@ -69,7 +69,7 @@ export const App: React.FC = () => {
     const session = new HostSignalingSession();
     hostSessionRef.current = session;
     session.startNewRoom().catch((err) => {
-      console.warn('Oda başlatma uyarısı:', err);
+      console.warn('Room initialization warning:', err);
     });
 
     return () => {

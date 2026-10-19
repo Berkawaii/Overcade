@@ -82,7 +82,7 @@ export async function syncUserProfile(user: User, customCallsign?: string): Prom
       );
     }
   } catch (err) {
-    console.warn('Profil senkronizasyonu atlandı:', err);
+    console.warn('Profile sync skipped:', err);
   }
 }
 

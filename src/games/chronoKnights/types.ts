@@ -260,3 +260,41 @@ export interface VoidThroneGate {
   openRatio: number;
 }
 
+export interface ChronoCheckpoint {
+  id: string;
+  zone: WorldZone;
+  x: number;
+  y: number;
+  radius: number;
+  isKindled: boolean;
+  label: string;
+}
+
+export interface BossTelegraph {
+  id: string;
+  bossId: string;
+  patternId: string;
+  shape: 'circle' | 'ring' | 'cone' | 'line';
+  x: number;
+  y: number;
+  radius: number;
+  innerRadius?: number;
+  angle?: number;
+  spreadAngle?: number;
+  length?: number;
+  width?: number;
+  timer: number;
+  maxTimer: number;
+  damage: number;
+  color: string;
+  label: string;
+}
+
+export interface CinematicBannerState {
+  type: 'boss_intro' | 'boss_victory' | 'party_wipe' | 'checkpoint_kindled';
+  title: string;
+  subtitle: string;
+  accentColor: string;
+  timer: number;
+  maxTimer: number;
+}

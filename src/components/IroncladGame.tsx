@@ -1094,7 +1094,7 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
       const sim = simRef.current;
       if (waveTextRef.current) {
         waveTextRef.current.textContent =
-          sim.mode === 'coop_survival' ? `DALGA ${sim.wave}` : 'PVP ARENA';
+          sim.mode === 'coop_survival' ? `WAVE ${sim.wave}` : 'PVP ARENA';
       }
       if (scoreTextRef.current) {
         scoreTextRef.current.textContent = sim.teamScore.toString();
@@ -1103,7 +1103,7 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
         const alive =
           sim.enemies.filter((e) => e.active).length + sim.enemiesRemainingToSpawn;
         enemiesTextRef.current.textContent =
-          sim.mode === 'coop_survival' ? `${alive} DÜŞMAN` : 'SERBEST DÜELLO';
+          sim.mode === 'coop_survival' ? `${alive} HOSTILES` : 'FREE-FOR-ALL';
       }
 
       for (let i = 0; i < MAX_PLAYERS; i++) {
@@ -1117,13 +1117,13 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
         }
         if (txt) {
           txt.textContent = !m.active
-            ? 'BEKLENİYOR (QR OKUT)'
+            ? 'STANDBY (SCAN QR)'
             : m.downed
-            ? `ONARILIYOR %${Math.round(m.reviveProgress * 100)}`
-            : `%${Math.round(m.hp)} ZIRH`;
+            ? `REPAIRING ${Math.round(m.reviveProgress * 100)}%`
+            : `${Math.round(m.hp)}% ARMOR`;
         }
         if (kills) {
-          kills.textContent = `${m.kills} İMHA // ${m.score} P`;
+          kills.textContent = `${m.kills} KILLS // ${m.score} PTS`;
         }
       }
     };
@@ -1187,21 +1187,21 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
             className="spatial-focusable inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#121215]/90 px-4 py-2 font-mono text-xs font-semibold text-[#F4F4F5] hover:border-[#FF5500] active:scale-[0.98] transition-transform backdrop-blur-xl"
           >
             <ArrowLeft size={16} weight="bold" />
-            <span>KATALOĞA DÖN [START]</span>
+            <span>EXIT TO DECK [START]</span>
           </button>
 
           {/* Wave & Score Readout Pill */}
           <div className="flex items-center gap-4 rounded-full border border-white/10 bg-[#121215]/90 px-5 py-2 font-mono text-xs backdrop-blur-xl">
             <span ref={waveTextRef} className="font-bold text-[#FF5500]">
-              DALGA 1
+              WAVE 1
             </span>
             <span className="text-white/20">|</span>
             <span ref={enemiesTextRef} className="text-[#F4F4F5] font-semibold">
-              8 DÜŞMAN
+              8 HOSTILES
             </span>
             <span className="text-white/20">|</span>
             <span>
-              SKOR: <strong ref={scoreTextRef} className="text-emerald-400">0</strong>
+              SCORE: <strong ref={scoreTextRef} className="text-emerald-400">0</strong>
             </span>
           </div>
         </div>
@@ -1216,12 +1216,12 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
             {mode === 'coop_survival' ? (
               <>
                 <ShieldCheck size={15} className="text-emerald-400" />
-                <span>MOD: CO-OP SAVUNMA [Y]</span>
+                <span>MODE: CO-OP DEFENSE [Y]</span>
               </>
             ) : (
               <>
                 <Sword size={15} className="text-[#FF5500]" />
-                <span>MOD: PVP DÜELLO [Y]</span>
+                <span>MODE: PVP BRAWL [Y]</span>
               </>
             )}
           </button>
@@ -1236,14 +1236,14 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
             }`}
           >
             <Robot size={15} weight="bold" />
-            <span>{aiBotEnabled ? 'AI MEKA DESTEĞİ: AÇIK' : 'AI MEKA: KAPALI'}</span>
+            <span>{aiBotEnabled ? 'AI WINGMAN: ON' : 'AI WINGMAN: OFF'}</span>
           </button>
 
           <button
             type="button"
             onClick={handleResetMatch}
             className="spatial-focusable flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#121215]/90 text-[#A1A1AA] hover:text-[#F4F4F5]"
-            title="Savaşı Sıfırla"
+            title="Reset Skirmish"
           >
             <ArrowsClockwise size={16} weight="bold" />
           </button>
@@ -1252,7 +1252,7 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
             type="button"
             onClick={handleToggleMute}
             className="spatial-focusable flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#121215]/90 text-[#A1A1AA] hover:text-[#F4F4F5]"
-            title="Sesi Aç/Kapat"
+            title="Mute / Unmute Audio"
           >
             {muted ? <SpeakerSlash size={16} /> : <SpeakerHigh size={16} />}
           </button>
@@ -1264,7 +1264,7 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
           >
             <QrCode size={16} weight="bold" />
             <span>
-              + OYUNCU EKLE ({connectedCount}/4 TELEFON) [{roomId}]
+              + LINK PLAYER ({connectedCount}/4 PADS) [{roomId}]
             </span>
           </button>
         </div>
@@ -1326,12 +1326,12 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
                   </div>
                   <span className="text-[10px] text-[#A1A1AA]">
                     {isPhoneConnected
-                      ? 'P2P TELEFON'
+                      ? 'P2P PHONE'
                       : idx === 0
-                      ? 'KLAVYE / P1'
+                      ? 'KEYBOARD / P1'
                       : idx === 1 && aiBotEnabled
-                      ? 'AI YARDIMCI'
-                      : 'BOŞ SLOT'}
+                      ? 'AI WINGMAN'
+                      : 'OPEN SLOT'}
                   </span>
                 </div>
 
@@ -1353,7 +1353,7 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
                     }}
                     className="font-semibold text-[#F4F4F5]"
                   >
-                    %100 ZIRH
+                    100% ARMOR
                   </span>
                   <span
                     ref={(el) => {
@@ -1361,7 +1361,7 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
                     }}
                     className="text-[#A1A1AA]"
                   >
-                    0 İMHA // 0 P
+                    0 KILLS // 0 PTS
                   </span>
                 </div>
               </div>
@@ -1373,26 +1373,26 @@ export const IroncladGame: React.FC<IroncladGameProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#121215]/90 px-4 py-2 font-mono text-[11px] text-[#A1A1AA] backdrop-blur-xl">
           <div className="flex items-center gap-2 text-[#F4F4F5] font-bold">
             <Users size={15} className="text-[#FF5500]" />
-            <span>IRONCLAD PROTOCOL // KONTROLLER:</span>
+            <span>IRONCLAD PROTOCOL // CONTROLS:</span>
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <span>
-              <strong className="text-[#F4F4F5]">SOL ANALOG / WASD:</strong> Meka Yürüyüş
+              <strong className="text-[#F4F4F5]">LEFT STICK / WASD:</strong> Mech Strafe
             </span>
             <span>
-              <strong className="text-[#F4F4F5]">SAĞ ANALOG / OKLAR:</strong> 360° Taret Nişan & Ateş
+              <strong className="text-[#F4F4F5]">RIGHT STICK / ARROWS:</strong> 360° Turret Aim & Fire
             </span>
             <span>
-              <strong className="text-[#FF5500]">[A] / SPACE:</strong> Termal Dash
+              <strong className="text-[#FF5500]">[A] / SPACE:</strong> Thermal Dash
             </span>
             <span>
-              <strong className="text-[#FF5500]">[B] / SHIFT:</strong> Güdümlü Roket
+              <strong className="text-[#FF5500]">[B] / SHIFT:</strong> Homing Salvo
             </span>
             <span>
-              <strong className="text-emerald-400">[L1] / Q:</strong> EMP Kalkanı
+              <strong className="text-emerald-400">[L1] / Q:</strong> EMP Nova
             </span>
             <span>
-              <strong className="text-[#F4F4F5]">[R1] / F:</strong> Overdrive Tarama
+              <strong className="text-[#F4F4F5]">[R1] / F:</strong> Overdrive Vulcan
             </span>
           </div>
         </div>

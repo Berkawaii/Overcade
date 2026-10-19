@@ -81,10 +81,10 @@ export const LiveGamepadInspector: React.FC = () => {
         const active = input.buttons[key];
         if (active) {
           el.style.backgroundColor = slotColor;
-          el.style.color = '#09090B';
+          el.style.color = '#07070A';
           el.style.borderColor = slotColor;
         } else {
-          el.style.backgroundColor = '#09090B';
+          el.style.backgroundColor = '#07070A';
           el.style.color = '#A1A1AA';
           el.style.borderColor = 'rgba(255,255,255,0.1)';
         }
@@ -103,13 +103,13 @@ export const LiveGamepadInspector: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Left: Protocol Title, 4-Player Slot Selector & Status */}
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#09090B] text-[#FF5500]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#07070A] text-[#FF5500]">
               <GameController size={22} weight="duotone" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#F4F4F5]">
-                  8-BAYT İKİLİ TELEMETRİ HATTI
+                  8-BYTE BINARY TELEMETRY BUS
                 </span>
                 <span
                   className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold uppercase ${
@@ -119,8 +119,8 @@ export const LiveGamepadInspector: React.FC = () => {
                   }`}
                 >
                   {phase === 'connected_p2p'
-                    ? `${connectedCount}/4 KUMANDA AKTİF`
-                    : 'BEKLEMEDE'}
+                    ? `${connectedCount}/4 PADS ACTIVE`
+                    : 'STANDBY'}
                 </span>
 
                 {/* 4-Slot Selector Pills */}
@@ -137,10 +137,10 @@ export const LiveGamepadInspector: React.FC = () => {
                         className="rounded px-2 py-0.5 font-mono text-[10px] font-bold transition-colors border"
                         style={{
                           borderColor: isSelected ? color : 'rgba(255,255,255,0.12)',
-                          backgroundColor: isSelected ? `${color}22` : '#09090B',
+                          backgroundColor: isSelected ? `${color}22` : '#07070A',
                           color: isOnline ? color : '#71717A',
                         }}
-                        title={`Oyuncu ${slotIdx + 1} Telemetri Kanalı`}
+                        title={`Player ${slotIdx + 1} Telemetry Channel`}
                       >
                         P{slotIdx + 1}
                         {isOnline ? '●' : ''}
@@ -152,7 +152,7 @@ export const LiveGamepadInspector: React.FC = () => {
               <div className="mt-0.5 flex flex-wrap items-center gap-3 font-mono text-[11px] text-[#A1A1AA]">
                 <span className="inline-flex items-center gap-1">
                   <Cpu size={13} className="text-[#FF5500]" />
-                  P{inspectedSlot + 1} PAKET:{' '}
+                  P{inspectedSlot + 1} PACKET:{' '}
                   <strong ref={hexBytesRef} className="text-[#F4F4F5]">
                     01 00 00 00 00 00 00 00
                   </strong>
@@ -171,7 +171,7 @@ export const LiveGamepadInspector: React.FC = () => {
           <div className="flex items-center gap-4">
             {/* Left Stick Reticle */}
             <div className="flex items-center gap-2">
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#09090B]">
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#07070A]">
                 <div className="absolute h-px w-full bg-white/10" />
                 <div className="absolute h-full w-px bg-white/10" />
                 <div
@@ -180,7 +180,7 @@ export const LiveGamepadInspector: React.FC = () => {
                 />
               </div>
               {/* Right Stick Reticle */}
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#09090B]">
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#07070A]">
                 <div className="absolute h-px w-full bg-white/10" />
                 <div className="absolute h-full w-px bg-white/10" />
                 <div
@@ -196,7 +196,7 @@ export const LiveGamepadInspector: React.FC = () => {
                 <span
                   key={btn}
                   ref={btnRefs[btn]}
-                  className="flex h-6 min-w-[38px] items-center justify-center rounded border border-white/10 bg-[#09090B] px-1.5 text-[#A1A1AA]"
+                  className="flex h-6 min-w-[38px] items-center justify-center rounded border border-white/10 bg-[#07070A] px-1.5 text-[#A1A1AA]"
                 >
                   {btn}
                 </span>
@@ -207,20 +207,20 @@ export const LiveGamepadInspector: React.FC = () => {
           {/* Right: Network & Quota Counters */}
           <div className="flex items-center gap-4 border-l border-white/10 pl-4 font-mono text-xs">
             <div>
-              <div className="text-[10px] text-[#A1A1AA]">TOPLAM AKIŞ HIZI</div>
+              <div className="text-[10px] text-[#A1A1AA]">PACKET RATE</div>
               <div className="flex items-center gap-1 font-bold text-[#F4F4F5]">
                 <Pulse size={14} className="text-[#FF5500]" />
                 {packetsPerSecond} Hz ({packetsReceived} pkt)
               </div>
             </div>
             <div className="hidden lg:block">
-              <div className="text-[10px] text-[#A1A1AA]">FIRESTORE HATTI</div>
+              <div className="text-[10px] text-[#A1A1AA]">SIGNALING BUS</div>
               <div
                 className={`font-bold ${
                   firestoreListenersActive ? 'text-amber-400' : 'text-emerald-400'
                 }`}
               >
-                {firestoreListenersActive ? 'YENİ SLOT AÇIK' : 'İZOLASYON TAMAM'}
+                {firestoreListenersActive ? 'SLOT OPEN' : 'P2P ISOLATED'}
               </div>
             </div>
           </div>

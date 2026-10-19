@@ -55,7 +55,7 @@ type SecondaryWeaponType =
 
 /**
  * Returns true ONLY if the weapon is a guided lock-on weapon.
- * Target Lock-On UI ("HEDEF KİLİTLENDİ") ONLY appears when holding one of these!
+ * Target Lock-On UI ("TARGET LOCKED") ONLY appears when holding one of these!
  */
 function isGuidedLockOnWeapon(w: SecondaryWeaponType | null): boolean {
   return w === 'HYDRA_JAVELIN' || w === 'SEEKER_SWARM';
@@ -84,8 +84,8 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
   {
     id: 'buggy-armature',
     name: 'BUGGY ARMATURE',
-    driver: 'ISABEL // KEŞİF & HIZ',
-    tagline: 'Hafif Çöl Boru Şasi, Yüksek Tepe Tırmanışı ve Sabit Çift Chaingun',
+    driver: 'ISABEL // RECON & SPEED',
+    tagline: 'Lightweight Desert Tube Chassis, Steep Hill Climb & Fixed Dual Chaingun',
     chassisType: 'buggy',
     speedStat: 96,
     armorStat: 65,
@@ -102,8 +102,8 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
   {
     id: 'charger-osono',
     name: 'CHARGER OSONO',
-    driver: 'ADDO // ZIRHLI İNTERSEPTÖR',
-    tagline: 'Ön Çelik Koçbaşı Tamponu ve Sabit Kaput Üstü Ağır Makineli',
+    driver: 'ADDO // ARMORED INTERCEPTOR',
+    tagline: 'Reinforced Ramming Bumper & Hood-Mounted Heavy Autocannon',
     chassisType: 'interceptor',
     speedStat: 88,
     armorStat: 82,
@@ -120,8 +120,8 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
   {
     id: 'dakar-rally',
     name: 'PARIS-DAKAR 4X4',
-    driver: 'ERIK // ARAZİ BASKIN KAMYONU',
-    tagline: 'Yüksek Süspansiyon, Engebeli Vadilerde Maksimum Çekiş',
+    driver: 'ERIK // OFF-ROAD RAID TRUCK',
+    tagline: 'High-Travel Suspension & Maximum Traction Across Rugged Valleys',
     chassisType: 'rally',
     speedStat: 90,
     armorStat: 78,
@@ -138,8 +138,8 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
   {
     id: 'peacekeeper-apc',
     name: 'PEACEKEEPER APC',
-    driver: 'VIKTORIA // 6X6 ZIRHLI TAŞIYICI',
-    tagline: '6 Tekerlekli Eğimli Zırh Gövdesi ve Sabit Ön Batarya',
+    driver: 'VIKTORIA // 6X6 ARMORED CARRIER',
+    tagline: '6-Wheel Sloped Composite Hull & Fixed Forward Battery',
     chassisType: 'apc',
     speedStat: 76,
     armorStat: 92,
@@ -156,8 +156,8 @@ export const FIRED_UP_VEHICLES: CombatVehicleSpec[] = [
   {
     id: 'barbarian-tank',
     name: 'BARBARIAN TANK',
-    driver: 'TIM // AĞIR YIKIM TANKI',
-    tagline: 'Paletli Ağır Zırh Bloğu ve Sabit İleri Namlulu Yıkıcı Top',
+    driver: 'TIM // HEAVY SIEGE TANK',
+    tagline: 'Tracked Heavy Armor Block & Fixed Forward Devastator Cannon',
     chassisType: 'tank',
     speedStat: 66,
     armorStat: 100,
@@ -193,10 +193,10 @@ export interface ArenaMapSpec {
 export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
   {
     id: 'desert-badlands',
-    name: 'SCORCHED BADLANDS // SEKTÖR 01',
+    name: 'SCORCHED BADLANDS // SECTOR 01',
     subtitle:
-      '2080x2080m Dev Çöl Cephesi: Merkez Viyadük Köprüsü (LAZER 1HKO), Kuzey ve Güney Yeraltı Sığınak Tünelleri (HYDRA JAVELIN) ve Korugan Tepeleri',
-    zoneTag: '2080M DEV CEPHE // KÖPRÜ & 2X TÜNEL',
+      '2080x2080m Desert Warfront: Central Viaduct Bridge (LASER 1HKO), North & South Underground Bunker Tunnels (HYDRA JAVELIN), and Pillbox Hills',
+    zoneTag: '2080M WARFRONT // BRIDGE & 2X TUNNELS',
     skyColor: '#C89D66',
     fogColor: '#B58952',
     groundLowColor: '#6E4E2E',
@@ -223,10 +223,10 @@ export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
   },
   {
     id: 'arctic-outpost',
-    name: 'SIBERIA RADAR VALLEY // SEKTÖR 02',
+    name: 'SIBERIA RADAR VALLEY // SECTOR 02',
     subtitle:
-      '2080x2080m Kutup Vadisi: Donmuş Kanyon Üstünde Yüksek Viyadük Köprüsü, Dağ İçi Sığınak Tünelleri ve Radar Kuleleri',
-    zoneTag: '2080M KUTUP VADİSİ // VİYADÜK & SIĞINAK',
+      '2080x2080m Arctic Valley: High Viaduct Overpass Above Frozen Gorge, Subterranean Bunker Tunnels, and Radar Arrays',
+    zoneTag: '2080M ARCTIC VALLEY // VIADUCT & BUNKERS',
     skyColor: '#8CA3B5',
     fogColor: '#7B92A6',
     groundLowColor: '#3B4D5E',
@@ -253,10 +253,10 @@ export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
   },
   {
     id: 'iron-quarry',
-    name: 'REPUBLIC SLAG QUARRY // SEKTÖR 03',
+    name: 'REPUBLIC SLAG QUARRY // SECTOR 03',
     subtitle:
-      '2080x2080m Demir Madeni Krateri: Derin Kazı Çukurları, Yüksek Vinç Köprüsü ve Kuzey/Güney Yeraltı İkmal Tünelleri',
-    zoneTag: '2080M MADEN KRATERİ // ÇOK KATMANLI',
+      '2080x2080m Iron Strip Mine Crater: Deep Excavation Pits, High Crane Overpass, and North/South Underground Supply Tunnels',
+    zoneTag: '2080M QUARRY CRATER // MULTI-TIER',
     skyColor: '#78716C',
     fogColor: '#57534E',
     groundLowColor: '#292524',
@@ -284,13 +284,13 @@ export const FIRED_UP_ARENAS: ArenaMapSpec[] = [
 ];
 
 const WEAPON_LABELS: Record<SecondaryWeaponType, string> = {
-  LASER_1HKO: 'YÖRÜNGE LAZERİ [1-HIT KO!]',
-  HYDRA_JAVELIN: 'HYDRA 3X JAVELIN [GÜDÜMLÜ %45x3]',
-  SEEKER_SWARM: 'STINGER 2X SÜRÜ [GÜDÜMLÜ %22x2]',
-  AT_CANNON: 'SABOT ZIRH DELİCİ TOP [%55 HASAR]',
-  CLUSTER_MORTAR: 'PARÇACIKLI HAVAN TOPU [ALAN %42]',
-  DUMB_ROCKET: 'AĞIR ROKET PODU [%32 HASAR]',
-  EMP_BLAST: 'EMP ELEKTROMANYETİK ŞOK [%28]',
+  LASER_1HKO: 'ORBITAL LASER [1-HIT KO!]',
+  HYDRA_JAVELIN: 'HYDRA 3X JAVELIN [GUIDED 45%x3]',
+  SEEKER_SWARM: 'STINGER 2X SWARM [GUIDED 22%x2]',
+  AT_CANNON: 'SABOT AP CANNON [55% DMG]',
+  CLUSTER_MORTAR: 'CLUSTER MORTAR [AOE 42%]',
+  DUMB_ROCKET: 'HEAVY ROCKET POD [32% DMG]',
+  EMP_BLAST: 'EMP SHOCKWAVE [28% DMG]',
 };
 
 const WEAPON_COLORS: Record<SecondaryWeaponType, string> = {
@@ -1260,8 +1260,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
     return [
       {
         id: 0,
-        label: 'YÖRÜNGE LAZERİ [1-HIT KO]',
-        landmarkName: 'MERKEZ YÜKSEK VİYADÜK KÖPRÜSÜ',
+        label: 'ORBITAL LASER [1-HIT KO]',
+        landmarkName: 'CENTRAL HIGH VIADUCT BRIDGE',
         kind: 'LASER_1HKO',
         pos: new THREE.Vector3(0, BRIDGE_DECK_HEIGHT + 1.8, 0),
         respawnTimer: 0,
@@ -1269,8 +1269,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 1,
-        label: 'HYDRA 3X JAVELIN [GÜDÜMLÜ %45x3]',
-        landmarkName: 'KUZEY YERALTI SIĞINAK TÜNELİ',
+        label: 'HYDRA 3X JAVELIN [GUIDED 45%x3]',
+        landmarkName: 'NORTH UNDERGROUND BUNKER TUNNEL',
         kind: 'HYDRA_JAVELIN',
         pos: new THREE.Vector3(0, TUNNEL_FLOOR_Y + 1.8, NORTH_TUNNEL_Z),
         respawnTimer: 0,
@@ -1278,8 +1278,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 2,
-        label: 'HYDRA 3X JAVELIN [GÜDÜMLÜ %45x3]',
-        landmarkName: 'GÜNEY YERALTI SIĞINAK TÜNELİ',
+        label: 'HYDRA 3X JAVELIN [GUIDED 45%x3]',
+        landmarkName: 'SOUTH UNDERGROUND BUNKER TUNNEL',
         kind: 'HYDRA_JAVELIN',
         pos: new THREE.Vector3(0, TUNNEL_FLOOR_Y + 1.8, SOUTH_TUNNEL_Z),
         respawnTimer: 0,
@@ -1287,8 +1287,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 3,
-        label: 'STINGER 2X GÜDÜMLÜ SÜRÜ',
-        landmarkName: 'BATI GÖZETLEME SIRTI',
+        label: 'STINGER 2X GUIDED SWARM',
+        landmarkName: 'WEST OVERWATCH RIDGE',
         kind: 'SEEKER_SWARM',
         pos: mkPos(-420, -180),
         respawnTimer: 0,
@@ -1296,8 +1296,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 4,
-        label: 'STINGER 2X GÜDÜMLÜ SÜRÜ',
-        landmarkName: 'DOĞU GÖZETLEME SIRTI',
+        label: 'STINGER 2X GUIDED SWARM',
+        landmarkName: 'EAST OVERWATCH RIDGE',
         kind: 'SEEKER_SWARM',
         pos: mkPos(420, 180),
         respawnTimer: 0,
@@ -1305,8 +1305,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 5,
-        label: 'SABOT ZIRH DELİCİ TOP',
-        landmarkName: 'KUZEYDOĞU KORUGANI',
+        label: 'SABOT AP CANNON',
+        landmarkName: 'NORTHEAST PILLBOX',
         kind: 'AT_CANNON',
         pos: mkPos(360, -280),
         respawnTimer: 0,
@@ -1314,8 +1314,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 6,
-        label: 'SABOT ZIRH DELİCİ TOP',
-        landmarkName: 'GÜNEYBATI KORUGANI',
+        label: 'SABOT AP CANNON',
+        landmarkName: 'SOUTHWEST PILLBOX',
         kind: 'AT_CANNON',
         pos: mkPos(-360, 280),
         respawnTimer: 0,
@@ -1323,8 +1323,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 7,
-        label: 'PARÇACIKLI HAVAN TOPU',
-        landmarkName: 'KUZEYBATI TOPÇU TEPESİ',
+        label: 'CLUSTER MORTAR',
+        landmarkName: 'NORTHWEST ARTILLERY HILL',
         kind: 'CLUSTER_MORTAR',
         pos: mkPos(-360, -280),
         respawnTimer: 0,
@@ -1332,8 +1332,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 8,
-        label: 'EMP ELEKTROMANYETİK ŞOK',
-        landmarkName: 'GÜNEYDOĞU RADAR ÜSSÜ',
+        label: 'EMP SHOCKWAVE',
+        landmarkName: 'SOUTHEAST RADAR OUTPOST',
         kind: 'EMP_BLAST',
         pos: mkPos(360, 280),
         respawnTimer: 0,
@@ -1341,8 +1341,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 9,
-        label: 'AĞIR ROKET PODU',
-        landmarkName: 'MERKEZ GÜNEY VADİSİ',
+        label: 'HEAVY ROCKET POD',
+        landmarkName: 'CENTRAL SOUTH VALLEY',
         kind: 'DUMB_ROCKET',
         pos: mkPos(0, 175),
         respawnTimer: 0,
@@ -1350,8 +1350,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 10,
-        label: 'SAHA ZIRH ONARIM PAKETİ',
-        landmarkName: 'BATI İKMAL KAMPI',
+        label: 'FIELD ARMOR REPAIR KIT',
+        landmarkName: 'WEST SUPPLY DEPOT',
         kind: 'REPAIR',
         pos: mkPos(-380, 0),
         respawnTimer: 0,
@@ -1359,8 +1359,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       },
       {
         id: 11,
-        label: 'SAHA ZIRH ONARIM PAKETİ',
-        landmarkName: 'DOĞU İKMAL KAMPI',
+        label: 'FIELD ARMOR REPAIR KIT',
+        landmarkName: 'EAST SUPPLY DEPOT',
         kind: 'REPAIR',
         pos: mkPos(380, 0),
         respawnTimer: 0,
@@ -1544,7 +1544,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       ) {
         attacker.respawnsLeft += 1;
         SoundFX.playWaveClear();
-        ms.killFeedBanner = `${COMBATANT_CALLSIGNS[attacker.id]} 8X İMHA SERİSİ! +1 EKSTRA RESPAWN KAZANDI (${attacker.respawnsLeft}X)!`;
+        ms.killFeedBanner = `${COMBATANT_CALLSIGNS[attacker.id]} 8X KILL STREAK! +1 BONUS RESPAWN EARNED (${attacker.respawnsLeft}X)!`;
         ms.killFeedTimer = 4.0;
       } else {
         ms.killFeedBanner = `${COMBATANT_CALLSIGNS[attacker.id]} [${weaponTag}] -> ${COMBATANT_CALLSIGNS[victim.id]}`;
@@ -1581,7 +1581,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
       if (gameMode === 'bombrun' && ms.bombCarrierId === victim.id) {
         ms.bombCarrierId = -1;
       }
-      ms.killFeedBanner = `${COMBATANT_CALLSIGNS[victim.id]} TÜM RESPAWN HAKLARINI KAYBETTİ VE ELENDİ!`;
+      ms.killFeedBanner = `${COMBATANT_CALLSIGNS[victim.id]} DEPLETED ALL RESPAWNS AND WAS ELIMINATED!`;
       ms.killFeedTimer = 3.8;
 
       // Check Last Mercenary Standing victory
@@ -1780,7 +1780,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
 
         // Instant 1-Hit KO (100% Max HP)!
         coneTarget.hp = 0;
-        handleCombatantEliminationOrRespawn(coneTarget, c, 'LAZER 1-HIT KO!');
+        handleCombatantEliminationOrRespawn(coneTarget, c, 'LASER 1-HIT KO!');
       } else {
         c.laserEnd.copy(rawEnd);
         SoundFX.playShuntLaunch();
@@ -1929,7 +1929,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
           other.empSlowTimer = 4.0;
           other.speed *= 0.35;
           if (other.hp <= 0) {
-            handleCombatantEliminationOrRespawn(other, c, 'EMP ŞOK DALGASI');
+            handleCombatantEliminationOrRespawn(other, c, 'EMP SHOCKWAVE');
           }
         }
       });
@@ -2241,7 +2241,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
               crate.kind === 'LASER_1HKO' ||
               crate.kind === 'HYDRA_JAVELIN'
             ) {
-              ms.killFeedBanner = `${COMBATANT_CALLSIGNS[c.id]} SÜPER SİLAH ALDI: ${crate.label}!`;
+              ms.killFeedBanner = `${COMBATANT_CALLSIGNS[c.id]} ACQUIRED SUPER WEAPON: ${crate.label}!`;
               ms.killFeedTimer = 3.2;
             }
           }
@@ -2395,8 +2395,8 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
           ) {
             ms.killFeedBanner =
               envHit.hitTag === 'tunnel_roof'
-                ? 'HYDRA JAVELIN FÜZESİ SIĞINAK TÜNELİ TAVANINA ÇARPTI!'
-                : 'HYDRA JAVELIN FÜZESİ VİYADÜK KÖPRÜSÜNE ÇARPTI!';
+                ? 'HYDRA JAVELIN INTERCEPTED BY BUNKER TUNNEL CEILING!'
+                : 'HYDRA JAVELIN INTERCEPTED BY VIADUCT BRIDGE DECK!';
             ms.killFeedTimer = 2.8;
           }
 
@@ -2414,7 +2414,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
                   handleCombatantEliminationOrRespawn(
                     victim,
                     attacker,
-                    'PARÇACIKLI HAVAN'
+                    'CLUSTER MORTAR'
                   );
                 }
               }
@@ -2474,14 +2474,14 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
               proj.kind === 'HYDRA_JAVELIN'
                 ? 'HYDRA JAVELIN'
                 : proj.kind === 'SEEKER_SWARM'
-                ? 'STINGER SÜRÜSÜ'
+                ? 'STINGER SWARM'
                 : proj.kind === 'AT_SABOT'
-                ? 'SABOT TOPU'
+                ? 'SABOT CANNON'
                 : proj.kind === 'CLUSTER_MORTAR'
-                ? 'HAVAN TOPU'
+                ? 'CLUSTER MORTAR'
                 : proj.kind === 'ROCKET'
-                ? 'AĞIR ROKET'
-                : 'AĞIR MAKİNELİ';
+                ? 'HEAVY ROCKET'
+                : 'HEAVY CHAINGUN';
             handleCombatantEliminationOrRespawn(target, attacker, wLabel);
           }
           break;
@@ -2642,7 +2642,7 @@ const FiredUpCombatScene: React.FC<FiredUpCombatSceneProps> = ({
             Math.hypot(c.pos.x - ms.hillPos.x, c.pos.z - ms.hillPos.z) <
               ms.hillRadius;
 
-          // STRICT RULE: Target Lock-On UI ("HEDEF KİLİTLENDİ") ONLY appears when holding a guided weapon!
+          // STRICT RULE: Target Lock-On UI ("TARGET LOCKED") ONLY appears when holding a guided weapon!
           let lockedTargetName: string | null = null;
           if (isGuidedLockOnWeapon(c.secondaryWeapon) && c.secondaryAmmo > 0) {
             const lockedTarget =
@@ -3153,7 +3153,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
 
           setSelectedArenaIdx(chosen);
           setVoteResultBanner(
-            `OYLAMA SONUCU: ${FIRED_UP_ARENAS[chosen].name} SEÇİLDİ!`
+            `VOTE RESULT: ${FIRED_UP_ARENAS[chosen].name} SELECTED!`
           );
           SoundFX.playWaveClear();
 
@@ -3218,14 +3218,14 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
               className="inline-flex items-center gap-2 border-2 border-amber-500/50 bg-[#292524] px-4 py-2 font-mono text-xs font-bold text-amber-400 hover:bg-amber-500 hover:text-[#1C1917]"
             >
               <ArrowLeft size={15} weight="bold" />
-              <span>KATALOĞA DÖN</span>
+              <span>EXIT TO DECK</span>
             </button>
             <div>
               <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
-                FIRED UP // PSP 2005 ASKERİ HANGAR (2080M CEPHE)
+                FIRED UP // PSP 2005 MILITARY HANGAR (2080M WARFRONT)
               </div>
               <h1 className="font-mono text-xl sm:text-2xl font-black tracking-tight text-[#F5F5F4]">
-                DİRENİŞ ZIRHLI ARAÇ SEÇİMİ
+                RESISTANCE ARMORED VEHICLE SELECT
               </h1>
             </div>
           </div>
@@ -3238,7 +3238,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
             >
               <QrCode size={16} weight="bold" />
               <span>
-                {connectedCount}/4 TELEFON [{roomId || '...'}]
+                {connectedCount}/4 PADS [{roomId || '...'}]
               </span>
             </button>
 
@@ -3250,7 +3250,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
               }}
               className="border-2 border-amber-400 bg-amber-500 px-5 py-2 font-mono text-xs font-black text-[#1C1917]"
             >
-              HARİTA SEÇİMİNE GEÇ [A]
+              PROCEED TO SECTOR VOTE [A]
             </button>
           </div>
         </header>
@@ -3258,12 +3258,11 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
         <div className="relative z-10 mx-auto w-full max-w-[1400px] px-4 sm:px-8 pb-6 pt-auto">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-l-4 border-amber-500 bg-[#292524]/90 px-3 py-2 font-mono text-xs text-stone-300">
             <span>
-              <strong className="text-amber-400">5X RESPAWN HAKKI:</strong> Ard arda 8 imha
-              yaptığınızda <strong className="text-emerald-400">+1 Ekstra Respawn</strong>{' '}
-              kazanırsınız!
+              <strong className="text-amber-400">5X RESPAWNS:</strong> Every 8-kill streak awards{' '}
+              <strong className="text-emerald-400">+1 Bonus Respawn</strong>!
             </span>
             <span className="text-amber-400 font-bold">
-              HYDRA JAVELIN FÜZESİNDEN KORUNMAK İÇİN YERALTI TÜNELLERİNE GİRİN!
+              TAKE COVER INSIDE UNDERGROUND BUNKER TUNNELS TO EVADE HYDRA JAVELINS!
             </span>
           </div>
 
@@ -3290,7 +3289,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                         style={{ backgroundColor: pColor }}
                       />
                       <span className="font-mono text-xs font-black text-[#F5F5F4]">
-                        BİRİM P{slotIdx + 1}
+                        UNIT P{slotIdx + 1}
                       </span>
                     </div>
                     <span
@@ -3302,7 +3301,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                           : 'bg-stone-800 text-stone-400'
                       }`}
                     >
-                      {isReady ? 'ONAYLANDI' : isHuman ? 'SEÇİYOR' : 'AI KOMUTAN'}
+                      {isReady ? 'LOCKED' : isHuman ? 'SELECTING' : 'AI COMMANDER'}
                     </span>
                   </div>
 
@@ -3349,10 +3348,10 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
 
                     <div className="mt-3 space-y-1.5 font-mono text-[10px]">
                       {[
-                        { label: 'AZAMİ HIZ', val: veh.speedStat },
-                        { label: 'ZIRH (HP)', val: veh.armorStat },
-                        { label: 'ATEŞ GÜCÜ', val: veh.firepowerStat },
-                        { label: 'ARAZİ ÇEKİŞ', val: veh.handlingStat },
+                        { label: 'TOP SPEED', val: veh.speedStat },
+                        { label: 'ARMOR (HP)', val: veh.armorStat },
+                        { label: 'FIREPOWER', val: veh.firepowerStat },
+                        { label: 'TRACTION', val: veh.handlingStat },
                       ].map((st) => (
                         <div
                           key={st.label}
@@ -3388,7 +3387,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                         : 'border border-amber-500/50 bg-stone-800 text-amber-400 hover:bg-amber-500 hover:text-[#1C1917]'
                     }`}
                   >
-                    {isReady ? 'HAZIR [B İPTAL]' : 'ARACI KİLİTLE [A]'}
+                    {isReady ? 'READY [B CANCEL]' : 'LOCK VEHICLE [A]'}
                   </button>
                 </div>
               );
@@ -3420,16 +3419,16 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
               }}
               className="border-2 border-stone-600 bg-[#292524] px-4 py-2 font-mono text-xs font-bold text-stone-200"
             >
-              ◀ HANGARA DÖN
+              ◀ BACK TO HANGAR
             </button>
             <div>
               <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
                 {isMultiplayerVote
-                  ? `ÇOK OYUNCULU CEPHE OYLAMASI (${activeHumanSlots.length} OYUNCU)`
-                  : '2080x2080M CEPHE & MOD SEÇİMİ'}
+                  ? `MULTIPLAYER SECTOR VOTE (${activeHumanSlots.length} PLAYERS)`
+                  : '2080x2080M WARFRONT & MODE SELECT'}
               </div>
               <h1 className="font-mono text-2xl sm:text-3xl font-black tracking-tight text-[#F5F5F4]">
-                SAVAŞ BÖLGESİNİ OYLA
+                VOTE FOR COMBAT SECTOR
               </h1>
             </div>
           </div>
@@ -3437,9 +3436,9 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             {(
               [
-                { id: 'deathmatch', label: 'DEATHMATCH (İMHA)', icon: Skull },
-                { id: 'koth', label: 'KING OF THE HILL (TEPE)', icon: FlagBanner },
-                { id: 'bombrun', label: 'BOMB THE BASE (ÜS)', icon: Bomb },
+                { id: 'deathmatch', label: 'DEATHMATCH (ELIM)', icon: Skull },
+                { id: 'koth', label: 'KING OF THE HILL', icon: FlagBanner },
+                { id: 'bombrun', label: 'BOMB THE BASE', icon: Bomb },
               ] as const
             ).map((m) => {
               const Icon = m.icon;
@@ -3497,13 +3496,13 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                         {arena.zoneTag}
                       </span>
                       <span className="bg-black/70 px-2.5 py-1 text-amber-300">
-                        OY: {voteCounts[aIdx]}
+                        VOTES: {voteCounts[aIdx]}
                       </span>
                     </div>
                     <div className="space-y-1 font-mono text-[11px] text-stone-200">
-                      <div>● MERKEZ KÖPRÜ ÜSTÜ: LAZER [1-HIT KO]</div>
-                      <div>● KUZEY & GÜNEY TÜNELİ: HYDRA 3X JAVELIN</div>
-                      <div>● TAKTİK SİLAHLAR: STINGER, SABOT, HAVAN, EMP</div>
+                      <div>● CENTRAL HIGH BRIDGE: LASER [1-HIT KO]</div>
+                      <div>● NORTH & SOUTH TUNNELS: HYDRA 3X JAVELIN</div>
+                      <div>● TACTICAL CRATES: STINGER, SABOT, MORTAR, EMP</div>
                     </div>
                   </div>
 
@@ -3519,7 +3518,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                   <div className="flex flex-wrap items-center gap-2 min-h-[34px]">
                     {voters.length === 0 ? (
                       <span className="font-mono text-[11px] text-stone-500">
-                        Sol Analog ile seçip [A] basın
+                        Select with Left Stick and press [A]
                       </span>
                     ) : (
                       voters.map((slotIdx) => {
@@ -3536,7 +3535,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                             }}
                           >
                             <CheckCircle size={14} weight="fill" />
-                            P{slotIdx + 1} {locked ? 'OY VERDİ' : 'SEÇİYOR'}
+                            P{slotIdx + 1} {locked ? 'VOTED' : 'SELECTING'}
                           </span>
                         );
                       })
@@ -3552,8 +3551,8 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
           <div className="flex items-center gap-2">
             <Users size={16} className="text-amber-400" />
             <span>
-              [L1] Basılı Tut: ADS Dürbün • [R1]: İleri Sabit Makineli • [B]: Özel Silah
-              Ateşle • 5X Respawn (+1 / 8 Seri İmha)
+              Hold [L1]: ADS Scope • [R1]: Fixed Forward Chaingun • [B]: Fire Special
+              Ordnance • 5X Respawns (+1 / 8-Kill Streak)
             </span>
           </div>
           <button
@@ -3565,7 +3564,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
             }}
             className="border-2 border-amber-300 bg-amber-500 px-6 py-2 font-mono text-xs font-black text-[#1C1917]"
           >
-            OPERASYONU BAŞLAT [A]
+            DEPLOY OPERATION [A]
           </button>
         </footer>
       </div>
@@ -3612,7 +3611,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
             className="inline-flex items-center gap-1.5 border border-amber-500/60 bg-[#1C1917]/90 px-3 py-1 font-mono text-xs font-bold text-amber-400"
           >
             <ArrowLeft size={14} weight="bold" />
-            <span>KATALOG</span>
+            <span>DECK</span>
           </button>
 
           <button
@@ -3625,7 +3624,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
             className="inline-flex items-center gap-1.5 border border-stone-600 bg-[#1C1917]/90 px-3 py-1 font-mono text-xs font-bold text-stone-200"
           >
             <Wrench size={14} className="text-amber-400" />
-            <span>HANGAR & HARİTA</span>
+            <span>HANGAR & SECTORS</span>
           </button>
 
           <button
@@ -3641,7 +3640,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
             }
             className="border border-amber-500/60 bg-amber-500/20 px-3 py-1 font-mono text-xs font-bold text-amber-300"
           >
-            MOD [Y]:{' '}
+            MODE [Y]:{' '}
             {gameMode === 'deathmatch'
               ? 'DEATHMATCH'
               : gameMode === 'koth'
@@ -3666,7 +3665,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
           >
             <ArrowsOutSimple size={14} className="text-amber-400" />
             <span>
-              EKRAN: {splitMode === 'auto' ? `OTO (${numViews}P)` : splitMode.toUpperCase()}
+              VIEW: {splitMode === 'auto' ? `AUTO (${numViews}P)` : splitMode.toUpperCase()}
             </span>
           </button>
         </div>
@@ -3696,7 +3695,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
           >
             <QrCode size={14} weight="bold" />
             <span>
-              {connectedCount}/4 TELEFON [{roomId || '...'}] ({packetsPerSecond} Hz)
+              {connectedCount}/4 PADS [{roomId || '...'}] ({packetsPerSecond} Hz)
             </span>
           </button>
         </div>
@@ -3737,7 +3736,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                   <div className="border-2 border-red-500 bg-black/85 px-6 py-4 text-center font-mono">
                     <ShieldWarning size={32} className="mx-auto mb-1 text-red-500" />
                     <div className="text-base font-black text-red-400">
-                      ARAÇ İMHA EDİLDİ // 0X RESPAWN KALDI
+                      VEHICLE DESTROYED // 0X RESPAWNS LEFT
                     </div>
                   </div>
                 ) : (
@@ -3759,18 +3758,18 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                     <div className="absolute h-5 w-0.5 bg-amber-400/80" />
                     {vp.adsActive && (
                       <div className="absolute -top-6 bg-[#1C1917]/90 px-2 py-0.5 font-mono text-[10px] font-black text-emerald-400">
-                        ADS DÜRBÜN AKTİF [2.0X ZOOM]
+                        ADS SCOPE ACTIVE [2.0X ZOOM]
                       </div>
                     )}
                     {/* STRICT LOCK-ON DISPLAY: ONLY WHEN HOLDING A GUIDED WEAPON! */}
                     {hasGuidedWeapon && vp.lockedTargetName && (
                       <div className="absolute -bottom-6 bg-red-950/90 border border-red-500 px-2 py-0.5 font-mono text-[10px] font-black text-red-300">
-                        GÜDÜMLÜ KİLİT: {vp.lockedTargetName}
+                        MISSILE LOCK: {vp.lockedTargetName}
                       </div>
                     )}
                     {vp.inTunnel && (
                       <div className="absolute -top-12 bg-emerald-950/90 border border-emerald-500 px-2.5 py-0.5 font-mono text-[10px] font-black text-emerald-300">
-                        SIĞINAK TÜNELİ KORUMASI [HYDRA KORUMALI]
+                        BUNKER TUNNEL COVER [HYDRA SHIELDED]
                       </div>
                     )}
                   </div>
@@ -3808,13 +3807,13 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold">
                     <span className="bg-amber-500/20 border border-amber-500/50 px-1.5 py-0.5 text-amber-300">
-                      RESPAWN: {vp.respawnsLeft}X
+                      RESPAWNS: {vp.respawnsLeft}X
                     </span>
                     <span className="bg-emerald-500/20 border border-emerald-500/50 px-1.5 py-0.5 text-emerald-300">
-                      SERİ: {vp.killStreak}/{STREAK_FOR_BONUS_RESPAWN}
+                      STREAK: {vp.killStreak}/{STREAK_FOR_BONUS_RESPAWN}
                     </span>
                     <span className="text-stone-300">
-                      SKOR: {vp.score}/{vp.targetScore} • İMHA: {vp.kills}
+                      SCORE: {vp.score}/{vp.targetScore} • KILLS: {vp.kills}
                     </span>
                   </div>
                 </div>
@@ -3823,22 +3822,22 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                 <div className="border-2 border-stone-600 bg-[#141812]/90 p-1.5 font-mono">
                   <div className="mb-1 flex items-center justify-between text-[9px] font-bold text-emerald-400">
                     <span>RADAR (2080M)</span>
-                    <span>{vp.speedKmh} KM/S</span>
+                    <span>{vp.speedKmh} KM/H</span>
                   </div>
                   <div className="relative h-24 w-24 border border-emerald-500/40 bg-[#0B1009] overflow-hidden">
                     {/* Center High Bridge on Radar */}
                     <div
                       className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-8 border border-red-500/60 bg-red-500/20"
-                      title="Merkez Viyadük Köprüsü (Lazer 1-Hit KO)"
+                      title="Central Viaduct Bridge (Laser 1-Hit KO)"
                     />
                     {/* North & South Underground Tunnels on Radar */}
                     <div
                       className="absolute left-1/2 top-[25%] -translate-x-1/2 h-1.5 w-6 border border-amber-400/60 bg-amber-400/20"
-                      title="Kuzey Yeraltı Tüneli (Hydra Javelin)"
+                      title="North Underground Tunnel (Hydra Javelin)"
                     />
                     <div
                       className="absolute left-1/2 top-[75%] -translate-x-1/2 h-1.5 w-6 border border-amber-400/60 bg-amber-400/20"
-                      title="Güney Yeraltı Tüneli (Hydra Javelin)"
+                      title="South Underground Tunnel (Hydra Javelin)"
                     />
                     {/* Supply Crate Dots */}
                     {hud.crateStatuses.map((cr) => {
@@ -3894,7 +3893,7 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
               <div className="flex items-end justify-between gap-2">
                 <div className="border-2 border-stone-600 bg-[#1C1917]/90 px-3.5 py-2 font-mono">
                   <div className="text-[10px] text-stone-400">
-                    ÖZEL / İKİNCİL SİLAH ([B] ATEŞLE)
+                    SPECIAL / SECONDARY ORDNANCE ([B] FIRE)
                   </div>
                   {vp.secondaryWeapon ? (
                     <div className="mt-0.5 flex items-center gap-2">
@@ -3912,17 +3911,17 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                     </div>
                   ) : (
                     <div className="mt-0.5 text-[11px] font-bold text-stone-400">
-                      KÖPRÜ (LAZER 1HKO), TÜNEL (HYDRA) VEYA TAKTİK SANDIK ALIN
+                      PICK UP BRIDGE (LASER 1HKO), TUNNEL (HYDRA), OR TACTICAL CRATE
                     </div>
                   )}
                 </div>
 
                 <div className="hidden sm:block border-2 border-stone-600 bg-[#1C1917]/90 px-3 py-2 text-right font-mono text-[10px] text-stone-300">
                   <div className="font-bold text-amber-400">
-                    [L1] BASILI TUT: ADS DÜRBÜN • [R1]: İLERİ SABİT ATEŞ
+                    HOLD [L1]: ADS SCOPE • [R1]: FIXED FORWARD CHAINGUN
                   </div>
                   <div>
-                    [A] GAZ • [B] ÖZEL SİLAH • TÜNELE GİREREK HYDRA FÜZESİNDEN KORUNUN!
+                    [A] THROTTLE • [B] SPECIAL WEAPON • ENTER TUNNELS TO BLOCK HYDRA MISSILES!
                   </div>
                 </div>
               </div>
@@ -3939,10 +3938,10 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
               <Trophy size={32} weight="fill" />
             </div>
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">
-              FIRED UP // OPERASYON TAMAMLANDI
+              FIRED UP // OPERATION COMPLETE
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-[#F5F5F4]">
-              GALİP: {hud.winnerCallsign}
+              VICTOR: {hud.winnerCallsign}
             </h2>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <button
@@ -3954,14 +3953,14 @@ export const FiredUpGame: React.FC<FiredUpGameProps> = ({
                 }}
                 className="border-2 border-amber-300 bg-amber-500 px-6 py-2.5 text-xs font-black text-[#1C1917]"
               >
-                HANGAR & CEPHE SEÇ [START]
+                HANGAR & SECTOR SELECT [START]
               </button>
               <button
                 type="button"
                 onClick={() => setResetToken((t) => t + 1)}
                 className="border-2 border-stone-500 bg-[#292524] px-5 py-2.5 text-xs font-bold text-stone-200"
               >
-                TEKRAR SAVAŞ
+                DEPLOY REMATCH
               </button>
             </div>
           </div>

@@ -78,6 +78,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
   // Phase 2 & 3: World, Dialogue, Quest & Boss States
   const [activeNpc, setActiveNpc] = useState<NpcEntity | null>(null);
   const [activeBoss, setActiveBoss] = useState<EnemyEntity | null>(null);
+  const [bossRoomSealed, setBossRoomSealed] = useState(false);
   const [currentZone, setCurrentZone] = useState<WorldZone>('oakhaven');
   const [questKills, setQuestKills] = useState(0);
   const [questGoal, setQuestGoal] = useState(5);
@@ -121,8 +122,9 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
       setExpToNext(toNext);
     };
 
-    engine.onBossUpdate = (boss) => {
+    engine.onBossUpdate = (boss, sealed) => {
       setActiveBoss(boss ? { ...boss } : null);
+      setBossRoomSealed(Boolean(sealed));
     };
 
     engine.onGameVictory = () => {
@@ -667,44 +669,75 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
               </div>
             </div>
 
-            {/* Elite Boss Health Bar */}
+            {/* Elden Ring-Style Boss Health Bar */}
             {activeBoss && (
-              <div className="w-full max-w-xl mx-auto p-3 rounded-2xl bg-[#09090D]/90 border border-red-500/40 backdrop-blur-xl shadow-2xl flex flex-col gap-1.5 animate-fade-in pointer-events-auto">
+              <div className="w-full max-w-2xl mx-auto px-4 py-3 rounded-xl bg-[#07070B]/95 border border-amber-500/40 backdrop-blur-xl shadow-[0_0_40px_rgba(220,38,38,0.25)] flex flex-col gap-1.5 animate-fade-in pointer-events-auto">
                 <div className="flex items-center justify-between text-xs font-['JetBrains_Mono']">
-                  <div className="flex items-center gap-2">
-                    <Skull size={18} weight="fill" className="text-red-500 animate-pulse" />
+                  <div className="flex items-center gap-2.5">
+                    <Skull
+                      size={18}
+                      weight="fill"
+                      className={bossRoomSealed ? 'text-red-500 animate-pulse' : 'text-amber-400'}
+                    />
                     <div className="flex flex-col">
-                      <span className="font-bold text-white tracking-wide">{activeBoss.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-sm text-amber-100 tracking-wider uppercase">
+                          {activeBoss.name}
+                        </span>
+                        {bossRoomSealed ? (
+                          <span className="px-2 py-0.5 rounded bg-red-500/20 border border-red-500/50 text-red-300 text-[9px] font-bold">
+                            SANCTUM SEALED
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[9px] font-bold">
+                            AWAITING IN SANCTUM
+                          </span>
+                        )}
+                      </div>
                       {activeBoss.bossTitle && (
-                        <span className="text-[9px] text-white/50">{activeBoss.bossTitle}</span>
+                        <span className="text-[10px] text-amber-200/60 tracking-widest uppercase">
+                          {activeBoss.bossTitle}
+                        </span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {activeBoss.isShielded && (
-                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/50 text-purple-300 text-[10px] font-bold animate-pulse">
-                        TOMB SHIELD
+                      <span className="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-500/50 text-purple-300 text-[10px] font-bold animate-pulse">
+                        TOMB AEGIS
                       </span>
                     )}
                     {activeBoss.enraged && (
-                      <span className="px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/50 text-red-400 text-[10px] font-bold animate-pulse">
-                        ENRAGED
+                      <span className="px-2 py-0.5 rounded bg-red-500/20 border border-red-500/50 text-red-400 text-[10px] font-bold animate-pulse">
+                        PHASE III // ENRAGED
                       </span>
                     )}
-                    <span className="text-[11px] font-bold text-white/80">
-                      <span className="text-red-400">{Math.floor(activeBoss.hp)}</span> /{' '}
-                      {activeBoss.maxHp} HP
+                    <span className="text-[11px] font-bold text-amber-100/90 tabular-nums">
+                      <span className="text-red-400">{Math.max(0, Math.floor(activeBoss.hp))}</span> /{' '}
+                      {activeBoss.maxHp}
                     </span>
                   </div>
                 </div>
-                <div className="w-full h-2.5 bg-black/60 rounded-full overflow-hidden border border-white/10 p-0.5">
+                {/* Ornate Elden Ring Health Bar with Delayed Yellow Drain Layer */}
+                <div className="relative w-full h-3 bg-black/80 rounded-sm overflow-hidden border border-amber-500/50">
+                  {/* Delayed Yellow Damage Drain Bar */}
                   <div
-                    className={`h-full rounded-full transition-all duration-150 ${
+                    className="absolute inset-y-0 left-0 bg-amber-300/80 transition-all duration-700 ease-out"
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(100, (activeBoss.hp / activeBoss.maxHp) * 100)
+                      )}%`,
+                    }}
+                  />
+                  {/* Instant Crimson Boss Health Fill */}
+                  <div
+                    className={`relative h-full transition-all duration-100 ${
                       activeBoss.isShielded
-                        ? 'bg-gradient-to-r from-purple-600 via-indigo-500 to-purple-400'
+                        ? 'bg-gradient-to-r from-purple-800 via-purple-600 to-indigo-400'
                         : activeBoss.enraged
-                        ? 'bg-gradient-to-r from-red-600 via-amber-500 to-red-500'
-                        : 'bg-gradient-to-r from-red-600 to-orange-500'
+                        ? 'bg-gradient-to-r from-red-900 via-red-600 to-amber-500'
+                        : 'bg-gradient-to-r from-red-950 via-red-700 to-red-500'
                     }`}
                     style={{
                       width: `${Math.max(

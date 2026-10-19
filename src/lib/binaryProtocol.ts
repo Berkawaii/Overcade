@@ -58,6 +58,10 @@ export interface HostFeedbackPacket {
   playerSlot: number;
   hpPercent: number;
   vibrateMs: number;
+  mpPercent: number;
+  gameModeId: number;
+  heroClassIndex: number;
+  playerLevel: number;
 }
 
 export function createEmptyGamepadState(): GamepadState {
@@ -208,14 +212,24 @@ export function decodeGamepadPacket(
 export function encodeHostFeedbackPacket(
   playerSlot: number,
   hpPercent: number,
-  vibrateMs = 0
+  vibrateMs = 0,
+  mpPercent = 100,
+  gameModeId = 1,
+  heroClassIndex = 0,
+  playerLevel = 1
 ): ArrayBuffer {
-  const buf = new ArrayBuffer(4);
+  const normHp = hpPercent <= 1 && hpPercent > 0 ? hpPercent * 100 : hpPercent;
+  const normMp = mpPercent <= 1 && mpPercent > 0 ? mpPercent * 100 : mpPercent;
+  const buf = new ArrayBuffer(8);
   const view = new DataView(buf);
   view.setUint8(0, PACKET_TYPE_HOST_FEEDBACK);
   view.setUint8(1, Math.max(0, Math.min(3, playerSlot)));
-  view.setUint8(2, Math.max(0, Math.min(100, Math.round(hpPercent))));
+  view.setUint8(2, Math.max(0, Math.min(100, Math.round(normHp))));
   view.setUint8(3, Math.max(0, Math.min(250, Math.round(vibrateMs))));
+  view.setUint8(4, Math.max(0, Math.min(100, Math.round(normMp))));
+  view.setUint8(5, Math.max(0, Math.min(10, Math.round(gameModeId))));
+  view.setUint8(6, Math.max(0, Math.min(15, Math.round(heroClassIndex))));
+  view.setUint8(7, Math.max(1, Math.min(99, Math.round(playerLevel))));
   return buf;
 }
 
@@ -223,9 +237,14 @@ export function decodeHostFeedbackPacket(buffer: ArrayBuffer): HostFeedbackPacke
   if (buffer.byteLength < 4) return null;
   const view = new DataView(buffer);
   if (view.getUint8(0) !== PACKET_TYPE_HOST_FEEDBACK) return null;
+  const hasExtended = buffer.byteLength >= 8;
   return {
     playerSlot: view.getUint8(1),
     hpPercent: view.getUint8(2),
     vibrateMs: view.getUint8(3),
+    mpPercent: hasExtended ? view.getUint8(4) : 100,
+    gameModeId: hasExtended ? view.getUint8(5) : 1,
+    heroClassIndex: hasExtended ? view.getUint8(6) : 0,
+    playerLevel: hasExtended ? view.getUint8(7) : 1,
   };
 }

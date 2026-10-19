@@ -86,7 +86,7 @@ export async function pruneStaleRooms(): Promise<void> {
       }
     }
   } catch (err) {
-    console.debug('Bayat oda temizleme kontrolü tamamlandı:', err);
+    console.debug('Stale room cleanup check completed:', err);
   }
 }
 
@@ -115,9 +115,27 @@ export class HostSignalingSession {
   public roomId = '';
 
   constructor() {
-    GameEngineBridge.registerFeedbackSender((slot, hpPercent, vibrateMs = 0) => {
-      this.sendFeedbackToSlot(slot, hpPercent, vibrateMs);
-    });
+    GameEngineBridge.registerFeedbackSender(
+      (
+        slot,
+        hpPercent,
+        vibrateMs = 0,
+        mpPercent = 100,
+        gameModeId = 1,
+        heroClassIndex = 0,
+        playerLevel = 1
+      ) => {
+        this.sendFeedbackToSlot(
+          slot,
+          hpPercent,
+          vibrateMs,
+          mpPercent,
+          gameModeId,
+          heroClassIndex,
+          playerLevel
+        );
+      }
+    );
 
     if (typeof window !== 'undefined') {
       const onWindowClose = () => {
@@ -222,7 +240,7 @@ export class HostSignalingSession {
           });
           useConsoleConnectionStore.getState().incrementFirestoreOps(1);
         } catch (err) {
-          console.warn('Caller ICE candidate yazma hatası:', err);
+          console.warn('Caller ICE candidate write error:', err);
         }
       };
 
@@ -281,14 +299,14 @@ export class HostSignalingSession {
               try {
                 await currentPc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
               } catch (err) {
-                console.warn('ICE candidate eklenemedi:', err);
+                console.warn('Failed to add ICE candidate:', err);
               }
             }
           }
         });
       });
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Sinyalleşme odası hazırlanamadı';
+      const msg = error instanceof Error ? error.message : 'Failed to initialize signaling room';
       useConsoleConnectionStore.getState().setPhase('error', msg);
     } finally {
       this.isRearming = false;
@@ -322,11 +340,27 @@ export class HostSignalingSession {
     };
   }
 
-  public sendFeedbackToSlot(slotIndex: number, hpPercent: number, vibrateMs = 0): void {
+  public sendFeedbackToSlot(
+    slotIndex: number,
+    hpPercent: number,
+    vibrateMs = 0,
+    mpPercent = 100,
+    gameModeId = 1,
+    heroClassIndex = 0,
+    playerLevel = 1
+  ): void {
     const slot = this.slots[slotIndex];
     if (!slot?.dc || slot.dc.readyState !== 'open') return;
     try {
-      const packet = encodeHostFeedbackPacket(slotIndex, hpPercent, vibrateMs);
+      const packet = encodeHostFeedbackPacket(
+        slotIndex,
+        hpPercent,
+        vibrateMs,
+        mpPercent,
+        gameModeId,
+        heroClassIndex,
+        playerLevel
+      );
       slot.dc.send(packet);
     } catch {
       // Ignore transient send error
@@ -533,13 +567,13 @@ export class ControllerSignalingClient {
             try {
               await this.peerConnection.addIceCandidate(new RTCIceCandidate(data));
             } catch (err) {
-              console.warn('Caller ICE candidate eklenemedi:', err);
+              console.warn('Failed to add caller ICE candidate:', err);
             }
           }
         });
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Bağlantı kurulamadı';
+      const message = error instanceof Error ? error.message : 'Connection failed';
       this.onStateChange('error', message);
     }
   }

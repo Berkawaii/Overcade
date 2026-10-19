@@ -62,7 +62,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
         onLaunchGame(game.id);
       } else {
         setSlotNotice(
-          `${game.title} katalog slotu hazır. Şu anda IRONCLAD PROTOCOL (1-4 Oyuncu Meka Arenası) veya TELEMETRY // 3D ARENA oynanabilir durumdadır.`
+          `${game.title} cartridge slot is reserved. Select CHRONO KNIGHTS, FIRED UP, VORTEX DRIFT, or IRONCLAD PROTOCOL to play now.`
         );
         setTimeout(() => setSlotNotice(null), 5000);
       }
@@ -160,7 +160,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
 
   const operatorName =
     user?.displayName ||
-    (user?.email ? user.email.split('@')[0].toUpperCase() : 'MİSAFİR OPERATÖR');
+    (user?.email ? user.email.split('@')[0].toUpperCase() : 'GUEST CHALLENGER');
 
   const isSelectedPlayable =
     selectedGame.status === 'playable_game' || selectedGame.status === 'playable_testbed';
@@ -168,68 +168,68 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
   return (
     <div
       ref={spatialContainerRef}
-      className="min-h-[100dvh] w-full bg-[#09090B] text-[#F4F4F5] flex flex-col justify-between"
+      className="arcade-crt-shell min-h-[100dvh] w-full text-[#F4F4F5] flex flex-col justify-between"
     >
-      {/* Top Floating Console OS Header (Height <= 72px, Single Line) */}
+      {/* Top Retro-Arcade Cabinet Marquee Bar */}
       <header className="mx-auto w-full max-w-[1400px] px-4 sm:px-8 pt-4">
-        <div className="flex h-16 items-center justify-between gap-4 rounded-full border border-white/10 bg-[#121215]/90 px-5 backdrop-blur-xl">
+        <div className="arcade-marquee-bar flex h-16 items-center justify-between gap-4 rounded-2xl px-5">
           {/* Left: Brand & Filter Pills */}
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FF5500] text-[#09090B]">
-                <GameController size={20} weight="fill" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FF5500] text-[#07070A] shadow-[0_0_16px_rgba(255,85,0,0.6)]">
+                <GameController size={22} weight="fill" />
               </div>
               <div>
-                <div className="font-mono text-xs font-bold tracking-[0.2em] text-[#F4F4F5]">
-                  OVERCADE // OS
+                <div className="font-arcade text-[11px] sm:text-xs text-[#F4F4F5]">
+                  OVERCADE // DECK
                 </div>
-                <div className="font-mono text-[10px] text-[#A1A1AA]">
-                  OPERATÖR: {operatorName}
+                <div className="font-mono text-[10px] tracking-wider text-[#F59E0B]">
+                  OPERATOR: {operatorName}
                 </div>
               </div>
             </div>
 
             {/* Category Filter Tabs (Navigable via L1 / R1) */}
             <nav
-              aria-label="Katalog Filtreleri"
-              className="hidden md:flex items-center gap-1 rounded-full border border-white/10 bg-[#09090B] p-1 font-mono text-xs"
+              aria-label="Arcade Cartridge Filters"
+              className="hidden md:flex items-center gap-1 rounded-xl border border-white/10 bg-[#07070A] p-1 font-mono text-xs"
             >
               <span className="px-2 text-[10px] text-[#A1A1AA]">[L1]</span>
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => setActiveFilter('all')}
-                className={`spatial-focusable rounded-full px-3.5 py-1 font-semibold transition-colors ${
+                className={`spatial-focusable rounded-lg px-3.5 py-1 font-bold transition-colors ${
                   activeFilter === 'all'
-                    ? 'bg-[#FF5500] text-[#09090B]'
+                    ? 'bg-[#FF5500] text-[#07070A]'
                     : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
-                TÜM KATALOG (5)
+                ALL CARTRIDGES (5)
               </button>
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => setActiveFilter('playable')}
-                className={`spatial-focusable rounded-full px-3.5 py-1 font-semibold transition-colors ${
+                className={`spatial-focusable rounded-lg px-3.5 py-1 font-bold transition-colors ${
                   activeFilter === 'playable'
-                    ? 'bg-[#FF5500] text-[#09090B]'
+                    ? 'bg-[#FF5500] text-[#07070A]'
                     : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
-                OYNANABİLİR (4)
+                PLAYABLE (5)
               </button>
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => setActiveFilter('upcoming')}
-                className={`spatial-focusable rounded-full px-3.5 py-1 font-semibold transition-colors ${
+                className={`spatial-focusable rounded-lg px-3.5 py-1 font-bold transition-colors ${
                   activeFilter === 'upcoming'
-                    ? 'bg-[#FF5500] text-[#09090B]'
+                    ? 'bg-[#FF5500] text-[#07070A]'
                     : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                 }`}
               >
-                GELECEK SLOTLAR (1)
+                EXPANSION SLOTS (0)
               </button>
               <span className="px-2 text-[10px] text-[#A1A1AA]">[R1]</span>
             </nav>
@@ -241,7 +241,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
               type="button"
               tabIndex={-1}
               onClick={onOpenPairing}
-              className={`spatial-focusable inline-flex items-center gap-2 rounded-full border px-4 py-2 font-mono text-xs font-semibold active:scale-[0.98] transition-transform ${
+              className={`spatial-focusable inline-flex items-center gap-2 rounded-xl border px-4 py-2 font-mono text-xs font-bold active:scale-[0.98] transition-transform ${
                 phase === 'connected_p2p'
                   ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
                   : 'border-[#FF5500]/50 bg-[#FF5500]/15 text-[#FF5500]'
@@ -251,13 +251,13 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                 <>
                   <CheckCircle size={16} weight="fill" className="text-emerald-400" />
                   <span>
-                    {connectedCount}/4 KUMANDA AKTİF ({packetsPerSecond} Hz)
+                    {connectedCount}/4 PADS ACTIVE ({packetsPerSecond} Hz)
                   </span>
                 </>
               ) : (
                 <>
                   <QrCode size={16} weight="bold" />
-                  <span>1-4 KUMANDA BAĞLA [{roomId || '...'}]</span>
+                  <span>LINK 1-4 PADS [{roomId || '...'}]</span>
                 </>
               )}
             </button>
@@ -266,9 +266,9 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
               type="button"
               tabIndex={-1}
               onClick={onLogout}
-              className="spatial-focusable flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#09090B] text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-white/25"
-              title="Oturumu Kapat"
-              aria-label="Oturumu Kapat"
+              className="spatial-focusable flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-[#07070A] text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-white/25"
+              title="Sign Out"
+              aria-label="Sign Out"
             >
               <SignOut size={16} weight="bold" />
             </button>
@@ -276,25 +276,31 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
         </div>
       </header>
 
-      {/* Main Console Content: Asymmetric Bento Catalog + Active Game Telemetry Spotlight */}
+      {/* Main Console Content: Asymmetric Bento Cartridge Deck + Active Game Telemetry Spotlight */}
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 sm:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left 8 Columns: Asymmetric Bento Game Catalog */}
-        <section className="lg:col-span-8 space-y-4" aria-label="Oyun Kataloğu">
+        <section className="lg:col-span-8 space-y-4" aria-label="Arcade Cartridge Deck">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
+              <div className="font-arcade text-[10px] text-[#FF5500] mb-1">
+                SELECT GAME CARTRIDGE // 1-4 PLAYERS
+              </div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F4F4F5]">
-                Konsol Oyun Kataloğu
+                Arcade Cabinet Library
               </h1>
               <p className="text-xs sm:text-sm text-[#A1A1AA]">
-                Telefon kumandanızın Sol Analogu veya klavye yön tuşları ile kartlar arasında
-                gezinin, <strong className="text-[#FF5500]">[A]</strong> tuşu ile başlatın.
+                Navigate cartridges with your Phone Left Stick or keyboard arrow keys, then press{' '}
+                <strong className="text-[#FF5500]">[A]</strong> or{' '}
+                <strong className="text-[#F59E0B]">[START]</strong> to boot.
               </p>
             </div>
 
-            <div className="font-mono text-xs text-[#A1A1AA] flex items-center gap-2">
-              <Broadcast size={16} className="text-[#FF5500]" />
-              <span>ODA KODU:</span>
-              <strong className="text-[#F4F4F5] tracking-widest">{roomId || '------'}</strong>
+            <div className="rounded-xl border border-[#F59E0B]/35 bg-[#07070A]/90 px-3.5 py-2 font-mono text-xs text-[#A1A1AA] flex items-center gap-2">
+              <Broadcast size={16} className="text-[#FF5500] animate-pulse" />
+              <span>ROOM CODE:</span>
+              <strong className="font-arcade text-xs text-[#F59E0B] tracking-widest">
+                {roomId || '------'}
+              </strong>
             </div>
           </div>
 
@@ -303,15 +309,15 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
               <span>{slotNotice}</span>
               <button
                 type="button"
-                onClick={() => onLaunchGame('ironclad-protocol')}
-                className="shrink-0 rounded-full bg-[#FF5500] px-3.5 py-1.5 font-bold text-[#09090B]"
+                onClick={() => onLaunchGame('chrono-knights')}
+                className="shrink-0 rounded-xl bg-[#FF5500] px-3.5 py-1.5 font-bold text-[#07070A]"
               >
-                IRONCLAD PROTOCOL BAŞLAT
+                LAUNCH CHRONO KNIGHTS
               </button>
             </div>
           )}
 
-          {/* Bento Grid (Exact cell count matching filteredGames) */}
+          {/* Bento Grid */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             {filteredGames.map((game, index) => {
               const isSelected = selectedGame.id === game.id;
@@ -321,8 +327,8 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                 game.bentoSpan === 'hero'
                   ? 'md:col-span-12'
                   : game.bentoSpan === 'wide'
-                  ? 'md:col-span-7'
-                  : 'md:col-span-5';
+                  ? 'md:col-span-6'
+                  : 'md:col-span-6';
 
               return (
                 <div key={game.id} className={`${colSpanClass} double-bezel-outer`}>
@@ -337,27 +343,28 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                       game.bentoSpan === 'hero' ? 'min-h-[250px] sm:min-h-[280px]' : 'min-h-[210px]'
                     }`}
                   >
-                    {/* Background Cover Art */}
+                    {/* Background Cover Art + CRT Scanlines */}
                     <img
                       src={game.coverImage}
                       alt={game.title}
                       className="absolute inset-0 h-full w-full object-cover object-center opacity-55 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#09090B] via-[#09090B]/70 to-transparent" />
+                    <div className="arcade-scanlines pointer-events-none absolute inset-0" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#07070A] via-[#07070A]/70 to-transparent" />
 
                     {/* Top Meta Bar */}
                     <div className="relative z-10 flex w-full items-center justify-between p-4 sm:p-5">
-                      <span className="rounded-full border border-white/15 bg-[#09090B]/85 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#F4F4F5] backdrop-blur-md">
+                      <span className="rounded-lg border border-white/15 bg-[#07070A]/85 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#F4F4F5] backdrop-blur-md">
                         {game.genre}
                       </span>
 
                       <span
-                        className={`rounded-full px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${
+                        className={`rounded-lg px-3 py-1 font-mono text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md ${
                           game.status === 'playable_game'
-                            ? 'bg-[#FF5500] text-[#09090B]'
+                            ? 'bg-[#FF5500] text-[#07070A] shadow-[0_0_12px_rgba(255,85,0,0.5)]'
                             : game.status === 'playable_testbed'
                             ? 'border border-emerald-400/40 bg-emerald-500/20 text-emerald-300'
-                            : 'border border-white/15 bg-[#09090B]/85 text-[#A1A1AA]'
+                            : 'border border-white/15 bg-[#07070A]/85 text-[#A1A1AA]'
                         }`}
                       >
                         {game.statusLabel}
@@ -375,7 +382,7 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                         </p>
                       </div>
 
-                      <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-[#FF5500] text-[#09090B] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                      <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-[#FF5500] text-[#07070A] shadow-[0_3px_0_#8F2800] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                         {isPlayable ? (
                           <Play size={18} weight="fill" />
                         ) : (
@@ -391,17 +398,18 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
         </section>
 
         {/* Right 4 Columns: Selected Game Telemetry & Controller Mapping Panel */}
-        <aside className="lg:col-span-4" aria-label="Seçili Oyun Detayları ve Kumanda Haritası">
+        <aside className="lg:col-span-4" aria-label="Selected Cartridge Specs and Gamepad Map">
           <div className="double-bezel-outer sticky top-6">
             <div className="double-bezel-inner p-5 sm:p-6 space-y-5">
-              {/* Preview Image */}
-              <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-[#09090B]">
+              {/* CRT Preview Window */}
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/15 bg-[#07070A]">
                 <img
                   src={selectedGame.coverImage}
                   alt={selectedGame.title}
                   className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#09090B] via-transparent to-transparent" />
+                <div className="arcade-scanlines pointer-events-none absolute inset-0" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#07070A] via-transparent to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                   <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#FF5500]">
                     {selectedGame.engineSpec}
@@ -415,6 +423,9 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
 
               {/* Title & Description */}
               <div>
+                <div className="font-arcade text-[9px] text-[#F59E0B] mb-1">
+                  CARTRIDGE // READY TO BOOT
+                </div>
                 <h2 className="text-2xl font-bold tracking-tight text-[#F4F4F5]">
                   {selectedGame.title}
                 </h2>
@@ -423,62 +434,62 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
                 </p>
               </div>
 
-              {/* Controller Mapping Spec (Grouped Chunks) */}
-              <div className="rounded-xl border border-white/10 bg-[#09090B] p-4 space-y-3">
+              {/* Controller Mapping Spec */}
+              <div className="rounded-xl border border-white/10 bg-[#07070A] p-4 space-y-3">
                 <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-[#F4F4F5]">
                   <SlidersHorizontal size={15} className="text-[#FF5500]" />
-                  <span>TELEFON KUMANDA ATAMALARI</span>
+                  <span>MOBILE GAMEPAD BINDINGS</span>
                 </div>
 
                 <dl className="grid grid-cols-1 gap-2 font-mono text-xs">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <dt className="text-[#A1A1AA]">SOL ANALOG</dt>
-                    <dd className="text-[#F4F4F5] font-semibold">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5 gap-2">
+                    <dt className="text-[#A1A1AA] shrink-0">LEFT STICK</dt>
+                    <dd className="text-[#F4F4F5] font-semibold text-right">
                       {selectedGame.controlsMapping.leftStick}
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <dt className="text-[#A1A1AA]">SAĞ ANALOG</dt>
-                    <dd className="text-[#F4F4F5] font-semibold">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5 gap-2">
+                    <dt className="text-[#A1A1AA] shrink-0">SECONDARY</dt>
+                    <dd className="text-[#F4F4F5] font-semibold text-right">
                       {selectedGame.controlsMapping.rightStick}
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <dt className="text-[#FF5500]">[A] BİRİNCİL</dt>
-                    <dd className="text-[#F4F4F5] font-semibold">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5 gap-2">
+                    <dt className="text-[#FF5500] shrink-0">[A] PRIMARY</dt>
+                    <dd className="text-[#F4F4F5] font-semibold text-right">
                       {selectedGame.controlsMapping.buttonA}
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <dt className="text-[#FF5500]">[B] İKİNCİL</dt>
-                    <dd className="text-[#F4F4F5] font-semibold">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5 gap-2">
+                    <dt className="text-[#FF5500] shrink-0">[B] SPECIAL</dt>
+                    <dd className="text-[#F4F4F5] font-semibold text-right">
                       {selectedGame.controlsMapping.buttonB}
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <dt className="text-[#A1A1AA]">[L1 / R1]</dt>
-                    <dd className="text-[#F4F4F5] font-semibold">
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-[#A1A1AA] shrink-0">[L1 / R1]</dt>
+                    <dd className="text-[#F4F4F5] font-semibold text-right">
                       {selectedGame.controlsMapping.triggers}
                     </dd>
                   </div>
                 </dl>
               </div>
 
-              {/* Launch Button */}
+              {/* Tactile Coin-Op Launch Button */}
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => handleActivateGame(selectedGame)}
-                className="spatial-focusable group flex w-full items-center justify-between rounded-full bg-[#FF5500] pl-6 pr-2 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#09090B] active:scale-[0.98] transition-transform"
+                className="spatial-focusable arcade-btn-primary group flex w-full items-center justify-between rounded-xl pl-5 pr-2.5 py-3 font-mono text-xs font-extrabold uppercase tracking-wider"
               >
                 <span>
                   {selectedGame.status === 'playable_game'
-                    ? 'OYUNU BAŞLAT [A]'
+                    ? 'PRESS START // LAUNCH GAME [A]'
                     : selectedGame.status === 'playable_testbed'
-                    ? 'SİMÜLASYONU BAŞLAT [A]'
-                    : 'SLOT DETAYINI GÖRÜNTÜLE'}
+                    ? 'LAUNCH 3D SIMULATION [A]'
+                    : 'INSPECT SLOT DETAILS'}
                 </span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/15 transition-transform group-hover:translate-x-0.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/20 transition-transform group-hover:translate-x-0.5">
                   {isSelectedPlayable ? (
                     <Play size={16} weight="fill" />
                   ) : (
@@ -490,9 +501,9 @@ export const ConsoleDashboard: React.FC<ConsoleDashboardProps> = ({
               <div className="flex items-center justify-between font-mono text-[10px] text-[#A1A1AA]">
                 <span className="inline-flex items-center gap-1">
                   <Cpu size={13} className="text-[#FF5500]" />
-                  COOP/COEP İZOLASYON AKTİF
+                  COOP/COEP ISOLATION ACTIVE
                 </span>
-                <span>SHAREDARRAYBUFFER HAZIR</span>
+                <span className="text-emerald-400">60HZ WEBRTC READY</span>
               </div>
             </div>
           </div>

@@ -53,7 +53,7 @@ export const VEHICLE_ROSTER: VehicleSpec[] = [
   {
     id: 'spectre-gtr',
     name: 'SPECTRE GT-R',
-    tagline: 'Dengeli Çift-Turbo Sokak Avcısı',
+    tagline: 'Balanced Twin-Turbo Street Interceptor',
     chassisStyle: 'coupe',
     topSpeedStat: 84,
     accelStat: 86,
@@ -68,7 +68,7 @@ export const VEHICLE_ROSTER: VehicleSpec[] = [
   {
     id: 'apex-v12',
     name: 'APEX V12 HYPER',
-    tagline: 'Ultra Yüksek Hızlı Aerodinamik Prototip',
+    tagline: 'Ultra High-Speed Aerodynamic Prototype',
     chassisStyle: 'hyper',
     topSpeedStat: 98,
     accelStat: 90,
@@ -83,7 +83,7 @@ export const VEHICLE_ROSTER: VehicleSpec[] = [
   {
     id: 'bruiser-srt',
     name: 'BRUISER SRT-8',
-    tagline: 'Ağır Zırhlı Savaş & Barge Tankı',
+    tagline: 'Heavy Armored Combat & Barge Juggernaut',
     chassisStyle: 'muscle',
     topSpeedStat: 78,
     accelStat: 80,
@@ -98,7 +98,7 @@ export const VEHICLE_ROSTER: VehicleSpec[] = [
   {
     id: 'kitsune-drift',
     name: 'KITSUNE DRIFT-X',
-    tagline: 'JDM Siber-Tuner & Hızlı Drift Şarjı',
+    tagline: 'JDM Cyber-Tuner & Rapid Drift Boost',
     chassisStyle: 'tuner',
     topSpeedStat: 82,
     accelStat: 92,
@@ -133,9 +133,9 @@ export const TRACK_ROSTER: TrackSpec[] = [
   {
     id: 'neon-tokyo',
     name: 'NEON TOKYO OVERPASS',
-    subtitle: 'Siber-Metropol Gece Otoyolu ve Gökdelen Köprüleri',
-    difficulty: 'ORTA // HIZ & DRIFT',
-    lengthLabel: '1.42 KM // 3 TUR',
+    subtitle: 'Cyber-Metropolis Midnight Expressway & Skybridge Loops',
+    difficulty: 'MEDIUM // SPEED & DRIFT',
+    lengthLabel: '1.42 KM // 3 LAPS',
     skyColor: '#05050A',
     groundColor: '#07070E',
     roadColor: '#11111A',
@@ -164,9 +164,9 @@ export const TRACK_ROSTER: TrackSpec[] = [
   {
     id: 'redline-canyon',
     name: 'REDLINE CANYON DAM',
-    subtitle: 'Kızıl Kanyon U-Virajları ve Yüksek Baraj Düzlüğü',
-    difficulty: 'ZOR // KESKİN VİRAJ',
-    lengthLabel: '1.65 KM // 3 TUR',
+    subtitle: 'Crimson Canyon Hairpins & High-Altitude Hydro Dam Straight',
+    difficulty: 'HARD // HAIRPIN TURNS',
+    lengthLabel: '1.65 KM // 3 LAPS',
     skyColor: '#120705',
     groundColor: '#1A0B08',
     roadColor: '#181210',
@@ -194,9 +194,9 @@ export const TRACK_ROSTER: TrackSpec[] = [
   {
     id: 'cryo-sector',
     name: 'CRYO-SECTOR ZERO',
-    subtitle: 'Kutup Araştırma Üssü, Uzun Nitro Düzlükleri ve Buzul Virajlar',
-    difficulty: 'HIZLI // KAYGAN ZEMİN',
-    lengthLabel: '1.58 KM // 3 TUR',
+    subtitle: 'Arctic Research Outpost, Long Nitro Straights & Glacial Curves',
+    difficulty: 'FAST // LOW-GRIP ICE',
+    lengthLabel: '1.58 KM // 3 LAPS',
     skyColor: '#040B14',
     groundColor: '#071320',
     roadColor: '#101B29',
@@ -229,11 +229,11 @@ const POWERUP_COLORS: Record<PowerupType, string> = {
 };
 
 const POWERUP_LABELS: Record<PowerupType, string> = {
-  SHUNT: 'SHUNT FÜZESİ',
-  BARGE: 'BARGE DARBESİ',
-  NITRO: 'NİTRO İTKİ',
-  SHIELD: 'KALKAN + TAMİR',
-  BOLT: '3X PLAZMA OKU',
+  SHUNT: 'SHUNT MISSILE',
+  BARGE: 'BARGE SHOCKWAVE',
+  NITRO: 'NITRO BOOST',
+  SHIELD: 'SHIELD + REPAIR',
+  BOLT: '3X PLASMA BOLTS',
 };
 
 const CAR_COLORS = [
@@ -2022,8 +2022,8 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
           setSelectedTrackIdx(chosenTrack);
           setVoteResultBanner(
             activeSlots.length > 1
-              ? `OYLAMA SONUCU: ${TRACK_ROSTER[chosenTrack].name} SEÇİLDİ!`
-              : `${TRACK_ROSTER[chosenTrack].name} YÜKLENİYOR...`
+              ? `VOTE RESULT: ${TRACK_ROSTER[chosenTrack].name} SELECTED!`
+              : `LOADING ${TRACK_ROSTER[chosenTrack].name}...`
           );
           SoundFX.playWaveClear();
 
@@ -2100,14 +2100,14 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#09090B]/90 px-4 py-2 font-mono text-xs font-bold text-[#F4F4F5] hover:border-[#FF5500]"
             >
               <ArrowLeft size={15} weight="bold" />
-              <span>KATALOĞA DÖN</span>
+              <span>EXIT TO DECK</span>
             </button>
             <div>
               <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#FF5500]">
                 VORTEX // DRIFT 09: BLUR SHOWROOM
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[#F4F4F5]">
-                GARAJ & ARAÇ SEÇİMİ ({activeHumanSlots.length} AKTİF SÜRÜCÜ)
+                GARAGE & VEHICLE SELECT ({activeHumanSlots.length} ACTIVE DRIVERS)
               </h1>
             </div>
           </div>
@@ -2120,7 +2120,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
             >
               <QrCode size={16} weight="bold" />
               <span>
-                {connectedCount}/4 TELEFON BAĞLI [{roomId || '...'}]
+                {connectedCount}/4 PADS LINKED [{roomId || '...'}]
               </span>
             </button>
 
@@ -2132,7 +2132,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
               }}
               className="rounded-full bg-[#FF5500] px-5 py-2 font-mono text-xs font-black text-[#09090B] hover:bg-[#FF5500]/90"
             >
-              HARİTA SEÇİMİNE GEÇ [A]
+              PROCEED TO TRACK VOTE [A]
             </button>
           </div>
         </header>
@@ -2141,14 +2141,14 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
         <div className="relative z-10 mx-auto w-full max-w-[1400px] px-4 sm:px-8 pb-6 pt-auto">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 font-mono text-xs text-[#A1A1AA]">
             <span>
-              Telefon kumandanızda <strong className="text-[#F4F4F5]">SOL ANALOG (Sol/Sağ)</strong>{' '}
-              ile aracınızı değiştirin, <strong className="text-[#FF5500]">[A]</strong> tuşu ile
-              onaylayın.
+              Use <strong className="text-[#F4F4F5]">LEFT STICK (Left/Right)</strong> on your phone
+              gamepad to cycle vehicles, then press <strong className="text-[#FF5500]">[A]</strong>{' '}
+              to lock in.
             </span>
             <span className="text-[#FF5500]">
               {isMultiplayerVote
-                ? 'ÇOK OYUNCULU MOD AKTİF // SONRAKİ ADIM: HARİTA OYLAMASI'
-                : 'TEK OYUNCULU MOD // KLAVYE VEYA 2. TELEFON İLE CO-OP AÇILIR'}
+                ? 'MULTIPLAYER ACTIVE // NEXT STEP: TRACK VOTING'
+                : 'SOLO MODE // CONNECT A 2ND PHONE FOR SPLIT-SCREEN'}
             </span>
           </div>
 
@@ -2176,7 +2176,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                           style={{ backgroundColor: pColor }}
                         />
                         <span className="font-mono text-xs font-black text-[#F4F4F5]">
-                          SÜRÜCÜ P{slotIdx + 1}
+                          DRIVER P{slotIdx + 1}
                         </span>
                       </div>
                       <span
@@ -2188,7 +2188,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                             : 'bg-white/5 text-[#71717A]'
                         }`}
                       >
-                        {isReady ? 'HAZIR [✓]' : isHuman ? 'SEÇİYOR...' : 'AI RAKİP'}
+                        {isReady ? 'LOCKED [OK]' : isHuman ? 'SELECTING...' : 'AI RIVAL'}
                       </span>
                     </div>
 
@@ -2237,10 +2237,10 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                       {/* 4 Performance Stat Bars */}
                       <div className="mt-3 space-y-1.5 font-mono text-[10px]">
                         {[
-                          { label: 'AZAMİ HIZ', val: veh.topSpeedStat },
-                          { label: 'İVMELENME', val: veh.accelStat },
-                          { label: 'DRIFT TUTUŞU', val: veh.driftStat },
-                          { label: 'ZIRH GÜCÜ', val: veh.armorStat },
+                          { label: 'TOP SPEED', val: veh.topSpeedStat },
+                          { label: 'ACCEL', val: veh.accelStat },
+                          { label: 'DRIFT GRIP', val: veh.driftStat },
+                          { label: 'ARMOR', val: veh.armorStat },
                         ].map((st) => (
                           <div key={st.label} className="flex items-center justify-between gap-2">
                             <span className="w-24 text-[#A1A1AA]">{st.label}</span>
@@ -2277,7 +2277,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                           : 'border border-white/15 bg-white/5 text-[#F4F4F5] hover:border-[#FF5500]'
                       }`}
                     >
-                      {isReady ? 'ARAÇ ONAYLANDI [B İPTAL]' : 'ARACI ONAYLA [A]'}
+                      {isReady ? 'VEHICLE LOCKED [B CANCEL]' : 'CONFIRM VEHICLE [A]'}
                     </button>
                   </div>
                 </div>
@@ -2314,18 +2314,18 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#121215] px-4 py-2 font-mono text-xs font-bold text-[#F4F4F5] hover:border-[#FF5500]"
             >
               <CarProfile size={16} weight="bold" />
-              <span>GARAJA DÖN</span>
+              <span>BACK TO GARAGE</span>
             </button>
             <div>
               <div className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#FF5500]">
                 {isMultiplayerVote
-                  ? `ÇOK OYUNCULU HARİTA OYLAMASI (${activeHumanSlots.length} OYUNCU)`
-                  : 'HARİTA & PİST SEÇİMİ'}
+                  ? `MULTIPLAYER CIRCUIT VOTE (${activeHumanSlots.length} DRIVERS)`
+                  : 'CIRCUIT & TRACK SELECTION'}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#F4F4F5]">
                 {isMultiplayerVote
-                  ? 'YARIŞ PİSTİNİ OYLA'
-                  : 'YARIŞILACAK PİSTİ SEÇİN'}
+                  ? 'VOTE FOR RACING CIRCUIT'
+                  : 'SELECT RACING CIRCUIT'}
               </h1>
             </div>
           </div>
@@ -2340,7 +2340,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
             }}
             className="rounded-full bg-[#FF5500] px-6 py-2.5 font-mono text-xs font-black text-[#09090B]"
           >
-            YARIŞI HEMEN BAŞLAT [A]
+            LAUNCH RACE NOW [A]
           </button>
         </header>
 
@@ -2409,8 +2409,8 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                       </div>
 
                       <div className="flex items-center justify-between font-mono text-[10px] text-[#A1A1AA]">
-                        <span>YOL TUTUŞU: %{Math.round(track.gripMul * 100)}</span>
-                        <span>OY SAYISI: {voteCount}</span>
+                        <span>SURFACE GRIP: {Math.round(track.gripMul * 100)}%</span>
+                        <span>VOTES: {voteCount}</span>
                       </div>
                     </div>
 
@@ -2429,7 +2429,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                       <div className="flex flex-wrap items-center gap-2 min-h-[34px]">
                         {votersOnThisTrack.length === 0 ? (
                           <span className="font-mono text-[11px] text-[#71717A]">
-                            Kumanda ile bu haritaya gelip [A] basın
+                            Move cursor here and press [A] to vote
                           </span>
                         ) : (
                           votersOnThisTrack.map((slotIdx) => {
@@ -2446,7 +2446,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                                 }}
                               >
                                 <CheckCircle size={14} weight="fill" />
-                                P{slotIdx + 1} {locked ? 'OY VERDİ' : 'SEÇİYOR'}
+                                P{slotIdx + 1} {locked ? 'VOTED' : 'SELECTING'}
                               </span>
                             );
                           })
@@ -2466,11 +2466,11 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
             <Users size={16} className="text-[#FF5500]" />
             <span>
               {isMultiplayerVote
-                ? 'Tüm bağlı oyuncular [A] tuşuyla oyunu kilitlediğinde en çok oy alan harita otomatik başlar!'
-                : 'Sol Analog ile haritayı seçin ve [A] tuşuna basarak yarışı başlatın.'}
+                ? 'Once all connected drivers lock their vote with [A], the winning circuit launches automatically!'
+                : 'Select a circuit with Left Stick and press [A] to launch the race.'}
             </span>
           </div>
-          <span>3 TUR // 6 ARAÇ // BLUR GÜÇLENDİRİCİ PAKETİ AKTİF</span>
+          <span>3 LAPS // 6 CARS // BLUR POWER-UP MATRIX ACTIVE</span>
         </footer>
       </div>
     );
@@ -2518,7 +2518,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
               {hud.countdownValue}
             </div>
             <div className="mt-1 font-mono text-[11px] text-[#A1A1AA]">
-              MOTORLAR HAZIRLANIYOR...
+              REVVING ENGINES...
             </div>
           </div>
         </div>
@@ -2533,7 +2533,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
             className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#09090B]/90 px-3.5 py-1.5 font-mono text-xs font-bold text-[#F4F4F5] backdrop-blur-xl hover:border-[#FF5500]"
           >
             <ArrowLeft size={15} weight="bold" />
-            <span>KATALOG</span>
+            <span>DECK</span>
           </button>
 
           <button
@@ -2546,20 +2546,20 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
             className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-[#09090B]/90 px-3.5 py-1.5 font-mono text-xs font-bold text-[#F4F4F5] backdrop-blur-xl hover:border-[#FF5500]"
           >
             <Gauge size={14} className="text-[#FF5500]" weight="bold" />
-            <span>ARAÇ & HARİTA SEÇ</span>
+            <span>GARAGE & TRACKS</span>
           </button>
 
           <button
             type="button"
             onClick={cycleSplitMode}
             className="inline-flex items-center gap-1.5 rounded-full border border-[#FF5500]/50 bg-[#FF5500]/15 px-3.5 py-1.5 font-mono text-xs font-bold text-[#FF5500] backdrop-blur-xl"
-            title="Bölünmüş Ekran Modunu Değiştir"
+            title="Cycle Split-Screen Layout"
           >
             <ArrowsOutSimple size={14} weight="bold" />
             <span>
-              EKRAN:{' '}
+              VIEW:{' '}
               {splitMode === 'auto'
-                ? `OTOMATİK (${numViews}P)`
+                ? `AUTO (${numViews}P)`
                 : splitMode.toUpperCase() + ' SPLIT'}
             </span>
           </button>
@@ -2573,7 +2573,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                 : 'border-white/15 bg-[#09090B]/85 text-[#A1A1AA]'
             }`}
           >
-            <span>OTO-GAZ [Y]: {autoThrottle ? 'AÇIK' : 'KAPALI'}</span>
+            <span>AUTO-THROTTLE [Y]: {autoThrottle ? 'ON' : 'OFF'}</span>
           </button>
         </div>
 
@@ -2584,14 +2584,14 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
             className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-[#09090B]/90 px-3 py-1.5 font-mono text-xs font-semibold text-[#A1A1AA] hover:text-[#F4F4F5]"
           >
             <ArrowsClockwise size={14} weight="bold" />
-            <span className="hidden md:inline">YARIŞI SIFIRLA</span>
+            <span className="hidden md:inline">RESTART RACE</span>
           </button>
 
           <button
             type="button"
             onClick={toggleMute}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-[#09090B]/90 text-[#F4F4F5]"
-            title="Sesi Aç / Kapat"
+            title="Mute / Unmute Audio"
           >
             {muted ? <SpeakerSlash size={15} /> : <SpeakerHigh size={15} />}
           </button>
@@ -2603,7 +2603,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
           >
             <QrCode size={15} weight="bold" />
             <span>
-              {connectedCount}/4 TELEFON [{roomId || '...'}] ({packetsPerSecond} Hz)
+              {connectedCount}/4 PADS [{roomId || '...'}] ({packetsPerSecond} Hz)
             </span>
           </button>
         </div>
@@ -2653,7 +2653,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                       />
                     </div>
                     <span className="font-mono text-[10px] font-bold text-[#A1A1AA]">
-                      ZIRH {hpPercent}%
+                      ARMOR {hpPercent}%
                     </span>
                   </div>
                 </div>
@@ -2661,7 +2661,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                 {/* Rank & Lap Badge */}
                 <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#09090B]/85 px-4 py-2 backdrop-blur-md font-mono">
                   <div className="text-right pr-2 border-r border-white/10">
-                    <div className="text-[10px] text-[#A1A1AA]">SIRALAMA</div>
+                    <div className="text-[10px] text-[#A1A1AA]">POS</div>
                     <div
                       className="text-lg sm:text-xl font-black leading-none"
                       style={{ color: vp.rank === 1 ? '#FF5500' : '#F4F4F5' }}
@@ -2670,7 +2670,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                     </div>
                   </div>
                   <div className="pl-1">
-                    <div className="text-[10px] text-[#A1A1AA]">TUR</div>
+                    <div className="text-[10px] text-[#A1A1AA]">LAP</div>
                     <div className="text-lg sm:text-xl font-black leading-none text-[#F4F4F5]">
                       {vp.lap} / {TOTAL_LAPS}
                     </div>
@@ -2683,9 +2683,9 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                 <div className="rounded-2xl border border-white/15 bg-[#09090B]/85 p-2.5 backdrop-blur-xl">
                   <div className="mb-1.5 flex items-center justify-between gap-3 font-mono text-[10px]">
                     <span className="font-bold text-[#FF5500]">
-                      [B] ATEŞLE: {activePowerup ? POWERUP_LABELS[activePowerup] : 'BOŞ SLOT'}
+                      [B] FIRE: {activePowerup ? POWERUP_LABELS[activePowerup] : 'EMPTY SLOT'}
                     </span>
-                    <span className="text-[#A1A1AA]">[R1] SLOT DEĞİŞTİR</span>
+                    <span className="text-[#A1A1AA]">[R1] CYCLE SLOT</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {[0, 1, 2].map((sIdx) => {
@@ -2721,19 +2721,19 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                   <div className="flex items-center justify-end gap-1.5">
                     {vp.drifting && (
                       <span className="rounded bg-[#FF5500] px-1.5 py-0.5 text-[10px] font-black text-[#09090B]">
-                        DRIFT ŞARJ
+                        DRIFT CHARGE
                       </span>
                     )}
                     {vp.nitroActive && (
                       <span className="rounded bg-sky-400 px-1.5 py-0.5 text-[10px] font-black text-[#09090B]">
-                        NİTRO AKTİF
+                        NITRO ACTIVE
                       </span>
                     )}
-                    <span className="text-[10px] text-[#A1A1AA]">HIZ</span>
+                    <span className="text-[10px] text-[#A1A1AA]">SPEED</span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#F4F4F5]">
                     {vp.speedKmh}{' '}
-                    <span className="text-xs font-semibold text-[#FF5500]">KM/S</span>
+                    <span className="text-xs font-semibold text-[#FF5500]">KM/H</span>
                   </div>
                   <div className="text-[10px] text-[#A1A1AA]">
                     {currentTrackSpec.name}
@@ -2754,14 +2754,14 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                 <Trophy size={32} weight="fill" />
               </div>
               <div className="font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
-                {currentTrackSpec.name} TAMAMLANDI
+                {currentTrackSpec.name} COMPLETED
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-[#F4F4F5]">
-                KAZANAN: {hud.winnerCallsign}
+                WINNER: {hud.winnerCallsign}
               </h2>
               <p className="font-mono text-xs text-[#A1A1AA]">
-                Yeni araç ve harita oylaması için telefon kumandanızda{' '}
-                <strong className="text-[#FF5500]">[START]</strong> tuşuna basın.
+                Press <strong className="text-[#FF5500]">[START]</strong> on your mobile controller
+                to return to the Garage & Circuit Vote.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
@@ -2773,14 +2773,14 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                   }}
                   className="rounded-full bg-[#FF5500] px-6 py-2.5 font-mono text-xs font-bold text-[#09090B]"
                 >
-                  ARAÇ & HARİTA SEÇ [START]
+                  GARAGE & TRACK SELECT [START]
                 </button>
                 <button
                   type="button"
                   onClick={() => setResetToken((t) => t + 1)}
                   className="rounded-full border border-white/15 bg-[#09090B] px-5 py-2.5 font-mono text-xs font-bold text-[#F4F4F5]"
                 >
-                  AYNI PİSTTE TEKRAR
+                  REMATCH ON SAME CIRCUIT
                 </button>
               </div>
             </div>

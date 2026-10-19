@@ -8,6 +8,7 @@ import {
   SignIn,
   Lightning,
   WarningCircle,
+  Broadcast,
 } from '@phosphor-icons/react';
 import { loginWithEmail, registerWithEmail } from '../lib/firebase';
 import { useConsoleConnectionStore } from '../lib/gameEngineBridge';
@@ -28,7 +29,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { roomId, phase } = useConsoleConnectionStore();
+  const { roomId, phase, connectedCount } = useConsoleConnectionStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,14 +45,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code || '';
       if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
-        setError('E-posta veya parola hatalı. Lütfen bilgilerinizi kontrol edin.');
+        setError('Invalid email or passcode. Please verify your operator credentials.');
       } else if (code === 'auth/email-already-in-use') {
-        setError('Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.');
+        setError('This email address is already registered. Switch to LOGIN mode.');
       } else if (code === 'auth/weak-password') {
-        setError('Parola en az 6 karakter uzunluğunda olmalıdır.');
+        setError('Passcode must be at least 6 characters long.');
       } else {
         setError(
-          err instanceof Error ? err.message : 'Kimlik doğrulama sırasında bir hata oluştu.'
+          err instanceof Error ? err.message : 'An authentication error occurred.'
         );
       }
     } finally {
@@ -60,79 +61,104 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#09090B] text-[#F4F4F5] flex flex-col justify-between">
-      {/* Top Floating Hardware Navigation Bar (<= 72px height, single line) */}
+    <div className="arcade-crt-shell min-h-[100dvh] w-full text-[#F4F4F5] flex flex-col justify-between">
+      {/* Top Retro-Arcade Cabinet Marquee Bar */}
       <header className="mx-auto w-full max-w-[1400px] px-4 sm:px-8 pt-4">
-        <div className="flex h-16 items-center justify-between rounded-full border border-white/10 bg-[#121215]/90 px-6 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FF5500] text-[#09090B]">
-              <GameController size={20} weight="fill" />
+        <div className="arcade-marquee-bar flex h-16 items-center justify-between rounded-2xl px-5">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FF5500] text-[#07070A] shadow-[0_0_16px_rgba(255,85,0,0.6)]">
+              <GameController size={22} weight="fill" />
             </div>
-            <span className="font-mono text-sm font-bold tracking-[0.2em] text-[#F4F4F5]">
-              OVERCADE // OS
-            </span>
+            <div>
+              <div className="font-arcade text-xs sm:text-sm text-[#F4F4F5]">
+                OVERCADE // SYS-84
+              </div>
+              <div className="font-mono text-[10px] tracking-[0.2em] text-[#F59E0B]">
+                DISTRIBUTED RETRO-ARCADE CONSOLE OS
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden md:flex items-center gap-2 rounded-lg border border-[#F59E0B]/30 bg-[#07070A]/80 px-3.5 py-1.5 font-arcade text-[10px] text-[#F59E0B]">
+            <span className="h-2 w-2 rounded-full bg-[#10B981] animate-coin-blink" />
+            <span>CREDITS: FREE PLAY</span>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onOpenPairing}
-              className="spatial-focusable inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#09090B] px-4 py-2 font-mono text-xs font-semibold text-[#F4F4F5] hover:border-[#FF5500] active:scale-[0.98] transition-transform"
+              className="spatial-focusable inline-flex items-center gap-2 rounded-xl border border-[#FF5500]/50 bg-[#07070A] px-4 py-2 font-mono text-xs font-bold text-[#F4F4F5] hover:border-[#FF5500] active:scale-[0.98] transition-transform"
             >
               <QrCode size={16} className="text-[#FF5500]" />
               <span>
                 {phase === 'connected_p2p'
-                  ? `KUMANDA BAĞLI [${roomId}]`
-                  : `TELEFON EŞLEŞTİR [${roomId || '...'}]`}
+                  ? `${connectedCount}/4 PAD LINKED [${roomId}]`
+                  : `PAIR PHONE PAD [${roomId || '...'}]`}
               </span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Asymmetric Split Hero & Auth Section */}
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 sm:px-8 py-10 md:py-16 flex items-center">
+      {/* Main Asymmetric Split Attract Mode Hero & Operator Auth Deck */}
+      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 sm:px-8 py-8 md:py-12 flex items-center">
         <div className="grid w-full grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column (7 cols): Hardware Visual & Value Prop */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#FF5500]/30 bg-[#FF5500]/10 px-3.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FF5500]">
-              DAĞITIK WEB TABANLI OYUN KONSOLU
+          {/* Left Column (7 cols): CRT Arcade Attract Showcase */}
+          <div className="lg:col-span-7 space-y-5">
+            <div className="inline-flex items-center gap-2.5 rounded-lg border border-[#FF5500]/40 bg-[#FF5500]/10 px-3.5 py-1.5 font-arcade text-[10px] text-[#FF5500]">
+              <Broadcast size={14} weight="bold" className="animate-pulse" />
+              <span>WEBRTC P2P ZERO-LATENCY ARCADE DECK</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.05] text-[#F4F4F5]">
-              Ekranınız Konsol. Telefonunuz Kumanda.
+            <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-bold tracking-tight leading-[1.06] text-[#F4F4F5]">
+              Your Screen Is The Cabinet.{' '}
+              <span className="text-[#FF5500]">Your Phone Is The Gamepad.</span>
             </h1>
 
-            <p className="max-w-[58ch] text-base sm:text-lg text-[#A1A1AA] leading-relaxed">
-              Kurulum gerektirmeden PC veya akıllı TV tarayıcınızı birincil oyun ekranına,
-              telefonunuzu ise WebRTC P2P veri kanalı üzerinden sıfır gecikmeli kablosuz oyun
-              kumandasına dönüştürün.
+            <p className="max-w-[60ch] text-sm sm:text-base text-[#A1A1AA] leading-relaxed">
+              Turn any PC or Smart TV browser into a 1-4 player multiplayer arcade cabinet with zero
+              installs. Scan the room QR code on up to 4 smartphones to stream 60Hz 8-byte binary
+              gamepad telemetry over direct peer-to-peer WebRTC data channels.
             </p>
 
-            {/* Double-Bezel Hardware Preview Frame */}
+            {/* Double-Bezel CRT Monitor Frame */}
             <div className="double-bezel-outer max-w-2xl">
               <div className="double-bezel-inner overflow-hidden">
-                <div className="relative aspect-video w-full overflow-hidden bg-[#09090B]">
+                <div className="relative aspect-video w-full overflow-hidden bg-[#07070A]">
                   <img
                     src="/assets/hero-hardware.jpg"
-                    alt="Overcade Konsol Çekirdeği ve Kablosuz Mobil Kumanda"
-                    className="h-full w-full object-cover object-center"
+                    alt="Overcade Retro-Arcade Console Core and Wireless Mobile Gamepad"
+                    className="h-full w-full object-cover object-center opacity-85"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#09090B] via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-2">
-                    <div className="rounded-xl border border-white/15 bg-[#09090B]/90 px-3.5 py-2 backdrop-blur-md">
-                      <div className="font-mono text-[10px] text-[#A1A1AA]">İLETİŞİM PROTOKOLÜ</div>
+                  <div className="arcade-scanlines pointer-events-none absolute inset-0" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#07070A] via-transparent to-black/35" />
+
+                  {/* Top CRT Corner HUD */}
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between font-mono text-[10px]">
+                    <span className="rounded border border-emerald-500/40 bg-black/75 px-2.5 py-1 font-bold text-emerald-400">
+                      CRT // 60HZ SYNC
+                    </span>
+                    <span className="rounded border border-[#F59E0B]/40 bg-black/75 px-2.5 py-1 font-arcade text-[9px] text-[#F59E0B] animate-coin-blink">
+                      INSERT COIN // 1-4P
+                    </span>
+                  </div>
+
+                  {/* Bottom Monitor Action Bar */}
+                  <div className="absolute bottom-3.5 left-3.5 right-3.5 flex flex-wrap items-center justify-between gap-2">
+                    <div className="rounded-xl border border-white/15 bg-[#07070A]/90 px-3.5 py-2 backdrop-blur-md">
+                      <div className="font-mono text-[10px] text-[#A1A1AA]">TRANSPORT PROTOCOL</div>
                       <div className="font-mono text-xs font-bold text-[#F4F4F5]">
-                        WebRTC DataChannel // 8-Bayt Binary UDP
+                        WebRTC DataChannel // 8-Byte Binary UDP
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={onOpenPairing}
-                      className="spatial-focusable group inline-flex items-center gap-2.5 rounded-full bg-[#FF5500] pl-5 pr-2 py-2 font-mono text-xs font-bold text-[#09090B] active:scale-[0.98] transition-transform"
+                      className="spatial-focusable arcade-btn-primary group inline-flex items-center gap-2.5 rounded-xl pl-4 pr-2.5 py-2 font-mono text-xs font-extrabold uppercase tracking-wider"
                     >
-                      <span>QR KOD İLE KUMANDA BAĞLA</span>
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/15 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                      <span>LINK PHONE VIA QR</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/20 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                         <ArrowUpRight size={15} weight="bold" />
                       </span>
                     </button>
@@ -142,35 +168,35 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             </div>
           </div>
 
-          {/* Right Column (5 cols): Double-Bezel Firebase Auth Terminal */}
+          {/* Right Column (5 cols): Retro-Arcade Operator Auth Cabinet */}
           <div className="lg:col-span-5">
             <div className="double-bezel-outer">
               <div className="double-bezel-inner p-6 sm:p-8">
                 {/* Mode Switcher */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-5">
                   <div>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#FF5500]">
-                      FIREBASE KİMLİK DOĞRULAMA
+                    <span className="font-arcade text-[10px] uppercase text-[#FF5500]">
+                      ARCADE OPERATOR TERMINAL
                     </span>
-                    <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#F4F4F5]">
-                      {mode === 'login' ? 'Konsol Oturumu Aç' : 'Yeni Operatör Kaydı'}
+                    <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-[#F4F4F5]">
+                      {mode === 'login' ? 'Operator Sign In' : 'New Challenger Entry'}
                     </h2>
                   </div>
 
-                  <div className="flex rounded-xl border border-white/10 bg-[#09090B] p-1 font-mono text-xs">
+                  <div className="flex rounded-xl border border-white/15 bg-[#07070A] p-1 font-mono text-xs">
                     <button
                       type="button"
                       onClick={() => {
                         setMode('login');
                         setError(null);
                       }}
-                      className={`rounded-lg px-3 py-1.5 font-semibold transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 font-bold transition-colors ${
                         mode === 'login'
-                          ? 'bg-[#FF5500] text-[#09090B]'
+                          ? 'bg-[#FF5500] text-[#07070A]'
                           : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                       }`}
                     >
-                      GİRİŞ
+                      SIGN IN
                     </button>
                     <button
                       type="button"
@@ -178,26 +204,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         setMode('register');
                         setError(null);
                       }}
-                      className={`rounded-lg px-3 py-1.5 font-semibold transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 font-bold transition-colors ${
                         mode === 'register'
-                          ? 'bg-[#FF5500] text-[#09090B]'
+                          ? 'bg-[#FF5500] text-[#07070A]'
                           : 'text-[#A1A1AA] hover:text-[#F4F4F5]'
                       }`}
                     >
-                      KAYIT OL
+                      REGISTER
                     </button>
                   </div>
                 </div>
 
-                {/* Form (Labels strictly ABOVE inputs, WCAG AA contrast) */}
+                {/* Form (Labels strictly ABOVE inputs) */}
                 <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                   {mode === 'register' && (
                     <div className="flex flex-col gap-2">
                       <label
                         htmlFor="operator-callsign"
-                        className="font-mono text-xs font-semibold uppercase tracking-wider text-[#F4F4F5]"
+                        className="font-mono text-xs font-bold uppercase tracking-wider text-[#F4F4F5]"
                       >
-                        OYUNCU TAKMA ADI (CALLSIGN)
+                        ARCADE CALLSIGN (3-12 CHARS)
                       </label>
                       <input
                         id="operator-callsign"
@@ -205,8 +231,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         required
                         value={callsign}
                         onChange={(e) => setCallsign(e.target.value)}
-                        placeholder="Örn: VORTEX_PILOT"
-                        className="spatial-focusable rounded-xl border border-white/15 bg-[#09090B] px-4 py-3 text-sm text-[#F4F4F5] placeholder:text-[#A1A1AA]/60 focus:border-[#FF5500] focus:outline-none"
+                        placeholder="e.g. VORTEX_ACE"
+                        className="spatial-focusable rounded-xl border border-white/15 bg-[#07070A] px-4 py-3 font-mono text-sm text-[#F4F4F5] placeholder:text-[#A1A1AA]/50 focus:border-[#FF5500] focus:outline-none"
                       />
                     </div>
                   )}
@@ -214,9 +240,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   <div className="flex flex-col gap-2">
                     <label
                       htmlFor="operator-email"
-                      className="font-mono text-xs font-semibold uppercase tracking-wider text-[#F4F4F5]"
+                      className="font-mono text-xs font-bold uppercase tracking-wider text-[#F4F4F5]"
                     >
-                      E-POSTA ADRESİ
+                      OPERATOR EMAIL ADDRESS
                     </label>
                     <input
                       id="operator-email"
@@ -225,17 +251,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="ornek@overcade.com"
-                      className="spatial-focusable rounded-xl border border-white/15 bg-[#09090B] px-4 py-3 text-sm text-[#F4F4F5] placeholder:text-[#A1A1AA]/60 focus:border-[#FF5500] focus:outline-none"
+                      placeholder="pilot@overcade.io"
+                      className="spatial-focusable rounded-xl border border-white/15 bg-[#07070A] px-4 py-3 font-mono text-sm text-[#F4F4F5] placeholder:text-[#A1A1AA]/50 focus:border-[#FF5500] focus:outline-none"
                     />
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <label
                       htmlFor="operator-password"
-                      className="font-mono text-xs font-semibold uppercase tracking-wider text-[#F4F4F5]"
+                      className="font-mono text-xs font-bold uppercase tracking-wider text-[#F4F4F5]"
                     >
-                      PAROLA
+                      SECURITY PASSCODE
                     </label>
                     <input
                       id="operator-password"
@@ -245,8 +271,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="En az 6 karakter"
-                      className="spatial-focusable rounded-xl border border-white/15 bg-[#09090B] px-4 py-3 text-sm text-[#F4F4F5] placeholder:text-[#A1A1AA]/60 focus:border-[#FF5500] focus:outline-none"
+                      placeholder="Minimum 6 characters"
+                      className="spatial-focusable rounded-xl border border-white/15 bg-[#07070A] px-4 py-3 font-mono text-sm text-[#F4F4F5] placeholder:text-[#A1A1AA]/50 focus:border-[#FF5500] focus:outline-none"
                     />
                   </div>
 
@@ -257,20 +283,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     </div>
                   )}
 
-                  {/* Primary CTA with Button-in-Button Trailing Icon */}
+                  {/* Primary Arcade Coin-Op Launch Button */}
                   <button
                     type="submit"
                     disabled={loading}
-                    className="spatial-focusable group mt-2 flex w-full items-center justify-between rounded-full bg-[#FF5500] pl-6 pr-2 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#09090B] disabled:opacity-50 active:scale-[0.98] transition-transform"
+                    className="spatial-focusable arcade-btn-primary group mt-2 flex w-full items-center justify-between rounded-xl pl-5 pr-2.5 py-3 font-mono text-xs font-extrabold uppercase tracking-wider disabled:opacity-50"
                   >
                     <span>
                       {loading
-                        ? 'DOĞRULANIYOR...'
+                        ? 'AUTHENTICATING...'
                         : mode === 'login'
-                        ? 'KONSOLA GİRİŞ YAP'
-                        : 'HESAP OLUŞTUR VE BAŞLAT'}
+                        ? 'BOOT CONSOLE SESSION'
+                        : 'REGISTER & BOOT CONSOLE'}
                     </span>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/15 transition-transform group-hover:translate-x-0.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/20 transition-transform group-hover:translate-x-0.5">
                       {mode === 'login' ? (
                         <SignIn size={16} weight="bold" />
                       ) : (
@@ -280,24 +306,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   </button>
                 </form>
 
-                {/* Quick Guest Launch Option */}
+                {/* Insert Coin / Instant Guest Play */}
                 <div className="mt-6 border-t border-white/10 pt-5">
                   <button
                     type="button"
                     onClick={onGuestContinue}
-                    className="spatial-focusable flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-[#09090B] px-5 py-3 font-mono text-xs font-semibold text-[#F4F4F5] hover:border-white/30 active:scale-[0.98] transition-transform"
+                    className="spatial-focusable flex w-full items-center justify-center gap-2.5 rounded-xl border border-[#F59E0B]/40 bg-[#F59E0B]/10 px-5 py-3.5 font-arcade text-[10px] text-[#F59E0B] hover:bg-[#F59E0B]/20 active:scale-[0.98] transition-all"
                   >
-                    <Lightning size={16} weight="fill" className="text-[#FF5500]" />
-                    <span>HIZLI TEST MODU (MİSAFİR KONSOL GİRİŞİ)</span>
+                    <Lightning size={16} weight="fill" className="text-[#F59E0B]" />
+                    <span>INSERT COIN // GUEST FREE PLAY</span>
                   </button>
                 </div>
 
                 <div className="mt-4 flex items-center justify-between font-mono text-[11px] text-[#A1A1AA]">
                   <span className="inline-flex items-center gap-1.5">
                     <ShieldCheck size={14} className="text-emerald-400" />
-                    PROJE: overcade-b22ff
+                    CORE: overcade-b22ff
                   </span>
-                  <span>SPARK PLAN KOTA KORUMALI</span>
+                  <span className="text-emerald-400">P2P QUOTA SHIELDED</span>
                 </div>
               </div>
             </div>

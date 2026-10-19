@@ -75,7 +75,15 @@ export const useConsoleConnectionStore = create<ConsoleConnectionStore>((set) =>
 
 type DirectionCommandListener = (dir: MenuDirection, playerSlot: number) => void;
 type ButtonCommandListener = (button: ButtonKey, playerSlot: number) => void;
-type HostFeedbackSender = (playerSlot: number, hpPercent: number, vibrateMs?: number) => void;
+type HostFeedbackSender = (
+  playerSlot: number,
+  hpPercent: number,
+  vibrateMs?: number,
+  mpPercent?: number,
+  gameModeId?: number,
+  heroClassIndex?: number,
+  playerLevel?: number
+) => void;
 
 /**
  * GameEngineBridge
@@ -130,10 +138,22 @@ class GameEngineBridgeCore {
   public sendFeedbackToController(
     playerSlot: number,
     hpPercent: number,
-    vibrateMs = 0
+    vibrateMs = 0,
+    mpPercent = 100,
+    gameModeId = 2,
+    heroClassIndex = 0,
+    playerLevel = 1
   ): void {
     if (this.feedbackSender) {
-      this.feedbackSender(playerSlot, hpPercent, vibrateMs);
+      this.feedbackSender(
+        playerSlot,
+        hpPercent,
+        vibrateMs,
+        mpPercent,
+        gameModeId,
+        heroClassIndex,
+        playerLevel
+      );
     }
   }
 

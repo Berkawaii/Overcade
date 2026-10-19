@@ -5,12 +5,18 @@ import {
   Sun,
   PlugsConnected,
   Vibrate,
-  ArrowUp,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
+  CaretLeft,
+  CaretRight,
   DeviceRotate,
-  ShieldCheck,
+  Heart,
+  Drop,
+  Flask,
+  Lightning,
+  Play,
+  Sword,
+  ShieldStar,
+  Sparkle,
+  Fire,
 } from '@phosphor-icons/react';
 import {
   GamepadPacketEncoder,
@@ -20,6 +26,7 @@ import {
   type GamepadButtons,
 } from '../lib/binaryProtocol';
 import { ControllerSignalingClient } from '../lib/webrtcSignaling';
+import { CLASS_LIST, HERO_CLASSES } from '../games/chronoKnights/constants';
 
 interface TouchStickState {
   touchId: number | null;
@@ -29,7 +36,7 @@ interface TouchStickState {
   currentY: number;
 }
 
-const STICK_MAX_RADIUS = 48;
+const STICK_MAX_RADIUS = 56;
 
 function triggerHaptic(ms = 12): void {
   try {
@@ -48,11 +55,16 @@ export const ControllerApp: React.FC = () => {
     initialRoom ? 'connecting' : 'idle'
   );
   const [statusDetail, setStatusDetail] = useState<string>(
-    initialRoom ? `Connecting to room ${initialRoom.toUpperCase()}...` : 'Enter room code or scan QR code'
+    initialRoom
+      ? `Connecting to room ${initialRoom.toUpperCase()}...`
+      : 'Enter room code or scan QR code'
   );
 
   const [assignedSlot, setAssignedSlot] = useState<number>(0);
-  const [armorHp, setArmorHp] = useState<number>(100);
+  const [hpPercent, setHpPercent] = useState<number>(100);
+  const [mpPercent, setMpPercent] = useState<number>(100);
+  const [heroClassIdx, setHeroClassIdx] = useState<number>(0);
+  const [playerLevel, setPlayerLevel] = useState<number>(1);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(
@@ -81,9 +93,7 @@ export const ControllerApp: React.FC = () => {
     rightY: 0,
   });
 
-  const dpadRef = useRef<{ up: boolean; down: boolean; left: boolean; right: boolean }>({
-    up: false,
-    down: false,
+  const dpadPulseRef = useRef<{ left: boolean; right: boolean }>({
     left: false,
     right: false,
   });
@@ -96,20 +106,12 @@ export const ControllerApp: React.FC = () => {
     currentY: 0,
   });
 
-  const rightStickTouch = useRef<TouchStickState>({
-    touchId: null,
-    originX: 0,
-    originY: 0,
-    currentX: 0,
-    currentY: 0,
-  });
-
   const leftKnobRef = useRef<HTMLDivElement | null>(null);
-  const rightKnobRef = useRef<HTMLDivElement | null>(null);
-  const hexReadoutRef = useRef<HTMLSpanElement | null>(null);
 
-  const playerAccentColor = PLAYER_COLORS[assignedSlot] || '#FF5500';
+  const playerAccentColor = PLAYER_COLORS[assignedSlot] || '#3B82F6';
   const playerCallsign = PLAYER_CALLSIGNS[assignedSlot] || 'HERO-01 // P1';
+  const activeClassId = CLASS_LIST[heroClassIdx] || 'knight';
+  const activeHeroClass = HERO_CLASSES[activeClassId];
 
   const enableWakeLock = useCallback(async () => {
     try {
@@ -170,7 +172,14 @@ export const ControllerApp: React.FC = () => {
         },
         (feedback) => {
           setAssignedSlot(feedback.playerSlot);
-          setArmorHp(feedback.hpPercent);
+          setHpPercent(feedback.hpPercent);
+          setMpPercent(feedback.mpPercent ?? 100);
+          if (feedback.heroClassIndex !== undefined && feedback.heroClassIndex < CLASS_LIST.length) {
+            setHeroClassIdx(feedback.heroClassIndex);
+          }
+          if (feedback.playerLevel !== undefined && feedback.playerLevel >= 1) {
+            setPlayerLevel(feedback.playerLevel);
+          }
           if (feedback.vibrateMs > 0) {
             triggerHaptic(feedback.vibrateMs);
           }
@@ -199,32 +208,19 @@ export const ControllerApp: React.FC = () => {
         lastSendTime = now;
 
         const combinedAxes: GamepadAxes = {
-          leftX:
-            dpadRef.current.left
-              ? -1
-              : dpadRef.current.right
-              ? 1
-              : axesRef.current.leftX,
-          leftY:
-            dpadRef.current.up
-              ? -1
-              : dpadRef.current.down
-              ? 1
-              : axesRef.current.leftY,
-          rightX: axesRef.current.rightX,
-          rightY: axesRef.current.rightY,
+          leftX: dpadPulseRef.current.left
+            ? -1
+            : dpadPulseRef.current.right
+            ? 1
+            : axesRef.current.leftX,
+          leftY: axesRef.current.leftY,
+          rightX: 0,
+          rightY: 0,
         };
 
         const buffer = encoderRef.current.encode(buttonsRef.current, combinedAxes);
         if (clientRef.current?.isConnected()) {
           clientRef.current.sendBinaryBuffer(buffer);
-        }
-
-        if (hexReadoutRef.current) {
-          const bytes = encoderRef.current.getRawBytesSnapshot();
-          hexReadoutRef.current.textContent = bytes
-            .map((b) => b.toString(16).toUpperCase().padStart(2, '0'))
-            .join(' ');
         }
       }
       rafId = requestAnimationFrame(transmitLoop);
@@ -235,33 +231,31 @@ export const ControllerApp: React.FC = () => {
   }, []);
 
   const handleStickStart = (
-    side: 'left' | 'right',
     e: React.TouchEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>
   ) => {
     enableWakeLock();
     const rect = e.currentTarget.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    const state = side === 'left' ? leftStickTouch.current : rightStickTouch.current;
+    const state = leftStickTouch.current;
 
     if ('changedTouches' in e) {
       const touch = e.changedTouches[0];
       if (!touch) return;
       state.touchId = touch.identifier;
-      updateStickVector(side, touch.clientX - centerX, touch.clientY - centerY);
+      updateStickVector(touch.clientX - centerX, touch.clientY - centerY);
     } else {
       state.touchId = e.pointerId;
       e.currentTarget.setPointerCapture(e.pointerId);
-      updateStickVector(side, e.clientX - centerX, e.clientY - centerY);
+      updateStickVector(e.clientX - centerX, e.clientY - centerY);
     }
     triggerHaptic(8);
   };
 
   const handleStickMove = (
-    side: 'left' | 'right',
     e: React.TouchEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>
   ) => {
-    const state = side === 'left' ? leftStickTouch.current : rightStickTouch.current;
+    const state = leftStickTouch.current;
     if (state.touchId === null) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -271,35 +265,34 @@ export const ControllerApp: React.FC = () => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (t.identifier === state.touchId) {
-          updateStickVector(side, t.clientX - centerX, t.clientY - centerY);
+          updateStickVector(t.clientX - centerX, t.clientY - centerY);
           break;
         }
       }
     } else if (e.pointerId === state.touchId) {
-      updateStickVector(side, e.clientX - centerX, e.clientY - centerY);
+      updateStickVector(e.clientX - centerX, e.clientY - centerY);
     }
   };
 
   const handleStickEnd = (
-    side: 'left' | 'right',
     e: React.TouchEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>
   ) => {
-    const state = side === 'left' ? leftStickTouch.current : rightStickTouch.current;
+    const state = leftStickTouch.current;
     if ('changedTouches' in e) {
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === state.touchId) {
           state.touchId = null;
-          updateStickVector(side, 0, 0);
+          updateStickVector(0, 0);
           break;
         }
       }
     } else if (e.pointerId === state.touchId) {
       state.touchId = null;
-      updateStickVector(side, 0, 0);
+      updateStickVector(0, 0);
     }
   };
 
-  const updateStickVector = (side: 'left' | 'right', dx: number, dy: number) => {
+  const updateStickVector = (dx: number, dy: number) => {
     const dist = Math.hypot(dx, dy);
     const clampedDist = Math.min(dist, STICK_MAX_RADIUS);
     const angle = Math.atan2(dy, dx);
@@ -312,25 +305,17 @@ export const ControllerApp: React.FC = () => {
     const finalX = Math.abs(normX) < 0.08 ? 0 : normX;
     const finalY = Math.abs(normY) < 0.08 ? 0 : normY;
 
-    if (side === 'left') {
-      axesRef.current.leftX = finalX;
-      axesRef.current.leftY = finalY;
-      if (leftKnobRef.current) {
-        leftKnobRef.current.style.transform = `translate3d(${clampedX}px, ${clampedY}px, 0)`;
-      }
-    } else {
-      axesRef.current.rightX = finalX;
-      axesRef.current.rightY = finalY;
-      if (rightKnobRef.current) {
-        rightKnobRef.current.style.transform = `translate3d(${clampedX}px, ${clampedY}px, 0)`;
-      }
+    axesRef.current.leftX = finalX;
+    axesRef.current.leftY = finalY;
+    if (leftKnobRef.current) {
+      leftKnobRef.current.style.transform = `translate3d(${clampedX}px, ${clampedY}px, 0)`;
     }
   };
 
   const setButtonState = (btn: keyof GamepadButtons, active: boolean, el?: HTMLElement | null) => {
     enableWakeLock();
     if (active && !buttonsRef.current[btn]) {
-      triggerHaptic(12);
+      triggerHaptic(14);
     }
     buttonsRef.current[btn] = active;
     if (el) {
@@ -338,95 +323,104 @@ export const ControllerApp: React.FC = () => {
     }
   };
 
-  const setDpadState = (
-    dir: 'up' | 'down' | 'left' | 'right',
-    active: boolean,
-    el?: HTMLElement | null
-  ) => {
+  const pulseLobbyDirection = (dir: 'left' | 'right') => {
     enableWakeLock();
-    if (active && !dpadRef.current[dir]) {
-      triggerHaptic(10);
-    }
-    dpadRef.current[dir] = active;
-    if (el) {
-      el.setAttribute('data-pressed', active ? 'true' : 'false');
-    }
+    triggerHaptic(12);
+    dpadPulseRef.current[dir] = true;
+    setHeroClassIdx((prev) =>
+      dir === 'left'
+        ? (prev - 1 + CLASS_LIST.length) % CLASS_LIST.length
+        : (prev + 1) % CLASS_LIST.length
+    );
+    setTimeout(() => {
+      dpadPulseRef.current[dir] = false;
+    }, 90);
   };
 
   return (
-    <div className="controller-viewport relative flex flex-col justify-between bg-[#09090B] text-[#F4F4F5] p-3 sm:p-5">
+    <div className="controller-viewport relative flex flex-col justify-between bg-[#08080C] text-[#F4F4F5] p-2.5 sm:p-4 select-none overflow-hidden">
+      {/* Subtle Retro-Arcade Scanline & Grid Background */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-20"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 50% 0%, rgba(59,130,246,0.18), transparent 65%), repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 4px)',
+        }}
+      />
+
       {isPortrait && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#09090B]/95 p-6 text-center backdrop-blur-xl">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#FF5500]/40 bg-[#FF5500]/15 text-[#FF5500]">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#08080C]/95 p-6 text-center backdrop-blur-xl">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/15 text-amber-400">
             <DeviceRotate size={36} weight="duotone" />
           </div>
           <h2 className="mt-4 text-xl font-bold tracking-tight">
             Rotate Device to Landscape
           </h2>
           <p className="mt-2 max-w-xs text-xs text-[#A1A1AA]">
-            Overcade controller interface is engineered for horizontal console grip.
+            The Chrono Knights RPG Controller is engineered for two-thumb horizontal grip.
           </p>
           <button
             type="button"
             onClick={() => setIsPortrait(false)}
-            className="mt-6 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 font-mono text-xs font-semibold text-[#F4F4F5]"
+            className="mt-6 rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 font-mono text-xs font-semibold text-[#F4F4F5]"
           >
-            CONTINUE ANYWAY
+            CONTINUE IN PORTRAIT
           </button>
         </div>
       )}
 
-      {/* Top Tactical Telemetry & Shoulder Bar (L1 / Status / R1) */}
-      <div className="grid grid-cols-12 items-center gap-2">
-        {/* L1 Shoulder Trigger */}
+      {/* TOP BAR: L1 Restorative Flask // Room & Hero Status // R1 Heavy Signature Skill */}
+      <div className="relative z-10 grid grid-cols-12 items-stretch gap-2">
+        {/* L1 Shoulder Trigger: Restorative Flask */}
         <button
           type="button"
           onPointerDown={(e) => setButtonState('L1', true, e.currentTarget)}
           onPointerUp={(e) => setButtonState('L1', false, e.currentTarget)}
           onPointerLeave={(e) => setButtonState('L1', false, e.currentTarget)}
           onPointerCancel={(e) => setButtonState('L1', false, e.currentTarget)}
-          className="col-span-3 flex h-12 sm:h-14 items-center justify-center rounded-tl-3xl rounded-tr-xl rounded-b-xl border border-white/15 bg-[#121215] font-mono text-xs sm:text-sm font-bold tracking-widest text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-[0.98] transition-transform"
+          className="col-span-3 flex flex-col items-center justify-center rounded-tl-2xl rounded-tr-lg rounded-b-lg border border-emerald-500/35 bg-[#101318] px-2 py-2 font-mono text-emerald-300 shadow-lg data-[pressed=true]:border-emerald-400 data-[pressed=true]:bg-emerald-500 data-[pressed=true]:text-[#08080C] active:scale-[0.98] transition-all"
         >
-          L1 // DEFENSE
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black tracking-wider">
+            <Flask size={15} weight="fill" />
+            <span>[L1] FLASK</span>
+          </div>
+          <span className="text-[9px] text-emerald-200/75 truncate max-w-full">
+            {activeHeroClass.skills.L1.name}
+          </span>
         </button>
 
-        {/* Center Status, Assigned Player Slot, Armor HP & Room Input Pill */}
-        <div className="col-span-6 flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#121215] px-3 py-1.5">
-          <div className="flex w-full items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5">
+        {/* Center Top Pill: Connection & Room Code */}
+        <div className="col-span-6 flex flex-col justify-center rounded-xl border border-white/15 bg-[#101218]/95 px-3 py-1.5 shadow-lg">
+          <div className="flex w-full items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 min-w-0">
               <span
-                className="h-2.5 w-2.5 rounded-full"
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{
-                  backgroundColor:
-                    status === 'connected' ? playerAccentColor : '#F59E0B',
+                  backgroundColor: status === 'connected' ? playerAccentColor : '#F59E0B',
+                  boxShadow: status === 'connected' ? `0 0 8px ${playerAccentColor}` : 'none',
                 }}
               />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#F4F4F5] truncate max-w-[145px] sm:max-w-none">
-                {status === 'connected'
-                  ? `${playerCallsign} [${roomInput}]`
-                  : statusDetail}
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-white truncate">
+                {status === 'connected' ? `${playerCallsign} // ROOM ${roomInput}` : statusDetail}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 shrink-0">
               <span
-                title="Wake Lock Status"
-                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[9px] ${
-                  wakeLockActive
-                    ? 'bg-emerald-500/15 text-emerald-400'
-                    : 'bg-white/5 text-[#A1A1AA]'
+                className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 font-mono text-[8px] font-bold ${
+                  wakeLockActive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-white/50'
                 }`}
               >
-                <Sun size={11} weight="bold" />
+                <Sun size={10} weight="bold" />
                 WAKE
               </span>
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[9px] text-[#F4F4F5]"
+                className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[8px] font-bold text-white"
               >
-                <ArrowsOut size={11} />
-                {isFullscreen ? 'EXIT FULL' : 'FULLSCREEN'}
+                <ArrowsOut size={10} />
+                {isFullscreen ? 'EXIT' : 'FULL'}
               </button>
             </div>
           </div>
@@ -445,196 +439,181 @@ export const ControllerApp: React.FC = () => {
                 value={roomInput}
                 onChange={(e) => setRoomInput(e.target.value.toUpperCase())}
                 placeholder="ROOM CODE (E.G. AB9K2X)"
-                className="w-full rounded border border-white/15 bg-[#09090B] px-2 py-1 font-mono text-xs uppercase tracking-widest text-[#F4F4F5] focus:border-[#FF5500] focus:outline-none"
+                className="w-full rounded border border-white/20 bg-[#08080C] px-2 py-1 font-mono text-xs uppercase tracking-widest text-white focus:border-amber-400 focus:outline-none"
               />
               <button
                 type="submit"
-                className="shrink-0 inline-flex items-center gap-1 rounded bg-[#FF5500] px-3 py-1 font-mono text-xs font-bold text-[#09090B]"
+                className="shrink-0 inline-flex items-center gap-1 rounded bg-amber-500 px-2.5 py-1 font-mono text-[10px] font-black text-black"
               >
-                <PlugsConnected size={13} weight="bold" />
-                CONNECT
+                <PlugsConnected size={12} weight="bold" />
+                LINK
               </button>
             </form>
           ) : (
-            <div className="mt-1 flex w-full items-center justify-between gap-3 font-mono text-[10px]">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck size={12} style={{ color: playerAccentColor }} />
-                <span className="text-[#F4F4F5] font-bold">HP / SHIELD: {armorHp}%</span>
+            <div className="mt-1 grid grid-cols-2 gap-2 font-mono text-[9px]">
+              {/* Live HP Bar */}
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center justify-between text-red-300 font-bold">
+                  <span className="inline-flex items-center gap-1">
+                    <Heart size={10} weight="fill" className="text-red-500" />
+                    HP
+                  </span>
+                  <span>{hpPercent}%</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-black/70 overflow-hidden border border-white/10">
+                  <div
+                    className="h-full bg-gradient-to-r from-red-600 to-rose-400 transition-all duration-150"
+                    style={{ width: `${Math.max(0, Math.min(100, hpPercent))}%` }}
+                  />
+                </div>
               </div>
-              <div className="hidden sm:flex items-center gap-1 text-[#A1A1AA]">
-                <span>PACKET:</span>
-                <strong ref={hexReadoutRef} style={{ color: playerAccentColor }}>
-                  01 00 00 00 00 00 00 00
-                </strong>
+
+              {/* Live MP Bar */}
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center justify-between text-sky-300 font-bold">
+                  <span className="inline-flex items-center gap-1">
+                    <Drop size={10} weight="fill" className="text-sky-400" />
+                    MP
+                  </span>
+                  <span>{mpPercent}%</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-black/70 overflow-hidden border border-white/10">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-600 to-sky-400 transition-all duration-150"
+                    style={{ width: `${Math.max(0, Math.min(100, mpPercent))}%` }}
+                  />
+                </div>
               </div>
             </div>
           )}
-
         </div>
 
-        {/* R1 Shoulder Trigger */}
+        {/* R1 Shoulder Trigger: Heavy Signature Strike */}
         <button
           type="button"
           onPointerDown={(e) => setButtonState('R1', true, e.currentTarget)}
           onPointerUp={(e) => setButtonState('R1', false, e.currentTarget)}
           onPointerLeave={(e) => setButtonState('R1', false, e.currentTarget)}
           onPointerCancel={(e) => setButtonState('R1', false, e.currentTarget)}
-          className="col-span-3 flex h-12 sm:h-14 items-center justify-center rounded-tr-3xl rounded-tl-xl rounded-b-xl border border-white/15 bg-[#121215] font-mono text-xs sm:text-sm font-bold tracking-widest text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-[0.98] transition-transform"
+          className="col-span-3 flex flex-col items-center justify-center rounded-tr-2xl rounded-tl-lg rounded-b-lg border border-amber-500/40 bg-[#101318] px-2 py-2 font-mono text-amber-300 shadow-lg data-[pressed=true]:border-amber-400 data-[pressed=true]:bg-amber-500 data-[pressed=true]:text-[#08080C] active:scale-[0.98] transition-all"
         >
-          R1 // ULTIMATE
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black tracking-wider">
+            <Lightning size={15} weight="fill" />
+            <span>[R1] HEAVY</span>
+          </div>
+          <span className="text-[9px] text-amber-200/75 truncate max-w-full">
+            {activeHeroClass.skills.R1.name}
+          </span>
         </button>
       </div>
 
-      {/* Main Ergonomic Twin-Stick Controller Body */}
-      <div className="grid flex-1 grid-cols-12 items-center gap-2 py-2">
-        {/* LEFT DECK: Left Analog Stick (Movement) + D-Pad */}
-        <div className="col-span-5 flex items-center justify-around gap-2">
-          <div className="flex flex-col items-center">
+      {/* MAIN ERGONOMIC CHRONO KNIGHTS CONTROLLER BODY (Single Left Stick + Center Hero Deck + Large Right Skill Diamond) */}
+      <div className="relative z-10 grid flex-1 grid-cols-12 items-center gap-2 py-1">
+        {/* LEFT DECK (Cols 1-4): Large High-Precision 8-Way Analog Stick */}
+        <div className="col-span-4 flex flex-col items-center justify-center">
+          <div
+            onTouchStart={handleStickStart}
+            onTouchMove={handleStickMove}
+            onTouchEnd={handleStickEnd}
+            onTouchCancel={handleStickEnd}
+            onPointerDown={(e) => {
+              if (e.pointerType !== 'touch') handleStickStart(e);
+            }}
+            onPointerMove={(e) => {
+              if (e.pointerType !== 'touch') handleStickMove(e);
+            }}
+            onPointerUp={(e) => {
+              if (e.pointerType !== 'touch') handleStickEnd(e);
+            }}
+            className="relative flex h-40 w-40 sm:h-48 sm:w-48 items-center justify-center rounded-full border-2 border-white/15 bg-[#101218] shadow-[inset_0_4px_18px_rgba(0,0,0,0.9)]"
+          >
+            {/* Outer Runic Compass Ring */}
+            <div className="pointer-events-none absolute h-28 w-28 sm:h-32 sm:w-32 rounded-full border border-dashed border-white/10" />
+            {/* Cardinal Guide Dots */}
+            <div className="pointer-events-none absolute top-2.5 h-1.5 w-1.5 rounded-full bg-white/20" />
+            <div className="pointer-events-none absolute bottom-2.5 h-1.5 w-1.5 rounded-full bg-white/20" />
+            <div className="pointer-events-none absolute left-2.5 h-1.5 w-1.5 rounded-full bg-white/20" />
+            <div className="pointer-events-none absolute right-2.5 h-1.5 w-1.5 rounded-full bg-white/20" />
+
+            {/* Thumbstick Cap */}
             <div
-              onTouchStart={(e) => handleStickStart('left', e)}
-              onTouchMove={(e) => handleStickMove('left', e)}
-              onTouchEnd={(e) => handleStickEnd('left', e)}
-              onTouchCancel={(e) => handleStickEnd('left', e)}
-              onPointerDown={(e) => {
-                if (e.pointerType !== 'touch') handleStickStart('left', e);
+              ref={leftKnobRef}
+              style={{
+                borderColor: playerAccentColor,
+                boxShadow: `0 0 20px ${playerAccentColor}33`,
               }}
-              onPointerMove={(e) => {
-                if (e.pointerType !== 'touch') handleStickMove('left', e);
-              }}
-              onPointerUp={(e) => {
-                if (e.pointerType !== 'touch') handleStickEnd('left', e);
-              }}
-              className="relative flex h-36 w-36 sm:h-44 sm:w-44 items-center justify-center rounded-full border-2 border-white/15 bg-[#121215] shadow-[inset_0_2px_12px_rgba(0,0,0,0.85)]"
-            >
-              <div className="pointer-events-none absolute h-24 w-24 rounded-full border border-dashed border-white/10" />
-              <div
-                ref={leftKnobRef}
-                style={{ borderColor: playerAccentColor }}
-                className="pointer-events-none flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border-2 bg-[#18181C] shadow-lg will-change-transform"
-              >
-                <div className="h-6 w-6 rounded-full border border-white/20 bg-[#09090B]" />
-              </div>
-            </div>
-            <span className="mt-1.5 font-mono text-[10px] uppercase tracking-widest text-[#A1A1AA]">
-              LEFT ANALOG // MOVE
-            </span>
-          </div>
-
-          {/* 4-Way Tactical D-Pad */}
-          <div className="hidden md:grid grid-cols-3 grid-rows-3 gap-1 w-24 h-24">
-            <div />
-            <button
-              type="button"
-              onPointerDown={(e) => setDpadState('up', true, e.currentTarget)}
-              onPointerUp={(e) => setDpadState('up', false, e.currentTarget)}
-              onPointerLeave={(e) => setDpadState('up', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-t-lg border border-white/15 bg-[#121215] text-[#F4F4F5] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
-            >
-              <ArrowUp size={15} weight="bold" />
-            </button>
-            <div />
-            <button
-              type="button"
-              onPointerDown={(e) => setDpadState('left', true, e.currentTarget)}
-              onPointerUp={(e) => setDpadState('left', false, e.currentTarget)}
-              onPointerLeave={(e) => setDpadState('left', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-l-lg border border-white/15 bg-[#121215] text-[#F4F4F5] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
-            >
-              <ArrowLeft size={15} weight="bold" />
-            </button>
-            <div className="rounded bg-[#09090B] border border-white/5" />
-            <button
-              type="button"
-              onPointerDown={(e) => setDpadState('right', true, e.currentTarget)}
-              onPointerUp={(e) => setDpadState('right', false, e.currentTarget)}
-              onPointerLeave={(e) => setDpadState('right', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-r-lg border border-white/15 bg-[#121215] text-[#F4F4F5] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
-            >
-              <ArrowRight size={15} weight="bold" />
-            </button>
-            <div />
-            <button
-              type="button"
-              onPointerDown={(e) => setDpadState('down', true, e.currentTarget)}
-              onPointerUp={(e) => setDpadState('down', false, e.currentTarget)}
-              onPointerLeave={(e) => setDpadState('down', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-b-lg border border-white/15 bg-[#121215] text-[#F4F4F5] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
-            >
-              <ArrowDown size={15} weight="bold" />
-            </button>
-            <div />
-          </div>
-        </div>
-
-        {/* CENTER DECK: SELECT / OVERCADE CORE / START */}
-        <div className="col-span-2 flex flex-col items-center justify-center gap-3">
-          <div className="text-center">
-            <div
-              className="font-mono text-[10px] font-bold tracking-[0.2em]"
-              style={{ color: playerAccentColor }}
-            >
-              {playerCallsign}
-            </div>
-            <div className="font-mono text-[9px] text-[#A1A1AA]">TWIN-STICK PAD</div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-2">
-            <button
-              type="button"
-              onPointerDown={(e) => setButtonState('SELECT', true, e.currentTarget)}
-              onPointerUp={(e) => setButtonState('SELECT', false, e.currentTarget)}
-              onPointerLeave={(e) => setButtonState('SELECT', false, e.currentTarget)}
-              className="rounded-full border border-white/15 bg-[#121215] px-3 py-1.5 font-mono text-[10px] font-bold tracking-wider text-[#A1A1AA] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
-            >
-              SELECT
-            </button>
-
-            <button
-              type="button"
-              onPointerDown={(e) => setButtonState('START', true, e.currentTarget)}
-              onPointerUp={(e) => setButtonState('START', false, e.currentTarget)}
-              onPointerLeave={(e) => setButtonState('START', false, e.currentTarget)}
-              className="rounded-full border border-white/15 bg-[#121215] px-3 py-1.5 font-mono text-[10px] font-bold tracking-wider text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B]"
-            >
-              START
-            </button>
-          </div>
-        </div>
-
-        {/* RIGHT DECK: Right Analog Stick (360° Aim & Autocannon Fire) + Diamond Action Cluster */}
-        <div className="col-span-5 flex items-center justify-around gap-2">
-          {/* Right Analog Thumbstick (Always visible for Twin-Stick Mech aiming!) */}
-          <div className="flex flex-col items-center">
-            <div
-              onTouchStart={(e) => handleStickStart('right', e)}
-              onTouchMove={(e) => handleStickMove('right', e)}
-              onTouchEnd={(e) => handleStickEnd('right', e)}
-              onTouchCancel={(e) => handleStickEnd('right', e)}
-              onPointerDown={(e) => {
-                if (e.pointerType !== 'touch') handleStickStart('right', e);
-              }}
-              onPointerMove={(e) => {
-                if (e.pointerType !== 'touch') handleStickMove('right', e);
-              }}
-              onPointerUp={(e) => {
-                if (e.pointerType !== 'touch') handleStickEnd('right', e);
-              }}
-              className="relative flex h-32 w-32 sm:h-36 sm:w-36 items-center justify-center rounded-full border-2 border-white/15 bg-[#121215] shadow-[inset_0_2px_12px_rgba(0,0,0,0.85)]"
+              className="pointer-events-none flex h-18 w-18 sm:h-22 sm:w-22 items-center justify-center rounded-full border-2 bg-[#181B24] shadow-xl will-change-transform"
             >
               <div
-                ref={rightKnobRef}
-                className="pointer-events-none flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 border-emerald-400 bg-[#18181C] shadow-lg will-change-transform"
-              >
-                <div className="h-5 w-5 rounded-full border border-white/20 bg-[#09090B]" />
-              </div>
+                className="h-7 w-7 rounded-full border border-white/25"
+                style={{ backgroundColor: `${playerAccentColor}33` }}
+              />
             </div>
-            <span className="mt-1.5 font-mono text-[10px] uppercase tracking-widest text-[#A1A1AA]">
-              RIGHT ANALOG // AIM & SKILLS
-            </span>
+          </div>
+          <span className="mt-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-white/60">
+            8-DIR MOVEMENT STICK
+          </span>
+        </div>
+
+        {/* CENTER DECK (Cols 5-7): Hero Class Switcher & START Deploy Button */}
+        <div className="col-span-3 flex flex-col items-center justify-center gap-2.5 px-1">
+          {/* Active Hero Class Card */}
+          <div className="w-full rounded-2xl border border-white/15 bg-[#101218]/90 p-2.5 text-center shadow-lg">
+            <div className="flex items-center justify-between gap-1">
+              <button
+                type="button"
+                onClick={() => pulseLobbyDirection('left')}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white active:scale-90 active:bg-amber-500 active:text-black"
+                title="Previous Hero Class (Lobby)"
+              >
+                <CaretLeft size={16} weight="bold" />
+              </button>
+
+              <div className="flex flex-col items-center min-w-0">
+                <span className="text-xl leading-none">{activeHeroClass.portraitSymbol}</span>
+                <span className="mt-1 font-mono text-[10px] font-black uppercase tracking-wide text-white truncate max-w-[100px]">
+                  {activeHeroClass.name}
+                </span>
+                <span
+                  className="font-mono text-[9px] font-bold"
+                  style={{ color: activeHeroClass.accentColor }}
+                >
+                  LV {playerLevel} // {activeHeroClass.role.toUpperCase()}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => pulseLobbyDirection('right')}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white active:scale-90 active:bg-amber-500 active:text-black"
+                title="Next Hero Class (Lobby)"
+              >
+                <CaretRight size={16} weight="bold" />
+              </button>
+            </div>
+            <div className="mt-1.5 border-t border-white/10 pt-1 font-mono text-[8px] text-white/50">
+              USE &lt; &gt; IN LOBBY TO SWAP CLASS
+            </div>
           </div>
 
-          {/* Diamond ABXY Cluster */}
-          <div className="grid grid-cols-3 grid-rows-3 gap-1 w-32 h-32 sm:w-40 sm:h-40">
+          {/* Single Clean START // DEPLOY Button (Unused SELECT removed!) */}
+          <button
+            type="button"
+            onPointerDown={(e) => setButtonState('START', true, e.currentTarget)}
+            onPointerUp={(e) => setButtonState('START', false, e.currentTarget)}
+            onPointerLeave={(e) => setButtonState('START', false, e.currentTarget)}
+            onPointerCancel={(e) => setButtonState('START', false, e.currentTarget)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 py-2.5 px-3 font-mono text-[11px] font-black tracking-wider text-amber-300 shadow-md data-[pressed=true]:border-amber-400 data-[pressed=true]:bg-amber-500 data-[pressed=true]:text-black active:scale-95 transition-all"
+          >
+            <Play size={13} weight="fill" />
+            <span>START // DEPLOY</span>
+          </button>
+        </div>
+
+        {/* RIGHT DECK (Cols 8-12): Large Ergonomic RPG Action Diamond (Unused Right Stick Removed!) */}
+        <div className="col-span-5 flex items-center justify-center">
+          <div className="grid grid-cols-3 grid-rows-3 gap-1.5 w-48 h-44 sm:w-56 sm:h-48">
+            {/* TOP: Y Button (Ultimate Skill) */}
             <div />
             <button
               type="button"
@@ -642,38 +621,66 @@ export const ControllerApp: React.FC = () => {
               onPointerUp={(e) => setButtonState('Y', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('Y', false, e.currentTarget)}
               onPointerCancel={(e) => setButtonState('Y', false, e.currentTarget)}
-              className="flex flex-col items-center justify-center rounded-full border-2 border-white/20 bg-[#121215] font-mono text-sm font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
+              className="flex flex-col items-center justify-center rounded-2xl border-2 border-purple-500/60 bg-purple-950/35 px-1.5 font-mono text-white shadow-[0_0_18px_rgba(168,85,247,0.25)] data-[pressed=true]:border-purple-300 data-[pressed=true]:bg-purple-500 data-[pressed=true]:text-black active:scale-95 transition-all"
             >
-              <span>Y</span>
-              <span className="text-[7px] font-normal text-[#A1A1AA]">SPECIAL</span>
+              <div className="flex items-center gap-1 text-xs sm:text-sm font-black text-purple-300">
+                <Sparkle size={13} weight="fill" />
+                <span>Y</span>
+              </div>
+              <span className="text-[8px] font-bold uppercase tracking-tight text-white/90 truncate max-w-full">
+                {activeHeroClass.skills.Y.name.split(' ')[0]}
+              </span>
+              <span className="text-[7px] text-purple-300/80">ULTIMATE</span>
             </button>
             <div />
 
+            {/* LEFT: X Button (Defensive / Utility / Crowd Control) */}
             <button
               type="button"
               onPointerDown={(e) => setButtonState('X', true, e.currentTarget)}
               onPointerUp={(e) => setButtonState('X', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('X', false, e.currentTarget)}
               onPointerCancel={(e) => setButtonState('X', false, e.currentTarget)}
-              className="flex items-center justify-center rounded-full border-2 border-white/20 bg-[#121215] font-mono text-sm font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
+              className="flex flex-col items-center justify-center rounded-2xl border-2 border-sky-500/60 bg-sky-950/35 px-1.5 font-mono text-white shadow-[0_0_16px_rgba(56,189,248,0.2)] data-[pressed=true]:border-sky-300 data-[pressed=true]:bg-sky-400 data-[pressed=true]:text-black active:scale-95 transition-all"
             >
-              X
+              <div className="flex items-center gap-1 text-xs sm:text-sm font-black text-sky-300">
+                <ShieldStar size={13} weight="fill" />
+                <span>X</span>
+              </div>
+              <span className="text-[8px] font-bold uppercase tracking-tight text-white/90 truncate max-w-full">
+                {activeHeroClass.skills.X.name.split(' ')[0]}
+              </span>
+              <span className="text-[7px] text-sky-300/80">GUARD / CC</span>
             </button>
+
+            {/* Center Emblem */}
             <div className="flex items-center justify-center">
-              <div className="h-2.5 w-2.5 rounded-full bg-white/10" />
+              <div
+                className="h-3 w-3 rounded-full border border-white/20"
+                style={{ backgroundColor: `${playerAccentColor}44` }}
+              />
             </div>
+
+            {/* RIGHT: B Button (Primary Class Skill) */}
             <button
               type="button"
               onPointerDown={(e) => setButtonState('B', true, e.currentTarget)}
               onPointerUp={(e) => setButtonState('B', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('B', false, e.currentTarget)}
               onPointerCancel={(e) => setButtonState('B', false, e.currentTarget)}
-              className="flex flex-col items-center justify-center rounded-full border-2 border-white/25 bg-[#121215] font-mono text-sm font-extrabold text-[#F4F4F5] data-[pressed=true]:border-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
+              className="flex flex-col items-center justify-center rounded-2xl border-2 border-orange-500/60 bg-orange-950/35 px-1.5 font-mono text-white shadow-[0_0_16px_rgba(249,115,22,0.2)] data-[pressed=true]:border-orange-300 data-[pressed=true]:bg-orange-500 data-[pressed=true]:text-black active:scale-95 transition-all"
             >
-              <span>B</span>
-              <span className="text-[7px] font-normal text-[#FF5500]">SKILL</span>
+              <div className="flex items-center gap-1 text-xs sm:text-sm font-black text-orange-300">
+                <Fire size={13} weight="fill" />
+                <span>B</span>
+              </div>
+              <span className="text-[8px] font-bold uppercase tracking-tight text-white/90 truncate max-w-full">
+                {activeHeroClass.skills.B.name.split(' ')[0]}
+              </span>
+              <span className="text-[7px] text-orange-300/80">SKILL</span>
             </button>
 
+            {/* BOTTOM: A Button (Primary Attack / Talk / Open Chest / Revive) */}
             <div />
             <button
               type="button"
@@ -681,27 +688,31 @@ export const ControllerApp: React.FC = () => {
               onPointerUp={(e) => setButtonState('A', false, e.currentTarget)}
               onPointerLeave={(e) => setButtonState('A', false, e.currentTarget)}
               onPointerCancel={(e) => setButtonState('A', false, e.currentTarget)}
-              className="flex flex-col items-center justify-center rounded-full border-2 border-[#FF5500] bg-[#FF5500]/15 font-mono text-sm font-extrabold text-[#FF5500] data-[pressed=true]:bg-[#FF5500] data-[pressed=true]:text-[#09090B] active:scale-95 transition-transform"
+              className="flex flex-col items-center justify-center rounded-2xl border-2 border-emerald-400 bg-emerald-500/20 px-1.5 font-mono text-white shadow-[0_0_22px_rgba(16,185,129,0.3)] data-[pressed=true]:bg-emerald-400 data-[pressed=true]:text-black active:scale-95 transition-all"
             >
-              <span>A</span>
-              <span className="text-[7px] font-normal">ACTION</span>
+              <div className="flex items-center gap-1 text-sm sm:text-base font-black text-emerald-300 data-[pressed=true]:text-black">
+                <Sword size={14} weight="fill" />
+                <span>A</span>
+              </div>
+              <span className="text-[8px] font-bold uppercase tracking-tight text-white truncate max-w-full">
+                ATTACK / TALK
+              </span>
+              <span className="text-[7px] text-emerald-300/90">OPEN CHEST</span>
             </button>
             <div />
           </div>
         </div>
       </div>
 
-      {/* Bottom Telemetry Strip */}
-      <div className="flex items-center justify-between border-t border-white/10 pt-1.5 font-mono text-[10px] text-[#A1A1AA]">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1">
-            <WifiHigh size={12} style={{ color: playerAccentColor }} />
-            UDP P2P // BINARY GAMEPAD PROTOCOL
-          </span>
-        </div>
+      {/* BOTTOM TELEMETRY BAR */}
+      <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-1 font-mono text-[9px] text-white/50">
         <div className="flex items-center gap-2">
-          <Vibrate size={12} className="text-emerald-400" />
-          <span>TACTILE HAPTIC TELEMETRY ACTIVE</span>
+          <WifiHigh size={11} style={{ color: playerAccentColor }} />
+          <span>CHRONO KNIGHTS // 60HZ WEBRTC GAMEPAD LINK</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Vibrate size={11} className="text-emerald-400" />
+          <span>HAPTIC FEEDBACK READY</span>
         </div>
       </div>
     </div>

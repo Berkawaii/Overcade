@@ -10,6 +10,8 @@ import type {
   AstralSealPillar,
   VoidThroneGate,
   HazardPool,
+  ChronoCheckpoint,
+  BossTelegraph,
 } from './types';
 import { WORLD_BOUNDS } from './constants';
 
@@ -1830,12 +1832,13 @@ export class PixelWorldRenderer {
   }
 
   /**
-   * Draw a 16-bit Handcrafted Dungeon Treasure Chest (Closed or Open)
+   * Draw a 16-bit Handcrafted Dungeon Treasure Chest (Sealed, Unlocked, or Open)
    */
   public static drawDungeonChest(
     ctx: CanvasRenderingContext2D,
     chest: DungeonChest,
-    now: number
+    now: number,
+    bossAlive: boolean = false
   ): void {
     const x = Math.round(chest.x);
     const y = Math.round(chest.y);
@@ -1843,19 +1846,23 @@ export class PixelWorldRenderer {
     ctx.save();
 
     // Chest Platform Glow
-    ctx.fillStyle = chest.isOpen ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.4)';
+    ctx.fillStyle = chest.isOpen
+      ? 'rgba(16, 185, 129, 0.25)'
+      : bossAlive
+      ? 'rgba(239, 68, 68, 0.22)'
+      : 'rgba(245, 158, 11, 0.45)';
     ctx.beginPath();
-    ctx.ellipse(x, y + 14, 38, 16, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y + 14, 42, 18, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    const w = 46;
-    const h = 32;
+    const w = 48;
+    const h = 34;
     const halfW = Math.round(w / 2);
     const halfH = Math.round(h / 2);
 
     if (!chest.isOpen) {
       // --- CLOSED TREASURE CHEST ---
-      // Heavy Oak Chest Body
+      // Heavy Oak & Gold Chest Body
       this.px(ctx, x - halfW, y - halfH, w, h, '#78350F');
       this.px(ctx, x - halfW + 3, y - halfH + 3, w - 6, h - 6, '#92400E');
 
@@ -1866,16 +1873,40 @@ export class PixelWorldRenderer {
       this.px(ctx, x - halfW, y - 2, w, 4, '#1E293B'); // Horizontal rim band
 
       // Golden Padlock & Keyhole
-      this.px(ctx, x - 6, y - 6, 12, 10, '#F59E0B');
+      this.px(ctx, x - 6, y - 6, 12, 10, bossAlive ? '#EF4444' : '#F59E0B');
       this.px(ctx, x - 1, y - 3, 2, 4, '#000000'); // Keyhole
 
-      // Floating Action Prompt
-      ctx.font = '700 10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#FBBF24';
-      ctx.fillText('ANCIENT GOLDEN CHEST', x, y - 30);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillText('[A] OPEN CHEST', x, y - 44);
+      if (bossAlive) {
+        // Dark Runic Seal Chains across the chest while boss lives
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x - halfW, y - halfH);
+        ctx.lineTo(x + halfW, y + halfH);
+        ctx.moveTo(x + halfW, y - halfH);
+        ctx.lineTo(x - halfW, y + halfH);
+        ctx.stroke();
+
+        ctx.font = '700 9.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FCA5A5';
+        ctx.fillText('SEALED BY SANCTUM GUARDIAN', x, y - 28);
+      } else {
+        // Pulsing Golden Beacon when unlocked!
+        const pulse = 0.65 + Math.sin(now * 0.008) * 0.35;
+        ctx.strokeStyle = `rgba(251, 191, 36, ${pulse})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(x, y, 36 + Math.sin(now * 0.006) * 4, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.font = '700 10px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FBBF24';
+        ctx.fillText('ANCIENT RELIC CHEST [UNLOCKED]', x, y - 28);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('PRESS [A] OR WALK UP TO OPEN', x, y - 42);
+      }
     } else {
       // --- OPEN TREASURE CHEST WITH SPARKLING GEMS ---
       // Chest Lower Base
@@ -1892,17 +1923,279 @@ export class PixelWorldRenderer {
       this.px(ctx, x + 4, y + 3, 6, 6, '#38BDF8'); // Sapphire
 
       // Sparkle Gleam (Perpetual Micro-Motion)
-      const sparkleProg = Math.sin(now * 0.01) * 2;
+      const sparkleProg = Math.sin(now * 0.01) * 4;
       this.px(ctx, x + sparkleProg, y - 10, 3, 3, '#FFFFFF');
 
       // Relic Name Banner
       ctx.font = '700 10.5px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#10B981';
-      ctx.fillText(`OPENED: ${chest.relicName}`, x, y - 26);
+      ctx.fillText(`CLAIMED: ${chest.relicName}`, x, y - 28);
     }
 
     ctx.restore();
+  }
+
+  /**
+   * Draw the Pre-Boss Chrono Shrine Checkpoint ("Site of Grace")
+   */
+  public static drawChronoCheckpoint(
+    ctx: CanvasRenderingContext2D,
+    checkpoint: ChronoCheckpoint,
+    now: number
+  ): void {
+    const x = Math.round(checkpoint.x);
+    const y = Math.round(checkpoint.y);
+
+    ctx.save();
+
+    // 1. Outer Runic Stone Circle
+    const pulse = 0.5 + Math.sin(now * 0.005) * 0.3;
+    ctx.fillStyle = checkpoint.isKindled
+      ? `rgba(245, 158, 11, ${0.16 + pulse * 0.12})`
+      : 'rgba(148, 163, 184, 0.1)';
+    ctx.beginPath();
+    ctx.arc(x, y, checkpoint.radius + 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = checkpoint.isKindled ? '#F59E0B' : '#475569';
+    ctx.lineWidth = checkpoint.isKindled ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, checkpoint.radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 2. 16-bit Octagonal Stone Pedestal
+    this.px(ctx, x - 20, y - 8, 40, 20, '#1E293B');
+    this.px(ctx, x - 16, y - 12, 32, 24, '#334155');
+    this.px(ctx, x - 12, y - 6, 24, 14, '#0F172A');
+
+    // 3. Coiled Bonfire Sword / Chrono Spire in Center
+    this.px(ctx, x - 2, y - 28, 4, 24, checkpoint.isKindled ? '#FDE047' : '#94A3B8');
+    this.px(ctx, x - 8, y - 18, 16, 3, checkpoint.isKindled ? '#F59E0B' : '#64748B');
+    this.px(ctx, x - 3, y - 32, 6, 4, checkpoint.isKindled ? '#FFFFFF' : '#CBD5E1');
+
+    // 4. Golden Site of Grace Flame if Kindled
+    if (checkpoint.isKindled) {
+      const flicker = Math.sin(now * 0.014) * 3;
+      this.px(ctx, x - 7, y - 14 + flicker * 0.3, 14, 12, '#EA580C');
+      this.px(ctx, x - 5, y - 20 + flicker * 0.6, 10, 14, '#F59E0B');
+      this.px(ctx, x - 3, y - 26 + flicker, 6, 12, '#FEF08A');
+
+      // Rising golden grace motes
+      for (let m = 0; m < 4; m++) {
+        const moteOffset = ((now * 0.04 + m * 14) % 36);
+        const mx = x + Math.sin(now * 0.004 + m * 1.7) * 14;
+        const my = y - 8 - moteOffset;
+        this.px(ctx, mx, my, 3, 3, '#FDE047');
+      }
+    }
+
+    // 5. Overhead Status & Prompt
+    ctx.font = '700 9.5px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = checkpoint.isKindled ? '#FBBF24' : '#E2E8F0';
+    ctx.fillText(
+      checkpoint.isKindled
+        ? `${checkpoint.label} [CHECKPOINT ACTIVE]`
+        : `${checkpoint.label} [WALK NEAR OR PRESS A]`,
+      x,
+      y + checkpoint.radius + 14
+    );
+
+    ctx.restore();
+  }
+
+  /**
+   * Draw the Boss Sanctum Fog Gate & Partition Threshold at y = 700
+   */
+  public static drawBossSanctumGate(
+    ctx: CanvasRenderingContext2D,
+    bossRoomSealed: boolean,
+    bossAlive: boolean,
+    accentColor: string,
+    now: number
+  ): void {
+    const gateX = 1300;
+    const gateY = 684;
+    const gateW = 200;
+    const gateH = 32;
+
+    ctx.save();
+
+    // Twin Ornate Sanctum Obelisk Pillars flanking doorway (x = 1288 and x = 1496)
+    this.px(ctx, gateX - 16, gateY - 8, 20, 48, '#0F172A');
+    this.px(ctx, gateX - 12, gateY - 4, 12, 40, accentColor);
+    this.px(ctx, gateX + gateW - 4, gateY - 8, 20, 48, '#0F172A');
+    this.px(ctx, gateX + gateW, gateY - 4, 12, 40, accentColor);
+
+    if (bossRoomSealed && bossAlive) {
+      // SEALED BOSS FOG WALL + IRON CHAINS (Nobody can leave!)
+      const pulse = 0.55 + Math.sin(now * 0.01) * 0.25;
+      ctx.fillStyle = `rgba(220, 38, 38, ${pulse * 0.65})`;
+      ctx.fillRect(gateX, gateY, gateW, gateH);
+
+      // Animated dark-flame barrier bars
+      for (let bx = gateX + 8; bx < gateX + gateW - 4; bx += 16) {
+        const hOff = Math.sin(now * 0.012 + bx) * 4;
+        this.px(ctx, bx, gateY + 2 + hOff, 6, gateH - 4, '#EF4444');
+        this.px(ctx, bx + 2, gateY + 6 + hOff, 2, gateH - 12, '#FEF08A');
+      }
+
+      ctx.strokeStyle = '#EF4444';
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(gateX, gateY, gateW, gateH);
+
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FCA5A5';
+      ctx.fillText('SANCTUM SEALED // DEFEAT THE BOSS OR FALL', gateX + gateW / 2, gateY + gateH + 16);
+    } else if (bossAlive) {
+      // GOLDEN TRAVERSE THE MIST FOG CURTAIN (Elden Ring style)
+      const shimmer = 0.35 + Math.sin(now * 0.006) * 0.15;
+      ctx.fillStyle = `rgba(251, 191, 36, ${shimmer})`;
+      ctx.fillRect(gateX, gateY + 4, gateW, gateH - 8);
+
+      for (let mx = gateX + 10; mx < gateX + gateW - 10; mx += 22) {
+        const drift = Math.sin(now * 0.005 + mx * 0.1) * 6;
+        this.px(ctx, mx + drift, gateY + 10, 12, 4, 'rgba(254, 240, 138, 0.75)');
+      }
+
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.75)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(gateX, gateY + 4, gateW, gateH - 8);
+
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FDE047';
+      ctx.fillText('▲ TRAVERSE THE MIST // ENTER BOSS SANCTUM ▲', gateX + gateW / 2, gateY - 8);
+    } else {
+      // BOSS VANQUISHED: Open Threshold
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(gateX, gateY + 8, gateW, gateH - 16);
+
+      ctx.font = '700 9.5px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#34D399';
+      ctx.fillText('▲ BOSS VANQUISHED // SANCTUM UNSEALED ▲', gateX + gateW / 2, gateY - 8);
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Draw Telegraphed Boss Attack Danger Zones on the ground before impact
+   */
+  public static drawBossTelegraphs(
+    ctx: CanvasRenderingContext2D,
+    telegraphs: BossTelegraph[],
+    _now: number
+  ): void {
+    for (const t of telegraphs) {
+      const progress = Math.max(0, Math.min(1, t.timer / Math.max(0.05, t.maxTimer)));
+
+      ctx.save();
+
+      if (t.shape === 'circle') {
+        // Outer danger boundary
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.16)';
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Expanding inner charge circle showing exact timing
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.radius * progress, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (t.shape === 'ring') {
+        const inner = t.innerRadius ?? t.radius * 0.45;
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = 2.5;
+
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner safe boundary
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, inner, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Donut danger fill
+        const bandWidth = t.radius - inner;
+        ctx.strokeStyle = `rgba(239, 68, 68, ${0.22 + progress * 0.45})`;
+        ctx.lineWidth = bandWidth * progress;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, inner + bandWidth / 2, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (t.shape === 'cone') {
+        const baseAngle = t.angle ?? 0;
+        const spread = t.spreadAngle ?? Math.PI * 0.6;
+        const startA = baseAngle - spread / 2;
+        const endA = baseAngle + spread / 2;
+
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.18)';
+        ctx.beginPath();
+        ctx.moveTo(t.x, t.y);
+        ctx.arc(t.x, t.y, t.radius, startA, endA);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.38)';
+        ctx.beginPath();
+        ctx.moveTo(t.x, t.y);
+        ctx.arc(t.x, t.y, t.radius * progress, startA, endA);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(t.x, t.y);
+        ctx.arc(t.x, t.y, t.radius, startA, endA);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (t.shape === 'line') {
+        const angle = t.angle ?? 0;
+        const len = t.length ?? 320;
+        const width = t.width ?? 68;
+
+        ctx.save();
+        ctx.translate(t.x, t.y);
+        ctx.rotate(angle);
+
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.18)';
+        ctx.fillRect(0, -width / 2, len, width);
+
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.42)';
+        ctx.fillRect(0, -width / 2, len * progress, width);
+
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(0, -width / 2, len, width);
+
+        ctx.restore();
+      }
+
+      if (t.label) {
+        ctx.font = '700 9.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FCA5A5';
+        ctx.fillText(`! ${t.label} !`, t.x, t.y - 8);
+      }
+
+      ctx.restore();
+    }
   }
 
   /**

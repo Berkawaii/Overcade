@@ -208,7 +208,7 @@ export const Arena3DScene: React.FC<Arena3DSceneProps> = ({
             className="spatial-focusable inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#121215]/90 px-4 py-2 font-mono text-xs font-semibold text-[#F4F4F5] hover:border-[#FF5500] active:scale-[0.98] transition-transform backdrop-blur-xl"
           >
             <ArrowLeft size={16} weight="bold" />
-            <span>KATALOĞA DÖN [START]</span>
+            <span>EXIT TO DECK [START]</span>
           </button>
 
           <div className="hidden md:flex items-center gap-2 rounded-full border border-white/10 bg-[#121215]/90 px-4 py-2 font-mono text-xs text-[#A1A1AA] backdrop-blur-xl">
@@ -225,8 +225,8 @@ export const Arena3DScene: React.FC<Arena3DSceneProps> = ({
           <QrCode size={16} className="text-[#FF5500]" />
           <span>
             {phase === 'connected_p2p'
-              ? `P2P KUMANDA AKTİF [${roomId}]`
-              : `TELEFON BAĞLA [${roomId}]`}
+              ? `P2P PAD ACTIVE [${roomId}]`
+              : `LINK PHONE [${roomId}]`}
           </span>
         </button>
       </div>
@@ -269,26 +269,26 @@ export const Arena3DScene: React.FC<Arena3DSceneProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-[#121215]/90 px-4 py-2.5 font-mono text-xs backdrop-blur-xl">
           <div className="flex items-center gap-2 text-[#F4F4F5]">
             <GameController size={16} className="text-[#FF5500]" />
-            <span className="font-bold">AKTİF KONTROLLER:</span>
+            <span className="font-bold">ACTIVE CONTROLS:</span>
           </div>
           <div className="flex flex-wrap items-center gap-4 text-[11px] text-[#A1A1AA]">
             <span>
-              <strong className="text-[#F4F4F5]">SOL ANALOG / WASD:</strong> İtki Hareketi
+              <strong className="text-[#F4F4F5]">LEFT STICK / WASD:</strong> Thrust Vector
             </span>
             <span>
-              <strong className="text-[#F4F4F5]">SAĞ ANALOG / OK TUŞLARI:</strong> Kamera Yörünge
+              <strong className="text-[#F4F4F5]">RIGHT STICK / ARROWS:</strong> Camera Orbit
             </span>
             <span>
-              <strong className="text-[#FF5500]">[A] / SPACE:</strong> Turbo İtki
+              <strong className="text-[#FF5500]">[A] / SPACE:</strong> Afterburner Boost
             </span>
             <span>
-              <strong className="text-[#FF5500]">[B] / SHIFT:</strong> Şok Dalgası
+              <strong className="text-[#FF5500]">[B] / SHIFT:</strong> Shockwave Pulse
             </span>
             <span>
-              <strong className="text-[#F4F4F5]">[L1/R1]:</strong> İrtifa
+              <strong className="text-[#F4F4F5]">[L1/R1]:</strong> Altitude
             </span>
             <span>
-              <strong className="text-[#F4F4F5]">[Y]:</strong> Merkeze Sıfırla
+              <strong className="text-[#F4F4F5]">[Y]:</strong> Recenter Craft
             </span>
           </div>
         </div>

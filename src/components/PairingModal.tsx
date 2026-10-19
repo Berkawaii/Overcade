@@ -61,7 +61,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
         errorCorrectionLevel: 'M',
       },
       (err) => {
-        if (err) console.warn('QR üretim hatası:', err);
+        if (err) console.warn('QR generation error:', err);
       }
     );
   }, [isOpen, joinUrl]);
@@ -80,7 +80,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xl p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pairing-modal-title"
@@ -94,14 +94,14 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                 <QrCode size={24} weight="bold" />
               </div>
               <div>
-                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#FF5500]">
-                  1-4 OYUNCULU WEBRTC P2P SİNYALLEŞME MERKEZİ
+                <span className="font-arcade text-[10px] uppercase text-[#FF5500]">
+                  1-4 PLAYER WEBRTC P2P SIGNALING HUB
                 </span>
                 <h2
                   id="pairing-modal-title"
-                  className="text-xl md:text-2xl font-bold tracking-tight text-[#F4F4F5]"
+                  className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-[#F4F4F5]"
                 >
-                  Çoklu Mobil Kumanda Eşleştirme ({connectedCount}/4 Bağlı)
+                  Multi-Phone Arcade Gamepad Link ({connectedCount}/4 Connected)
                 </h2>
               </div>
             </div>
@@ -110,7 +110,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
               type="button"
               onClick={onClose}
               className="spatial-focusable flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-white/25 active:scale-[0.98] transition-transform"
-              aria-label="Eşleştirme penceresini kapat"
+              aria-label="Close pairing modal"
             >
               <X size={20} weight="bold" />
             </button>
@@ -119,22 +119,22 @@ export const PairingModal: React.FC<PairingModalProps> = ({
           {/* Main Grid */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             {/* Left Column: Dynamic QR Canvas */}
-            <div className="md:col-span-5 flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#09090B] p-5">
-              <div className="relative flex h-[248px] w-[248px] items-center justify-center rounded-xl border border-white/10 bg-[#121215] p-2">
+            <div className="md:col-span-5 flex flex-col items-center justify-center rounded-2xl border border-[#FF5500]/30 bg-[#07070A] p-5">
+              <div className="relative flex h-[248px] w-[248px] items-center justify-center rounded-xl border border-white/10 bg-[#12141D] p-2">
                 {roomId ? (
                   <canvas ref={canvasRef} className="h-[232px] w-[232px]" />
                 ) : (
                   <div className="font-mono text-xs text-[#A1A1AA] animate-pulse">
-                    ODA KODU ÜRETİLİYOR...
+                    ALLOCATING ROOM CODE...
                   </div>
                 )}
               </div>
 
               <div className="mt-4 w-full text-center">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#A1A1AA]">
-                  ORTAK ODA KODU (4 TELEFONA KADAR)
+                  SHARED ROOM CODE (UP TO 4 PHONES)
                 </div>
-                <div className="mt-1 font-mono text-3xl font-bold tracking-[0.25em] text-[#FF5500]">
+                <div className="mt-1.5 font-arcade text-2xl font-bold tracking-[0.2em] text-[#F59E0B]">
                   {roomId || '------'}
                 </div>
               </div>
@@ -152,8 +152,8 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                       key={slotIdx}
                       className={`flex items-center justify-between rounded-xl border p-3 font-mono text-xs ${
                         isConnected
-                          ? 'border-white/25 bg-[#18181C]'
-                          : 'border-white/10 bg-[#09090B]'
+                          ? 'border-white/25 bg-[#151722]'
+                          : 'border-white/10 bg-[#07070A]'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -161,6 +161,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                           className="h-2.5 w-2.5 rounded-full"
                           style={{
                             backgroundColor: isConnected ? color : 'rgba(255,255,255,0.15)',
+                            boxShadow: isConnected ? `0 0 8px ${color}` : 'none',
                           }}
                         />
                         <span className="font-bold text-[#F4F4F5]">
@@ -168,11 +169,11 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                         </span>
                       </div>
                       <span
-                        className={`text-[10px] font-semibold ${
+                        className={`text-[10px] font-bold ${
                           isConnected ? 'text-emerald-400' : 'text-[#A1A1AA]'
                         }`}
                       >
-                        {isConnected ? 'P2P AKTİF' : 'BEKLİYOR'}
+                        {isConnected ? 'P2P ONLINE' : 'STANDBY'}
                       </span>
                     </div>
                   );
@@ -180,20 +181,20 @@ export const PairingModal: React.FC<PairingModalProps> = ({
               </div>
 
               {/* Connection & Firestore Quota Status Banner */}
-              <div className="rounded-xl border border-white/10 bg-[#09090B] p-4">
+              <div className="rounded-xl border border-white/10 bg-[#07070A] p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs uppercase tracking-wider text-[#A1A1AA]">
-                    AĞ TOPOLOJİSİ
+                    NETWORK TOPOLOGY
                   </span>
                   {connectedCount > 0 ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-3 py-1 font-mono text-xs font-semibold text-emerald-400">
                       <CheckCircle size={15} weight="fill" />
-                      {connectedCount} KUMANDA BAĞLI
+                      {connectedCount} PAD{connectedCount > 1 ? 'S' : ''} LINKED
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF5500]/15 border border-[#FF5500]/40 px-3 py-1 font-mono text-xs font-semibold text-[#FF5500]">
                       <WifiHigh size={15} weight="bold" />
-                      {phase === 'creating_room' ? 'ODA OLUŞTURULUYOR' : 'QR TARAMASI BEKLENİYOR'}
+                      {phase === 'creating_room' ? 'CREATING ROOM' : 'AWAITING QR SCAN'}
                     </span>
                   )}
                 </div>
@@ -204,13 +205,13 @@ export const PairingModal: React.FC<PairingModalProps> = ({
 
                 <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/10 pt-3 font-mono text-xs">
                   <div>
-                    <div className="text-[#A1A1AA]">FIRESTORE İŞLEMİ</div>
+                    <div className="text-[#A1A1AA]">FIRESTORE OPS</div>
                     <div className="mt-0.5 text-[#F4F4F5] font-semibold">
-                      {firestoreSignalingOps} İşlem (Spark Kota Korumalı)
+                      {firestoreSignalingOps} Ops (Spark Quota Shielded)
                     </div>
                   </div>
                   <div>
-                    <div className="text-[#A1A1AA]">SONRAKİ OYUNCU SİNYALİ</div>
+                    <div className="text-[#A1A1AA]">NEXT PLAYER SLOT</div>
                     <div className="mt-0.5 flex items-center gap-1.5 font-semibold">
                       <ShieldCheck
                         size={15}
@@ -225,8 +226,8 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                         }
                       >
                         {firestoreListenersActive
-                          ? `P${connectedCount + 1} İçin Hazır`
-                          : 'Kilitli (0 Sunucu Yükü)'}
+                          ? `Ready for P${connectedCount + 1}`
+                          : 'Locked (0 Cloud Load)'}
                       </span>
                     </div>
                   </div>
@@ -236,9 +237,9 @@ export const PairingModal: React.FC<PairingModalProps> = ({
               <div className="flex items-start gap-2.5 text-xs text-[#A1A1AA]">
                 <DeviceMobile size={18} className="mt-0.5 shrink-0 text-[#FF5500]" />
                 <span>
-                  1 ila 4 telefon sırayla <strong>aynı QR kodu</strong> okutarak odaya katılabilir.
-                  Her telefon bağlandığında otomatik olarak bir sonraki oyuncu slotu (P1, P2, P3,
-                  P4) hazırlanır.
+                  1 to 4 smartphones can scan the <strong>same QR code</strong> sequentially to join
+                  the room. Each connected phone is automatically assigned the next available player
+                  slot (P1, P2, P3, P4).
                 </span>
               </div>
 
@@ -248,15 +249,15 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                     htmlFor="lan-host-input"
                     className="block font-mono text-[10px] uppercase tracking-wider text-amber-300"
                   >
-                    YEREL AĞ (LAN) TEST ADRESİ
+                    LOCAL NETWORK (LAN) HOST ORIGIN
                   </label>
                   <input
                     id="lan-host-input"
                     type="text"
                     value={hostOrigin}
                     onChange={(e) => setHostOrigin(e.target.value)}
-                    placeholder="Örn: http://192.168.1.45:5173"
-                    className="mt-1 w-full rounded-lg border border-white/15 bg-[#09090B] px-3 py-1.5 font-mono text-xs text-[#F4F4F5] focus:border-[#FF5500] focus:outline-none"
+                    placeholder="e.g. http://192.168.1.45:5173"
+                    className="mt-1 w-full rounded-lg border border-white/15 bg-[#07070A] px-3 py-1.5 font-mono text-xs text-[#F4F4F5] focus:border-[#FF5500] focus:outline-none"
                   />
                 </div>
               )}
@@ -269,7 +270,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                   className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3.5 py-2 font-mono text-xs font-semibold text-[#F4F4F5] hover:bg-white/10 active:scale-[0.98] transition-transform"
                 >
                   {copied ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
-                  {copied ? 'KOPYALANDI' : 'LİNKİ KOPYALA'}
+                  {copied ? 'COPIED' : 'COPY LINK'}
                 </button>
 
                 <a
@@ -279,7 +280,7 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                   className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-[#FF5500]/40 bg-[#FF5500]/15 px-3.5 py-2 font-mono text-xs font-semibold text-[#FF5500] hover:bg-[#FF5500]/25 active:scale-[0.98] transition-transform"
                 >
                   <ArrowSquareOut size={15} weight="bold" />
-                  YENİ SEKMEDE KUMANDA AÇ
+                  OPEN GAMEPAD IN NEW TAB
                 </a>
 
                 {firestoreListenersActive && connectedCount > 0 && onLockRoom && (
@@ -289,17 +290,17 @@ export const PairingModal: React.FC<PairingModalProps> = ({
                     className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 font-mono text-xs font-semibold text-emerald-300 hover:bg-emerald-500/25 active:scale-[0.98] transition-transform"
                   >
                     <LockSimple size={15} weight="bold" />
-                    ODAYI KİLİTLE (FIRESTORE KAPAT)
+                    LOCK ROOM (STOP SIGNALING)
                   </button>
                 )}
 
                 <button
                   type="button"
                   onClick={onRegenerateRoom}
-                  className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#09090B] px-3.5 py-2 font-mono text-xs font-semibold text-[#A1A1AA] hover:text-[#F4F4F5] active:scale-[0.98] transition-transform ml-auto"
+                  className="spatial-focusable inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#07070A] px-3.5 py-2 font-mono text-xs font-semibold text-[#A1A1AA] hover:text-[#F4F4F5] active:scale-[0.98] transition-transform ml-auto"
                 >
                   <ArrowsClockwise size={15} weight="bold" />
-                  YENİ ODA
+                  NEW ROOM
                 </button>
               </div>
             </div>
