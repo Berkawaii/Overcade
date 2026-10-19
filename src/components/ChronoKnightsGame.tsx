@@ -384,28 +384,33 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
       {/* 60 FPS HTML5 Canvas */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block z-0" />
 
-      {/* Top Console Navigation Bar */}
-      <header className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto">
+      {/* Top Console Navigation & World Status Bar */}
+      <header className="absolute top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        {/* Left Navigation Controls */}
+        <div className="flex items-center gap-2 pointer-events-auto shrink-0">
           <button
             onClick={onExitGame}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white/90 hover:text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md text-xs font-semibold"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white/90 hover:text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md text-xs font-semibold whitespace-nowrap"
           >
-            <ArrowLeft size={16} weight="bold" />
+            <ArrowLeft size={15} weight="bold" />
             <span>EXIT TO OS</span>
           </button>
 
           {phase === 'world' && (
             <button
               onClick={() => setPhase('lobby_select')}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white/90 hover:text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md text-xs font-semibold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white/90 hover:text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md text-xs font-semibold whitespace-nowrap"
             >
-              <ArrowsClockwise size={16} weight="bold" />
+              <ArrowsClockwise size={15} weight="bold" />
               <span>HERO SELECT</span>
             </button>
           )}
 
-          <div className="px-3.5 py-1.5 rounded-xl bg-[#121215]/90 border border-white/10 backdrop-blur-md flex items-center gap-2 text-xs">
+          <div
+            className={`${
+              phase === 'world' ? 'hidden 2xl:flex' : 'flex'
+            } px-3 py-1.5 rounded-xl bg-[#121215]/90 border border-white/10 backdrop-blur-md items-center gap-2 text-xs whitespace-nowrap`}
+          >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-['JetBrains_Mono'] font-bold text-white tracking-wider">
               CHRONO KNIGHTS // AETHELVALE
@@ -413,25 +418,96 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#121215]/90 border border-white/10 text-xs backdrop-blur-md">
-            <Users size={16} className="text-blue-400" />
+        {/* Center World Telemetry (Zone, Quest, Gold & Level) */}
+        {phase === 'world' && (
+          <div className="flex flex-wrap items-center justify-center gap-2 pointer-events-auto">
+            <div className="px-3 py-1.5 rounded-full bg-black/80 border border-white/10 backdrop-blur-md flex items-center gap-1.5 text-xs font-['JetBrains_Mono'] shadow-lg whitespace-nowrap">
+              <span className="text-white/50">ZONE:</span>
+              <span
+                className={`font-bold ${
+                  currentZone === 'oakhaven'
+                    ? 'text-emerald-400'
+                    : currentZone === 'whispering_plains'
+                    ? 'text-amber-400'
+                    : currentZone === 'forgotten_crypt'
+                    ? 'text-indigo-400'
+                    : currentZone === 'arachnid_caverns'
+                    ? 'text-emerald-300'
+                    : currentZone === 'aethelgard'
+                    ? 'text-blue-400'
+                    : currentZone === 'molten_forge'
+                    ? 'text-orange-400'
+                    : 'text-purple-400'
+                }`}
+              >
+                {currentZone === 'oakhaven'
+                  ? 'OAKHAVEN VILLAGE'
+                  : currentZone === 'whispering_plains'
+                  ? 'WHISPERING PLAINS'
+                  : currentZone === 'forgotten_crypt'
+                  ? 'FORGOTTEN CRYPT (D1)'
+                  : currentZone === 'arachnid_caverns'
+                  ? 'ARACHNID CAVERNS (D2)'
+                  : currentZone === 'aethelgard'
+                  ? 'ROYAL AETHELGARD'
+                  : currentZone === 'molten_forge'
+                  ? 'MOLTEN FORGE (D3)'
+                  : 'CITADEL OF SHADOWS (D4)'}
+              </span>
+            </div>
+
+            <div
+              className={`px-3 py-1.5 rounded-full border backdrop-blur-md flex items-center gap-1.5 text-xs font-['JetBrains_Mono'] shadow-lg whitespace-nowrap ${
+                questDone
+                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 animate-pulse'
+                  : 'bg-black/80 border-white/10 text-white/90'
+              }`}
+            >
+              <Scroll size={14} className={questDone ? 'text-emerald-400' : 'text-blue-400'} />
+              <span>
+                {questDone
+                  ? 'QUEST COMPLETE: RETURN TO ELDRIN'
+                  : `QUEST: SLAY BEASTS [${questKills}/${questGoal}]`}
+              </span>
+            </div>
+
+            <div className="px-3 py-1.5 rounded-full bg-black/80 border border-white/10 backdrop-blur-md flex items-center gap-2.5 text-xs font-['JetBrains_Mono'] shadow-lg whitespace-nowrap">
+              <div className="flex items-center gap-1 text-amber-400 font-bold">
+                <Coins size={14} weight="fill" />
+                <span>{teamGold} G</span>
+              </div>
+              <span className="text-white/30">•</span>
+              <div className="flex items-center gap-1 text-blue-400 font-bold">
+                <span>LV {teamLevel}</span>
+                <span className="text-white/50 text-[10px]">
+                  ({teamExp}/{expToNext} EXP)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Right Controller & System Controls */}
+        <div className="flex items-center gap-1.5 pointer-events-auto shrink-0">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#121215]/90 border border-white/10 text-xs backdrop-blur-md whitespace-nowrap">
+            <Users size={15} className="text-blue-400" />
             <span className="font-['JetBrains_Mono'] text-white/90">
-              {Math.max(1, connectedCount)} / 4 PLAYERS
+              {Math.max(1, connectedCount)}/4 <span className="hidden xl:inline">PLAYERS</span>
             </span>
           </div>
 
           <button
             onClick={onOpenPairing}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md text-xs font-semibold"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md text-xs font-semibold whitespace-nowrap"
           >
-            <QrCode size={16} weight="bold" />
-            <span>PAIR CONTROLLER</span>
+            <QrCode size={15} weight="bold" />
+            <span className="hidden lg:inline">PAIR CONTROLLER</span>
+            <span className="lg:hidden">PAIR</span>
           </button>
 
           <button
             onClick={toggleSound}
-            className="p-2 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md"
+            className="p-1.5 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md"
             title={soundEnabled ? 'Mute Audio' : 'Unmute Audio'}
           >
             {soundEnabled ? <SpeakerHigh size={16} /> : <SpeakerSlash size={16} className="text-red-400" />}
@@ -439,7 +515,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
 
           <button
             onClick={toggleFullscreen}
-            className="p-2 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md"
+            className="p-1.5 rounded-xl bg-[#121215]/90 hover:bg-[#1A1A20] border border-white/10 text-white transition-all active:scale-[0.98] shadow-lg backdrop-blur-md"
             title="Toggle Fullscreen"
           >
             <ArrowsOutSimple size={16} />
@@ -640,100 +716,26 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
       {/* PHASE 2: IN-GAME HUD, QUEST TRACKER & NPC DIALOGUES           */}
       {/* ------------------------------------------------------------- */}
       {phase === 'world' && (
-        <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-4">
-          {/* Top Quest & Zone Status Bar */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
-              <div className="px-3.5 py-1.5 rounded-full bg-black/70 border border-white/10 backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
-                <span className="text-white/50">ZONE:</span>
-                <span
-                  className={`font-bold ${
-                    currentZone === 'oakhaven'
-                      ? 'text-emerald-400'
-                      : currentZone === 'whispering_plains'
-                      ? 'text-amber-400'
-                      : currentZone === 'forgotten_crypt'
-                      ? 'text-indigo-400'
-                      : currentZone === 'arachnid_caverns'
-                      ? 'text-emerald-300'
-                      : currentZone === 'aethelgard'
-                      ? 'text-blue-400'
-                      : currentZone === 'molten_forge'
-                      ? 'text-orange-400'
-                      : 'text-purple-400'
-                  }`}
-                >
-                  {currentZone === 'oakhaven'
-                    ? 'OAKHAVEN VILLAGE (SAFE HUB)'
-                    : currentZone === 'whispering_plains'
-                    ? 'WHISPERING PLAINS (BEAST WILDS)'
-                    : currentZone === 'forgotten_crypt'
-                    ? 'THE FORGOTTEN CRYPT (DUNGEON 1)'
-                    : currentZone === 'arachnid_caverns'
-                    ? 'ARACHNID CAVERNS (DUNGEON 2)'
-                    : currentZone === 'aethelgard'
-                    ? 'ROYAL CAPITAL AETHELGARD'
-                    : currentZone === 'molten_forge'
-                    ? 'THE MOLTEN FORGE (DUNGEON 3)'
-                    : 'THE CITADEL OF SHADOWS (ENDGAME RAID)'}
-                </span>
-              </div>
-
-
-              <div
-                className={`px-4 py-1.5 rounded-full border backdrop-blur-md flex items-center gap-2 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto ${
-                  questDone
-                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 animate-pulse'
-                    : 'bg-black/70 border-white/10 text-white/90'
-                }`}
-              >
-                <Scroll size={14} className={questDone ? 'text-emerald-400' : 'text-blue-400'} />
-                <span>
-                  {questDone
-                    ? 'QUEST COMPLETE: RETURN TO ELDER ELDRIN!'
-                    : `QUEST: SLAY 5 BEASTS [${questKills} / ${questGoal}]`}
-                </span>
-              </div>
-
-              <div className="px-3.5 py-1.5 rounded-full bg-black/70 border border-white/10 backdrop-blur-md flex items-center gap-3 text-xs font-['JetBrains_Mono'] shadow-lg pointer-events-auto">
-                <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-                  <Coins size={14} weight="fill" />
-                  <span>{teamGold} G</span>
-                </div>
-                <span className="text-white/30">•</span>
-                <div className="flex items-center gap-1.5 text-blue-400 font-bold">
-                  <span>LV {teamLevel}</span>
-                  <span className="text-white/50 text-[10px]">
-                    ({teamExp}/{expToNext} EXP)
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Elden Ring-Style Boss Health Bar */}
-            {activeBoss && (
+        <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between pt-16 px-4 pb-4">
+          {/* Top Boss Encounter Bar (Only visible after entering the Boss Sanctum) */}
+          <div className="flex flex-col items-center">
+            {activeBoss && bossRoomSealed && (
               <div className="w-full max-w-2xl mx-auto px-4 py-3 rounded-xl bg-[#07070B]/95 border border-amber-500/40 backdrop-blur-xl shadow-[0_0_40px_rgba(220,38,38,0.25)] flex flex-col gap-1.5 animate-fade-in pointer-events-auto">
                 <div className="flex items-center justify-between text-xs font-['JetBrains_Mono']">
                   <div className="flex items-center gap-2.5">
                     <Skull
                       size={18}
                       weight="fill"
-                      className={bossRoomSealed ? 'text-red-500 animate-pulse' : 'text-amber-400'}
+                      className="text-red-500 animate-pulse"
                     />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="font-black text-sm text-amber-100 tracking-wider uppercase">
                           {activeBoss.name}
                         </span>
-                        {bossRoomSealed ? (
-                          <span className="px-2 py-0.5 rounded bg-red-500/20 border border-red-500/50 text-red-300 text-[9px] font-bold">
-                            SANCTUM SEALED
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[9px] font-bold">
-                            AWAITING IN SANCTUM
-                          </span>
-                        )}
+                        <span className="px-2 py-0.5 rounded bg-red-500/20 border border-red-500/50 text-red-300 text-[9px] font-bold">
+                          SANCTUM SEALED
+                        </span>
                       </div>
                       {activeBoss.bossTitle && (
                         <span className="text-[10px] text-amber-200/60 tracking-widest uppercase">

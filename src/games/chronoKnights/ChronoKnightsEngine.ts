@@ -546,9 +546,9 @@ export class ChronoKnightsEngine {
       }
     }
 
-    // Push live boss telemetry to game UI
+    // Push live boss telemetry to game UI only when inside the sealed Boss Sanctum
     if (this.onBossUpdate) {
-      this.onBossUpdate(this.activeBoss, this.bossRoomSealed);
+      this.onBossUpdate(this.bossRoomSealed ? this.activeBoss : null, this.bossRoomSealed);
     }
 
     // Periodically sync RPG telemetry to connected mobile controllers
@@ -1506,6 +1506,7 @@ export class ChronoKnightsEngine {
       for (let i = this.enemies.length - 1; i >= 0; i--) {
         const enemy = this.enemies[i];
         if (enemy.hp <= 0) continue;
+        if (enemy.isBoss && this.isDungeonZone() && !this.bossRoomSealed) continue;
 
         const dist = Math.hypot(enemy.x - hitX, enemy.y - hitY);
         if (dist <= enemy.radius + reach * 0.6) {
@@ -1593,6 +1594,7 @@ export class ChronoKnightsEngine {
       for (let i = this.enemies.length - 1; i >= 0; i--) {
         const enemy = this.enemies[i];
         if (enemy.hp <= 0) continue;
+        if (enemy.isBoss && this.isDungeonZone() && !this.bossRoomSealed) continue;
         const dist = Math.hypot(enemy.x - cx, enemy.y - cy);
         if (dist <= radius + enemy.radius) {
           if (enemy.isShielded) {
@@ -1795,6 +1797,7 @@ export class ChronoKnightsEngine {
       for (let i = 0; i < this.enemies.length; i++) {
         const e = this.enemies[i];
         if (e.hp <= 0) continue;
+        if (e.isBoss && this.isDungeonZone() && !this.bossRoomSealed) continue;
         const dist = Math.hypot(e.x - sourceX, e.y - sourceY);
         if (dist < minDist) {
           minDist = dist;
@@ -1897,6 +1900,11 @@ export class ChronoKnightsEngine {
 
       let hit = false;
 
+      // Block projectiles from crossing the Boss Sanctum Fog Wall before the fight begins
+      if (this.isDungeonZone() && !this.bossRoomSealed && p.y < 700) {
+        hit = true;
+      }
+
       // Hostile Enemy Projectile hitting players
       if (p.ownerSlot === -1) {
         for (const player of this.players) {
@@ -1949,6 +1957,7 @@ export class ChronoKnightsEngine {
           for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
             const enemy = this.enemies[eIdx];
             if (enemy.hp <= 0) continue;
+            if (enemy.isBoss && this.isDungeonZone() && !this.bossRoomSealed) continue;
 
             const dist = Math.hypot(enemy.x - p.x, enemy.y - p.y);
             if (dist <= enemy.radius + p.radius) {
@@ -3825,7 +3834,7 @@ export class ChronoKnightsEngine {
 
     ctx.save();
     const bx = width / 2;
-    const by = 84;
+    const by = this.bossRoomSealed ? 136 : 82;
 
     ctx.fillStyle = 'rgba(9, 9, 13, 0.94)';
     ctx.beginPath();
@@ -3918,6 +3927,8 @@ export class ChronoKnightsEngine {
   private renderEnemies(ctx: CanvasRenderingContext2D): void {
     for (const enemy of this.enemies) {
       if (enemy.hp <= 0) continue;
+      // Conceal the Boss behind the Sanctum Fog Wall until the party steps inside!
+      if (enemy.isBoss && this.isDungeonZone() && !this.bossRoomSealed) continue;
 
       ctx.fillStyle = 'rgba(0,0,0,0.45)';
       ctx.beginPath();
