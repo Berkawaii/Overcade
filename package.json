@@ -18,6 +18,7 @@
     "@rpgjs/database": "^4.3.0",
     "@rpgjs/server": "^5.1.0",
     "firebase": "^11.4.0",
+    "jsqr": "^1.4.0",
     "motion": "^12.4.7",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
