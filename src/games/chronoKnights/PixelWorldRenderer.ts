@@ -2,8 +2,13 @@ import type {
   AstralSealPillar,
   BossTelegraph,
   BrazierTorch,
+  CavernEggSac,
+  CavernWebPatch,
   ChronoCheckpoint,
+  CitadelMirrorRift,
+  CryptPushUrn,
   DungeonChest,
+  ForgeGeyser,
   HazardPool,
   MagmaBridge,
   PortcullisGate,
@@ -448,15 +453,32 @@ export class PixelWorldRenderer {
   public static drawCryptPuzzlesAndGates(
     ctx: CanvasRenderingContext2D,
     plates: PressurePlate[],
+    urns: CryptPushUrn[],
     gate: PortcullisGate,
-    _now: number,
+    now: number,
   ): void {
+    // Faint rune channel lines linking each urn to its socket
+    ctx.save();
+    for (const urn of urns) {
+      const target = plates.find((p) => p.id === urn.targetPlateId);
+      if (!target) continue;
+      ctx.strokeStyle = urn.lockedPlateId ? 'rgba(48, 225, 185, 0.45)' : 'rgba(143, 211, 255, 0.22)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(urn.x, urn.y);
+      ctx.lineTo(target.x, target.y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.restore();
+
     for (const p of plates) {
       ChronoTilemapRenderer.drawPixelLightHalo(
         ctx,
         p.x,
         p.y,
-        42,
+        46,
         p.isPressed ? '48, 225, 185' : '77, 155, 230',
       );
       SpriteAtlas.drawSprite(ctx, p.isPressed ? 'plate_on' : 'plate_off', p.x, p.y, {
@@ -469,7 +491,48 @@ export class PixelWorldRenderer {
       ctx.font = '700 9px "JetBrains Mono", monospace';
       ctx.fillStyle = p.isPressed ? '#30E1B9' : '#8FD3FF';
       ctx.textAlign = 'center';
-      ctx.fillText(p.label, p.x, p.y - 34);
+      ctx.fillText(p.label, p.x, p.y - 36);
+      ctx.restore();
+    }
+
+    // Pushable Rune Urns
+    const bob = Math.sin(now * 0.005) * 2;
+    for (const u of urns) {
+      const locked = Boolean(u.lockedPlateId);
+      ChronoTilemapRenderer.drawPixelLightHalo(
+        ctx,
+        u.x,
+        u.y,
+        36,
+        locked ? '48, 225, 185' : '129, 140, 248',
+      );
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.beginPath();
+      ctx.ellipse(u.x, u.y + 16, 20, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pixelstone urn body
+      const uy = u.y + (locked ? -3 : 0);
+      ctx.fillStyle = locked ? '#115E59' : '#1E293B';
+      ctx.strokeStyle = locked ? '#30E1B9' : '#818CF8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(u.x - 16, uy - 22, 32, 34, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // Urn rim + rune glyph
+      ctx.fillStyle = locked ? '#2DD4BF' : '#4F46E5';
+      ctx.fillRect(u.x - 12, uy - 26, 24, 6);
+      ctx.fillStyle = locked ? '#ECFEFF' : '#C7D2FE';
+      ctx.fillRect(u.x - 4, uy - 12, 8, 12);
+      ctx.fillRect(u.x - 8, uy - 8, 16, 4);
+
+      ctx.font = '700 8px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = locked ? '#30E1B9' : '#C7D2FE';
+      ctx.fillText(locked ? 'LOCKED' : 'PUSH URN', u.x, uy - 34 + bob);
       ctx.restore();
     }
 
@@ -486,13 +549,53 @@ export class PixelWorldRenderer {
   public static drawCavernsPuzzlesAndGates(
     ctx: CanvasRenderingContext2D,
     braziers: BrazierTorch[],
+    eggSacs: CavernEggSac[],
+    webPatches: CavernWebPatch[],
+    eternalTorch: { x: number; y: number; label: string },
     webWall: WebWall,
     now: number,
   ): void {
     const frame = Math.floor(now / 150);
+
+    // Sticky Spider Web Floor Patches
+    for (const wp of webPatches) {
+      if (wp.isBurned) continue;
+      ctx.save();
+      ctx.fillStyle = 'rgba(226, 232, 240, 0.14)';
+      ctx.strokeStyle = 'rgba(226, 232, 240, 0.36)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(wp.x, wp.y, wp.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      for (let i = 0; i < 6; i++) {
+        const ang = (i * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.moveTo(wp.x, wp.y);
+        ctx.lineTo(wp.x + Math.cos(ang) * wp.radius * 0.92, wp.y + Math.sin(ang) * wp.radius * 0.92);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Eternal Entrance Torch
+    ChronoTilemapRenderer.drawPixelLightHalo(ctx, eternalTorch.x, eternalTorch.y - 6, 62, '251, 146, 60');
+    SpriteAtlas.drawSprite(ctx, 'brazier_on', eternalTorch.x, eternalTorch.y + 18, {
+      frame,
+      scale: 2.3,
+      anchorX: 0.5,
+      anchorY: 1.0,
+    });
+    ctx.save();
+    ctx.font = '700 9px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#FDBA74';
+    ctx.textAlign = 'center';
+    ctx.fillText('ETERNAL FLAME (WALK NEAR TO CARRY)', eternalTorch.x, eternalTorch.y + 32);
+    ctx.restore();
+
     for (const b of braziers) {
       if (b.isLit) {
-        ChronoTilemapRenderer.drawPixelLightHalo(ctx, b.x, b.y - 6, 48, '251, 107, 29');
+        ChronoTilemapRenderer.drawPixelLightHalo(ctx, b.x, b.y - 6, 54, '251, 107, 29');
       }
       SpriteAtlas.drawSprite(ctx, b.isLit ? 'brazier_on' : 'brazier_off', b.x, b.y + 18, {
         frame,
@@ -500,6 +603,55 @@ export class PixelWorldRenderer {
         anchorX: 0.5,
         anchorY: 1.0,
       });
+    }
+
+    // Destructible Brood Egg Sacs
+    const pulse = 1 + Math.sin(now * 0.008) * 0.08;
+    for (const sac of eggSacs) {
+      if (sac.isDestroyed) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.16)';
+        ctx.beginPath();
+        ctx.ellipse(sac.x, sac.y + 6, 22, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
+
+      ChronoTilemapRenderer.drawPixelLightHalo(ctx, sac.x, sac.y, 40, '163, 230, 53');
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.beginPath();
+      ctx.ellipse(sac.x, sac.y + 16, 24, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.translate(sac.x, sac.y);
+      ctx.scale(pulse, 2 - pulse);
+      ctx.fillStyle = '#365314';
+      ctx.strokeStyle = '#A3E635';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(0, -4, 20, 25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#BEF264';
+      ctx.beginPath();
+      ctx.arc(-5, -10, 4, 0, Math.PI * 2);
+      ctx.arc(6, -2, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      const hpRatio = Math.max(0, sac.hp / sac.maxHp);
+      ctx.save();
+      ctx.fillStyle = '#09090B';
+      ctx.fillRect(sac.x - 22, sac.y - 38, 44, 6);
+      ctx.fillStyle = '#84CC16';
+      ctx.fillRect(sac.x - 21, sac.y - 37, 42 * hpRatio, 4);
+      ctx.font = '700 8px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#D9F99D';
+      ctx.textAlign = 'center';
+      ctx.fillText('EGG SAC', sac.x, sac.y - 43);
+      ctx.restore();
     }
 
     if (!webWall.isBurned) {
@@ -510,22 +662,84 @@ export class PixelWorldRenderer {
         anchorX: 0.5,
         anchorY: 1.0,
       });
+      ctx.save();
+      ctx.font = '700 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#A3E635';
+      ctx.textAlign = 'center';
+      const aliveSacs = eggSacs.filter((s) => !s.isDestroyed).length;
+      ctx.fillText(
+        aliveSacs > 0 ? `BROOD WEB (${aliveSacs} EGG SACS HEAL WALL)` : 'BURN OR SMASH WEB WALL!',
+        cx,
+        cy - 24,
+      );
+      ctx.restore();
     }
   }
 
   public static drawForgePuzzlesAndGates(
     ctx: CanvasRenderingContext2D,
     valves: SteamValve[],
+    geysers: ForgeGeyser[],
     bridge: MagmaBridge,
-    _now: number,
+    now: number,
   ): void {
+    // Pipe conduits linking each valve toward bridge
+    const bridgeCx = bridge.x + bridge.width / 2;
+    const bridgeCy = bridge.y + bridge.height / 2;
+    ctx.save();
+    for (const v of valves) {
+      ctx.strokeStyle = v.isTurned ? 'rgba(56, 189, 248, 0.55)' : 'rgba(234, 88, 12, 0.25)';
+      ctx.lineWidth = v.isTurned ? 4 : 2;
+      ctx.beginPath();
+      ctx.moveTo(v.x, v.y);
+      ctx.lineTo(bridgeCx, bridgeCy);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Floor Magma Geysers
+    for (const g of geysers) {
+      const linked = valves.find((v) => v.id === g.silencedByValveId);
+      const isCooled = Boolean(linked && linked.isTurned);
+      ctx.save();
+      ctx.fillStyle = isCooled ? 'rgba(56, 189, 248, 0.14)' : 'rgba(15, 23, 42, 0.8)';
+      ctx.strokeStyle = isCooled
+        ? '#38BDF8'
+        : g.isErupting
+          ? '#FDE047'
+          : g.warningRatio > 0.4
+            ? '#FB923C'
+            : '#7C2D12';
+      ctx.lineWidth = g.isErupting ? 3 : 2;
+      ctx.beginPath();
+      ctx.arc(g.x, g.y, g.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      if (!isCooled && (g.warningRatio > 0 || g.isErupting)) {
+        const innerR = g.radius * (g.isErupting ? 0.96 : g.warningRatio);
+        ctx.fillStyle = g.isErupting ? 'rgba(249, 115, 22, 0.55)' : 'rgba(251, 146, 60, 0.26)';
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, Math.max(6, innerR), 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (isCooled) {
+        ctx.font = '700 8px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#7DD3FC';
+        ctx.textAlign = 'center';
+        ctx.fillText('VENT COOLED', g.x, g.y + 4);
+      }
+      ctx.restore();
+    }
+
     for (const v of valves) {
       ChronoTilemapRenderer.drawPixelLightHalo(
         ctx,
         v.x,
         v.y,
-        40,
-        v.isTurned ? '249, 194, 43' : '234, 79, 54',
+        44,
+        v.isTurned ? '56, 189, 248' : '234, 79, 54',
       );
       SpriteAtlas.drawSprite(ctx, v.isTurned ? 'valve_on' : 'valve_off', v.x, v.y + 14, {
         scale: 2.0,
@@ -534,10 +748,30 @@ export class PixelWorldRenderer {
       });
 
       ctx.save();
+      if (!v.isTurned && v.progress > 0.02) {
+        ctx.strokeStyle = '#38BDF8';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(v.x, v.y - 6, 30, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * v.progress);
+        ctx.stroke();
+      }
+      if (v.isTurned && !bridge.isRaised) {
+        const ratio = Math.max(0, v.pressureTimer / Math.max(1, v.maxPressureTimer));
+        ctx.fillStyle = '#09090B';
+        ctx.fillRect(v.x - 24, v.y - 46, 48, 6);
+        ctx.fillStyle = ratio > 0.3 ? '#38BDF8' : '#F59E0B';
+        ctx.fillRect(v.x - 23, v.y - 45, 46 * ratio, 4);
+      }
+
       ctx.font = '700 9px "JetBrains Mono", monospace';
-      ctx.fillStyle = v.isTurned ? '#F9C22B' : '#F57D4A';
+      ctx.fillStyle = v.isTurned ? '#7DD3FC' : '#F57D4A';
       ctx.textAlign = 'center';
-      ctx.fillText(v.label, v.x, v.y - 32);
+      const statusText = bridge.isRaised
+        ? `${v.label} (LOCKED)`
+        : v.isTurned
+          ? `${v.label} (${Math.ceil(v.pressureTimer)}s)`
+          : v.label;
+      ctx.fillText(statusText, v.x, v.y - 52);
       ctx.restore();
     }
 
@@ -547,25 +781,57 @@ export class PixelWorldRenderer {
       ctx.font = '700 10px "JetBrains Mono", monospace';
       ctx.fillStyle = '#FB6B1D';
       ctx.textAlign = 'center';
-      ctx.fillText('MAGMA BRIDGE LOWERED', bridge.x + bridge.width / 2, bridge.y + 50);
+      ctx.fillText('PRESSURIZE ALL 3 VALVES TOGETHER', bridge.x + bridge.width / 2, bridge.y + 50);
       ctx.restore();
     }
+    void now;
   }
 
   public static drawCitadelPuzzlesAndGates(
     ctx: CanvasRenderingContext2D,
     seals: AstralSealPillar[],
+    rifts: CitadelMirrorRift[],
     gate: VoidThroneGate,
+    nextStepIndex: number,
     now: number,
   ): void {
+    // Mirror Rifts connecting West <-> East Wings
+    for (const r of rifts) {
+      const pulse = 26 + Math.sin(now * 0.008) * 4;
+      ChronoTilemapRenderer.drawPixelLightHalo(ctx, r.x, r.y, 44, '56, 189, 248');
+      ctx.save();
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(r.x, r.y, pulse, pulse * 0.65, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+      ctx.fill();
+      ctx.font = '700 8px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#E0E7FF';
+      ctx.textAlign = 'center';
+      ctx.fillText(r.label, r.x, r.y - 26);
+      ctx.restore();
+    }
+
     for (const s of seals) {
+      const isNext = !s.isActivated && s.orderIndex === nextStepIndex;
       ChronoTilemapRenderer.drawPixelLightHalo(
         ctx,
         s.x,
         s.y,
-        46,
-        s.isActivated ? '168, 132, 243' : '98, 85, 101',
+        isNext ? 62 : 46,
+        s.isActivated ? '168, 132, 243' : isNext ? '250, 204, 21' : '98, 85, 101',
       );
+      if (isNext) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(250, 204, 21, ${0.45 + 0.35 * Math.sin(now * 0.01)})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.radius + 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
       const spriteId = s.isActivated ? `seal_pillar_${s.rune}` : 'seal_pillar_off';
       SpriteAtlas.drawSprite(ctx, spriteId, s.x, s.y + 16, {
         frame: Math.floor(now / 180),
@@ -576,9 +842,9 @@ export class PixelWorldRenderer {
 
       ctx.save();
       ctx.font = '700 9px "JetBrains Mono", monospace';
-      ctx.fillStyle = s.isActivated ? '#EAADED' : '#9BABB2';
+      ctx.fillStyle = s.isActivated ? '#EAADED' : isNext ? '#FDE047' : '#9BABB2';
       ctx.textAlign = 'center';
-      ctx.fillText(s.label, s.x, s.y - 44);
+      ctx.fillText(isNext ? `NEXT: ${s.label}` : s.label, s.x, s.y - 46);
       ctx.restore();
     }
 
@@ -590,6 +856,14 @@ export class PixelWorldRenderer {
       anchorX: 0.5,
       anchorY: 1.0,
     });
+    if (!isOpen) {
+      ctx.save();
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#C4B5FD';
+      ctx.textAlign = 'center';
+      ctx.fillText('SEQUENCE: 1.SUN -> 2.MOON -> 3.STAR -> 4.VOID', cx, cy + 38);
+      ctx.restore();
+    }
   }
 
   public static drawChronoCheckpoint(

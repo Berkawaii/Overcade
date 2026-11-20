@@ -230,6 +230,247 @@ export class PixelArtRenderer {
       ctx.stroke();
       ctx.restore();
     }
+
+    // Carrying Eternal Torch Flame aura (Arachnid Caverns)
+    if (player.carryingFlameTimer > 0) {
+      const fx = player.x + (player.facing === 'left' ? -18 : 18);
+      const fy = player.y - 36 + Math.sin(now * 0.015) * 3;
+      ctx.save();
+      ctx.fillStyle = 'rgba(251, 146, 60, 0.35)';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FB923C';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.arc(fx, fy - 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Berserker Rage gauge indicator
+    if (player.classId === 'berserker' && player.rage > 0) {
+      ctx.save();
+      ctx.fillStyle = '#09090B';
+      ctx.fillRect(player.x - 18, player.y + 13, 36, 4);
+      ctx.fillStyle = player.rage >= 80 ? '#F97316' : '#EF4444';
+      ctx.fillRect(player.x - 17, player.y + 14, 34 * Math.min(1, player.rage / 100), 2);
+      ctx.restore();
+    }
+
+    // Knight Valor stack pips
+    if (player.classId === 'knight' && player.valorStacks > 0) {
+      ctx.save();
+      for (let v = 0; v < player.valorStacks; v++) {
+        ctx.fillStyle = '#FACC15';
+        ctx.fillRect(player.x - 12 + v * 6, player.y - 68, 4, 4);
+      }
+      ctx.restore();
+    }
+  }
+
+  public static drawUltimateOverlay(
+    ctx: CanvasRenderingContext2D,
+    player: PlayerEntity,
+    enemies: EnemyEntity[],
+    dummies: DummyEntity[],
+    now: number,
+  ): void {
+    const ult = player.ultimateState;
+    if (!ult || player.isDowned) return;
+
+    ctx.save();
+    if (ult.kind === 'pyro_incantation') {
+      const seq = ult.sequence ?? ['A', 'B', 'X', 'Y'];
+      const step = ult.stepIndex ?? 0;
+      const ratio = Math.max(0, ult.timer / Math.max(0.1, ult.maxTimer));
+
+      // Arcane ground sigil ring
+      ctx.strokeStyle = 'rgba(251, 146, 60, 0.72)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 48 + Math.sin(now * 0.014) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Sequence tiles above caster
+      const startX = player.x - ((seq.length - 1) * 26) / 2;
+      const tileY = player.y - 96;
+      for (let i = 0; i < seq.length; i++) {
+        const bx = startX + i * 26;
+        const done = i < step;
+        const active = i === step;
+        ctx.fillStyle = done ? '#16A34A' : active ? '#F59E0B' : '#1E293B';
+        ctx.strokeStyle = done ? '#86EFAC' : active ? '#FEF08A' : '#64748B';
+        ctx.lineWidth = active ? 2.5 : 1.5;
+        ctx.beginPath();
+        ctx.roundRect(bx - 10, tileY - 11, 20, 22, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '800 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.fillText(seq[i], bx, tileY + 4);
+      }
+
+      // Incantation countdown bar
+      ctx.fillStyle = '#09090B';
+      ctx.fillRect(player.x - 44, tileY + 15, 88, 5);
+      ctx.fillStyle = '#FB923C';
+      ctx.fillRect(player.x - 43, tileY + 16, 86 * ratio, 3);
+      ctx.font = '700 8px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#FDBA74';
+      ctx.textAlign = 'center';
+      ctx.fillText('CHANT RUNES!', player.x, tileY - 16);
+    } else if (ult.kind === 'berserker_charge') {
+      const prog = Math.min(1, ult.chargeProgress ?? 0);
+      const over = prog >= 0.85;
+      ctx.strokeStyle = over ? '#FDE047' : '#EF4444';
+      ctx.lineWidth = over ? 4 : 2.5;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 38 + prog * 70, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const barY = player.y - 84;
+      ctx.fillStyle = '#09090B';
+      ctx.fillRect(player.x - 46, barY, 92, 10);
+      ctx.fillStyle = over ? '#FACC15' : '#EF4444';
+      ctx.fillRect(player.x - 44, barY + 2, 88 * prog, 6);
+      ctx.font = '800 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = over ? '#FEF08A' : '#FCA5A5';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        over ? 'PEAK OVERDRIVE! RELEASE R1' : `CHARGING ${Math.round(prog * 100)}% (+35% DMG TAKEN)`,
+        player.x,
+        barY - 5,
+      );
+    } else if (ult.kind === 'knight_parry') {
+      const elapsed = ult.maxTimer - ult.timer;
+      const inSweet =
+        elapsed >= (ult.parrySweetSpotStart ?? 0.5) && elapsed <= (ult.parrySweetSpotEnd ?? 1.35);
+      const needleAngle = -Math.PI / 2 + (elapsed / Math.max(0.1, ult.maxTimer)) * Math.PI * 2;
+      const sStart = -Math.PI / 2 + ((ult.parrySweetSpotStart ?? 0.5) / ult.maxTimer) * Math.PI * 2;
+      const sEnd = -Math.PI / 2 + ((ult.parrySweetSpotEnd ?? 1.35) / ult.maxTimer) * Math.PI * 2;
+
+      ctx.strokeStyle = inSweet ? '#FACC15' : '#60A5FA';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y - 12, 42, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Sweet-spot golden arc
+      ctx.strokeStyle = '#FACC15';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y - 12, 42, sStart, sEnd);
+      ctx.stroke();
+
+      // Rotating sweep hand
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y - 12);
+      ctx.lineTo(player.x + Math.cos(needleAngle) * 44, player.y - 12 + Math.sin(needleAngle) * 44);
+      ctx.stroke();
+
+      ctx.font = '800 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = inSweet ? '#FEF08A' : '#93C5FD';
+      ctx.textAlign = 'center';
+      ctx.fillText(inSweet ? 'GOLD WINDOW! TAP [A] OR BLOCK!' : 'PARRY STANCE...', player.x, player.y - 68);
+    } else if (ult.kind === 'rogue_eclipse') {
+      const cursor = ult.cursorPos ?? 0.5;
+      const barY = player.y - 84;
+      ctx.fillStyle = '#09090B';
+      ctx.fillRect(player.x - 48, barY, 96, 12);
+      ctx.fillStyle = '#A855F7';
+      ctx.fillRect(player.x - 14, barY + 1, 28, 10);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(player.x - 46 + cursor * 88, barY - 2, 4, 16);
+
+      ctx.font = '800 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#E9D5FF';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        `ECLIPSE [A] SLASH ${ult.slashCount ?? 0}/${ult.maxSlashes ?? 5}`,
+        player.x,
+        barY - 6,
+      );
+    } else if (ult.kind === 'ranger_deadeye') {
+      const cone = ult.coneAngle ?? 0;
+      const spread = 0.57; // ~65 deg total
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.14)';
+      ctx.strokeStyle = '#34D399';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y);
+      ctx.arc(player.x, player.y, 440, cone - spread, cone + spread);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      const lockedIds = new Set(ult.lockedTargetIds ?? []);
+      const drawLock = (tx: number, ty: number) => {
+        ctx.strokeStyle = '#FACC15';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(tx, ty - 10, 22 + Math.sin(now * 0.02) * 3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.font = '800 8px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#FEF08A';
+        ctx.textAlign = 'center';
+        ctx.fillText('LOCKED', tx, ty - 38);
+      };
+      for (const e of enemies) {
+        if (e.hp > 0 && lockedIds.has(e.id)) drawLock(e.x, e.y);
+      }
+      for (const d of dummies) {
+        if (d.hp > 0 && lockedIds.has(d.id)) drawLock(d.x, d.y);
+      }
+
+      ctx.font = '800 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#6EE7B7';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        `DEADEYE (${lockedIds.size}/6 LOCKED) RELEASE R1`,
+        player.x,
+        player.y - 76,
+      );
+    } else if (ult.kind === 'cleric_choir') {
+      const phase = ult.beatPhase ?? 0;
+      const targetR = 26;
+      const ringR = 26 + (1 - phase) * 52;
+      const inWindow = phase >= 0.72 && phase <= 0.96;
+
+      ctx.strokeStyle = '#F59E0B';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y - 12, targetR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = inWindow ? '#FEF08A' : '#FDE68A';
+      ctx.lineWidth = inWindow ? 4 : 2;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y - 12, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const matched = ult.beatMatched ?? [];
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = matched[i] ? '#22C55E' : i === (ult.beatIndex ?? 0) ? '#FACC15' : '#475569';
+        ctx.fillRect(player.x - 16 + i * 12, player.y - 84, 8, 8);
+      }
+      ctx.font = '800 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = inWindow ? '#FEF08A' : '#FDE68A';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        inWindow ? 'HYMN NOW! TAP [A]!' : `SERAPH CHOIR ${(ult.beatIndex ?? 0) + 1}/3`,
+        player.x,
+        player.y - 90,
+      );
+    }
+    ctx.restore();
   }
 
   public static drawNpc(ctx: CanvasRenderingContext2D, npc: NpcEntity): void {

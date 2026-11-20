@@ -48,6 +48,7 @@ import {
 import { GameEngineBridge, useConsoleConnectionStore } from '../lib/gameEngineBridge';
 import { SoundFX } from '../lib/soundEffects';
 import { ChronoKnightsEngine, type WorldZone } from '../games/chronoKnights/ChronoKnightsEngine';
+import { ChronoAudio, type ChronoTrackId } from '../games/chronoKnights/ChronoAudioManager';
 import { CLASS_LIST, HERO_CLASSES, SLOT_THEMES } from '../games/chronoKnights/constants';
 import type { HeroClassId, PlayerEntity } from '../games/chronoKnights/types';
 import type { NpcEntity } from '../games/chronoKnights/WorldData';
@@ -142,10 +143,24 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
 
 
     return () => {
+      ChronoAudio.stop();
       engine.stop();
       engineRef.current = null;
     };
   }, []);
+
+  // Dynamically crossfade Chrono Knights background music across zones, bosses & states
+  useEffect(() => {
+    let targetTrack: ChronoTrackId = currentZone;
+    if (showVictoryModal) {
+      targetTrack = 'victory';
+    } else if (phase === 'lobby_select') {
+      targetTrack = 'lobby';
+    } else if (bossRoomSealed && activeBoss) {
+      targetTrack = activeBoss.kind === 'boss_dark_malakor' ? 'boss_final' : 'boss_battle';
+    }
+    ChronoAudio.playTrack(targetTrack);
+  }, [phase, currentZone, bossRoomSealed, activeBoss?.kind, showVictoryModal]);
 
   // Resize canvas to full viewport
   useEffect(() => {
@@ -300,6 +315,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
     const next = !soundEnabled;
     setSoundEnabled(next);
     SoundFX.setEnabled(next);
+    ChronoAudio.setEnabled(next);
   };
 
   const toggleFullscreen = () => {
@@ -1120,7 +1136,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
             <div>[E] / Button X: Class Skill 2</div>
             <div>[R] / Button Y: Class Skill 3</div>
             <div>[Q] / L1: Signature Technique</div>
-            <div>[F] / R1: Class Ultimate</div>
+            <div>[F] / R1: Interactive Ultimate (Chant / Hold / Parry / Rhythm)</div>
           </div>
         </div>
       )}

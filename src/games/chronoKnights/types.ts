@@ -59,6 +59,39 @@ export interface AttackState {
   hitboxActive: boolean;
 }
 
+export type UltimateButton = 'A' | 'B' | 'X' | 'Y';
+
+export interface UltimateState {
+  kind:
+    | 'pyro_incantation'
+    | 'berserker_charge'
+    | 'knight_parry'
+    | 'rogue_eclipse'
+    | 'ranger_deadeye'
+    | 'cleric_choir';
+  timer: number;
+  maxTimer: number;
+  sequence?: UltimateButton[];
+  stepIndex?: number;
+  chantedLabels?: string[];
+  failed?: boolean;
+  chargeProgress?: number;
+  holdingR1?: boolean;
+  parryTriggered?: boolean;
+  parrySweetSpotStart?: number;
+  parrySweetSpotEnd?: number;
+  cursorPos?: number;
+  cursorDir?: number;
+  slashCount?: number;
+  maxSlashes?: number;
+  sweetHits?: number;
+  coneAngle?: number;
+  lockedTargetIds?: string[];
+  beatIndex?: number;
+  beatPhase?: number;
+  beatMatched?: boolean[];
+}
+
 export interface PlayerEntity {
   slotIndex: number;
   id: string;
@@ -88,6 +121,12 @@ export interface PlayerEntity {
   seraphTimer: number;
   seraphPulseTimer: number;
   empoweredAttacks: number;
+  rage: number;
+  valorStacks: number;
+  carryingFlameTimer: number;
+  riftCooldown: number;
+  chronoHasteTimer: number;
+  ultimateState: UltimateState | null;
   animTime: number;
   hitFlashTimer: number;
   level: number;
@@ -247,13 +286,62 @@ export interface DungeonChest {
   exp: number;
 }
 
+export interface CryptPushUrn {
+  id: string;
+  x: number;
+  y: number;
+  homeX: number;
+  homeY: number;
+  radius: number;
+  targetPlateId: string;
+  lockedPlateId: string | null;
+  label: string;
+  pushCooldown: number;
+}
+
+export interface CavernEggSac {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  hp: number;
+  maxHp: number;
+  isDestroyed: boolean;
+  spawnTimer: number;
+  label: string;
+}
+
+export interface CavernWebPatch {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  isBurned: boolean;
+}
+
 export interface SteamValve {
   id: string;
   x: number;
   y: number;
   radius: number;
   isTurned: boolean;
+  progress: number;
+  pressureTimer: number;
+  maxPressureTimer: number;
   label: string;
+}
+
+export interface ForgeGeyser {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  cycleOffset: number;
+  period: number;
+  activeWindow: number;
+  silencedByValveId: string;
+  isErupting: boolean;
+  warningRatio: number;
 }
 
 export interface MagmaBridge {
@@ -273,6 +361,19 @@ export interface AstralSealPillar {
   radius: number;
   rune: 'sun' | 'moon' | 'star' | 'void';
   isActivated: boolean;
+  color: string;
+  label: string;
+  orderIndex: number;
+  paradoxCooldown?: number;
+}
+
+export interface CitadelMirrorRift {
+  id: string;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  radius: number;
   color: string;
   label: string;
 }

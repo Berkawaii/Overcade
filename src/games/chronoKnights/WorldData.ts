@@ -405,19 +405,19 @@ export const ZONE_GATES: ZoneBoundary[] = [
     height: 40,
     targetZone: 'forgotten_crypt',
     spawnX: 1400,
-    spawnY: 1520,
+    spawnY: 2320,
   },
   // South Gate in The Forgotten Crypt -> Whispering Plains
   {
     id: 'gate-crypt-exit',
     name: 'Exit Archway to Whispering Plains',
     x: 1340,
-    y: 1620,
+    y: 2380,
     width: 120,
     height: 40,
     targetZone: 'whispering_plains',
     spawnX: 1800,
-    spawnY: 340,
+    spawnY: 360,
   },
   // Far East Gate in Whispering Plains -> Arachnid Caverns
   {
@@ -429,18 +429,18 @@ export const ZONE_GATES: ZoneBoundary[] = [
     height: 120,
     targetZone: 'arachnid_caverns',
     spawnX: 1400,
-    spawnY: 1520,
+    spawnY: 2320,
   },
   // South Gate in Arachnid Caverns -> Whispering Plains
   {
     id: 'gate-caverns-exit',
     name: 'Cavern Mouth to Whispering Plains',
     x: 1340,
-    y: 1620,
+    y: 2380,
     width: 120,
     height: 40,
     targetZone: 'whispering_plains',
-    spawnX: 3240,
+    spawnX: 3180,
     spawnY: 1100,
   },
   // Far West Gate in Whispering Plains -> Royal Capital Aethelgard
@@ -452,7 +452,7 @@ export const ZONE_GATES: ZoneBoundary[] = [
     width: 40,
     height: 120,
     targetZone: 'aethelgard',
-    spawnX: 2480,
+    spawnX: 2420,
     spawnY: 1300,
   },
   // East Gate in Aethelgard -> Whispering Plains Imperial Highway
@@ -464,7 +464,7 @@ export const ZONE_GATES: ZoneBoundary[] = [
     width: 40,
     height: 120,
     targetZone: 'whispering_plains',
-    spawnX: 360,
+    spawnX: 380,
     spawnY: 1100,
   },
   // West Gate in Aethelgard -> The Molten Forge
@@ -477,18 +477,18 @@ export const ZONE_GATES: ZoneBoundary[] = [
     height: 120,
     targetZone: 'molten_forge',
     spawnX: 1400,
-    spawnY: 1520,
+    spawnY: 2320,
   },
   // South Gate in The Molten Forge -> Aethelgard
   {
     id: 'gate-forge-to-aethelgard',
     name: 'Exit Road to Aethelgard',
     x: 1340,
-    y: 1620,
+    y: 2380,
     width: 120,
     height: 40,
     targetZone: 'aethelgard',
-    spawnX: 1140,
+    spawnX: 1240,
     spawnY: 1300,
   },
   // North Gate in Aethelgard -> The Citadel of Shadows
@@ -501,18 +501,18 @@ export const ZONE_GATES: ZoneBoundary[] = [
     height: 40,
     targetZone: 'citadel_of_shadows',
     spawnX: 1400,
-    spawnY: 1520,
+    spawnY: 2320,
   },
   // South Gate in The Citadel of Shadows -> Aethelgard
   {
     id: 'gate-citadel-to-aethelgard',
     name: 'Astral Rift Exit to Aethelgard',
     x: 1340,
-    y: 1620,
+    y: 2380,
     width: 120,
     height: 40,
     targetZone: 'aethelgard',
     spawnX: 1800,
-    spawnY: 740,
+    spawnY: 760,
   },
 ];

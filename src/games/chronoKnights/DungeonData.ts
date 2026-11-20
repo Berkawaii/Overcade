@@ -10,6 +10,11 @@ import type {
   AstralSealPillar,
   VoidThroneGate,
   ChronoCheckpoint,
+  CryptPushUrn,
+  CavernEggSac,
+  CavernWebPatch,
+  ForgeGeyser,
+  CitadelMirrorRift,
 } from './types';
 
 // -----------------------------------------------------------------
@@ -59,7 +64,7 @@ export const CRYPT_PRESSURE_PLATES: PressurePlate[] = [
     radius: 40,
     isPressed: false,
     color: '#38BDF8',
-    label: 'WEST OSSUARY SEAL',
+    label: 'WEST ALTAR SOCKET',
   },
   {
     id: 'plate-east',
@@ -68,7 +73,7 @@ export const CRYPT_PRESSURE_PLATES: PressurePlate[] = [
     radius: 40,
     isPressed: false,
     color: '#38BDF8',
-    label: 'EAST RELIQUARY SEAL',
+    label: 'EAST ALTAR SOCKET',
   },
   {
     id: 'plate-center',
@@ -77,7 +82,46 @@ export const CRYPT_PRESSURE_PLATES: PressurePlate[] = [
     radius: 40,
     isPressed: false,
     color: '#818CF8',
-    label: 'CENTRAL ALTAR SEAL',
+    label: 'CENTRAL ALTAR SOCKET',
+  },
+];
+
+export const CRYPT_PUSH_URNS: CryptPushUrn[] = [
+  {
+    id: 'urn-west',
+    x: 720,
+    y: 1790,
+    homeX: 720,
+    homeY: 1790,
+    radius: 26,
+    targetPlateId: 'plate-west',
+    lockedPlateId: null,
+    label: 'WEST RUNE URN',
+    pushCooldown: 0,
+  },
+  {
+    id: 'urn-east',
+    x: 2120,
+    y: 1790,
+    homeX: 2120,
+    homeY: 1790,
+    radius: 26,
+    targetPlateId: 'plate-east',
+    lockedPlateId: null,
+    label: 'EAST RUNE URN',
+    pushCooldown: 0,
+  },
+  {
+    id: 'urn-center',
+    x: 1400,
+    y: 1380,
+    homeX: 1400,
+    homeY: 1380,
+    radius: 26,
+    targetPlateId: 'plate-center',
+    lockedPlateId: null,
+    label: 'NAVE RUNE URN',
+    pushCooldown: 0,
   },
 ];
 
@@ -168,6 +212,69 @@ export const CAVERNS_BRAZIERS: BrazierTorch[] = [
   },
 ];
 
+export const CAVERNS_ETERNAL_TORCH = {
+  id: 'caverns-eternal-torch',
+  x: 1400,
+  y: 2220,
+  radius: 36,
+  label: 'ETERNAL TORCHBRAZIER',
+};
+
+export const CAVERNS_EGG_SACS: CavernEggSac[] = [
+  {
+    id: 'egg-sw',
+    x: 640,
+    y: 1940,
+    radius: 30,
+    hp: 180,
+    maxHp: 180,
+    isDestroyed: false,
+    spawnTimer: 7.0,
+    label: 'SW BROOD EGG SAC',
+  },
+  {
+    id: 'egg-se',
+    x: 2160,
+    y: 1940,
+    radius: 30,
+    hp: 180,
+    maxHp: 180,
+    isDestroyed: false,
+    spawnTimer: 7.5,
+    label: 'SE BROOD EGG SAC',
+  },
+  {
+    id: 'egg-nw',
+    x: 760,
+    y: 1180,
+    radius: 30,
+    hp: 200,
+    maxHp: 200,
+    isDestroyed: false,
+    spawnTimer: 8.0,
+    label: 'NW BROOD EGG SAC',
+  },
+  {
+    id: 'egg-ne',
+    x: 2040,
+    y: 1180,
+    radius: 30,
+    hp: 200,
+    maxHp: 200,
+    isDestroyed: false,
+    spawnTimer: 8.5,
+    label: 'NE BROOD EGG SAC',
+  },
+];
+
+export const CAVERNS_WEB_PATCHES: CavernWebPatch[] = [
+  { id: 'web-patch-1', x: 1120, y: 1980, radius: 95, isBurned: false },
+  { id: 'web-patch-2', x: 1680, y: 1980, radius: 95, isBurned: false },
+  { id: 'web-patch-3', x: 1400, y: 1480, radius: 110, isBurned: false },
+  { id: 'web-patch-4', x: 900, y: 1280, radius: 90, isBurned: false },
+  { id: 'web-patch-5', x: 1900, y: 1280, radius: 90, isBurned: false },
+];
+
 export const CAVERNS_WEB_WALL: WebWall = {
   id: 'web-wall-nest',
   x: 1300,
@@ -230,6 +337,9 @@ export const MOLTEN_FORGE_VALVES: SteamValve[] = [
     y: 2140,
     radius: 36,
     isTurned: false,
+    progress: 0,
+    pressureTimer: 0,
+    maxPressureTimer: 35,
     label: 'WEST FOUNDRY VALVE',
   },
   {
@@ -238,6 +348,9 @@ export const MOLTEN_FORGE_VALVES: SteamValve[] = [
     y: 2140,
     radius: 36,
     isTurned: false,
+    progress: 0,
+    pressureTimer: 0,
+    maxPressureTimer: 35,
     label: 'EAST CRUCIBLE VALVE',
   },
   {
@@ -246,7 +359,85 @@ export const MOLTEN_FORGE_VALVES: SteamValve[] = [
     y: 1280,
     radius: 36,
     isTurned: false,
+    progress: 0,
+    pressureTimer: 0,
+    maxPressureTimer: 35,
     label: 'CORE REGULATOR VALVE',
+  },
+];
+
+export const MOLTEN_FORGE_GEYSERS: ForgeGeyser[] = [
+  {
+    id: 'geyser-w1',
+    x: 720,
+    y: 2020,
+    radius: 68,
+    cycleOffset: 0.0,
+    period: 5.5,
+    activeWindow: 2.0,
+    silencedByValveId: 'valve-west',
+    isErupting: false,
+    warningRatio: 0,
+  },
+  {
+    id: 'geyser-w2',
+    x: 540,
+    y: 1580,
+    radius: 68,
+    cycleOffset: 2.2,
+    period: 5.5,
+    activeWindow: 2.0,
+    silencedByValveId: 'valve-west',
+    isErupting: false,
+    warningRatio: 0,
+  },
+  {
+    id: 'geyser-e1',
+    x: 2080,
+    y: 2020,
+    radius: 68,
+    cycleOffset: 1.0,
+    period: 5.5,
+    activeWindow: 2.0,
+    silencedByValveId: 'valve-east',
+    isErupting: false,
+    warningRatio: 0,
+  },
+  {
+    id: 'geyser-e2',
+    x: 2260,
+    y: 1580,
+    radius: 68,
+    cycleOffset: 3.1,
+    period: 5.5,
+    activeWindow: 2.0,
+    silencedByValveId: 'valve-east',
+    isErupting: false,
+    warningRatio: 0,
+  },
+  {
+    id: 'geyser-n1',
+    x: 1240,
+    y: 1420,
+    radius: 68,
+    cycleOffset: 0.5,
+    period: 5.0,
+    activeWindow: 1.9,
+    silencedByValveId: 'valve-north',
+    isErupting: false,
+    warningRatio: 0,
+  },
+  {
+    id: 'geyser-n2',
+    x: 1560,
+    y: 1420,
+    radius: 68,
+    cycleOffset: 2.8,
+    period: 5.0,
+    activeWindow: 1.9,
+    silencedByValveId: 'valve-north',
+    isErupting: false,
+    warningRatio: 0,
   },
 ];
 
@@ -304,6 +495,8 @@ export const CITADEL_OBSTACLES: WorldObstacle[] = [
   { id: 'cit-throne-pillar-2', type: 'rock', x: 1720, y: 460, width: 70, height: 70, solid: true, label: 'Astral Spire' },
 ];
 
+export const CITADEL_SEQUENCE_ORDER = ['sun', 'moon', 'star', 'void'] as const;
+
 export const CITADEL_ASTRAL_SEALS: AstralSealPillar[] = [
   {
     id: 'seal-sun',
@@ -313,7 +506,9 @@ export const CITADEL_ASTRAL_SEALS: AstralSealPillar[] = [
     rune: 'sun',
     isActivated: false,
     color: '#F59E0B',
-    label: 'SOLAR ASTRAL SEAL (NW)',
+    label: '1. SOLAR ASTRAL SEAL (NW)',
+    orderIndex: 0,
+    paradoxCooldown: 0,
   },
   {
     id: 'seal-moon',
@@ -323,7 +518,9 @@ export const CITADEL_ASTRAL_SEALS: AstralSealPillar[] = [
     rune: 'moon',
     isActivated: false,
     color: '#38BDF8',
-    label: 'LUNAR ASTRAL SEAL (NE)',
+    label: '2. LUNAR ASTRAL SEAL (NE)',
+    orderIndex: 1,
+    paradoxCooldown: 0,
   },
   {
     id: 'seal-star',
@@ -333,7 +530,9 @@ export const CITADEL_ASTRAL_SEALS: AstralSealPillar[] = [
     rune: 'star',
     isActivated: false,
     color: '#A855F7',
-    label: 'STELLAR ASTRAL SEAL (SW)',
+    label: '3. STELLAR ASTRAL SEAL (SW)',
+    orderIndex: 2,
+    paradoxCooldown: 0,
   },
   {
     id: 'seal-void',
@@ -343,7 +542,52 @@ export const CITADEL_ASTRAL_SEALS: AstralSealPillar[] = [
     rune: 'void',
     isActivated: false,
     color: '#EC4899',
-    label: 'VOID ASTRAL SEAL (SE)',
+    label: '4. VOID ASTRAL SEAL (SE)',
+    orderIndex: 3,
+    paradoxCooldown: 0,
+  },
+];
+
+export const CITADEL_MIRROR_RIFTS: CitadelMirrorRift[] = [
+  {
+    id: 'rift-nw-to-ne',
+    x: 680,
+    y: 1480,
+    targetX: 2120,
+    targetY: 1480,
+    radius: 36,
+    color: '#38BDF8',
+    label: 'MIRROR RIFT -> NE',
+  },
+  {
+    id: 'rift-ne-to-nw',
+    x: 2120,
+    y: 1480,
+    targetX: 680,
+    targetY: 1480,
+    radius: 36,
+    color: '#38BDF8',
+    label: 'MIRROR RIFT -> NW',
+  },
+  {
+    id: 'rift-sw-to-se',
+    x: 680,
+    y: 1920,
+    targetX: 2120,
+    targetY: 1920,
+    radius: 36,
+    color: '#A855F7',
+    label: 'MIRROR RIFT -> SE',
+  },
+  {
+    id: 'rift-se-to-sw',
+    x: 2120,
+    y: 1920,
+    targetX: 680,
+    targetY: 1920,
+    radius: 36,
+    color: '#A855F7',
+    label: 'MIRROR RIFT -> SW',
   },
 ];
 
