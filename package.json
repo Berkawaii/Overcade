@@ -7,6 +7,8 @@
     "dev": "vite --host",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host",
+    "build:chrono-art": "node tools/pixel-pipeline/chrono/build-chrono-assets.mjs",
+    "audit:chrono-art": "node tools/pixel-pipeline/chrono/build-chrono-assets.mjs --audit-only",
     "deploy": "npm run build && npx -y firebase-tools@latest deploy"
   },
   "dependencies": {

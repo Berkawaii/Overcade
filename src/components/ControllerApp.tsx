@@ -489,10 +489,10 @@ export const ControllerApp: React.FC = () => {
             className="col-span-3 flex flex-col items-center justify-center rounded-tl-2xl rounded-tr-lg rounded-b-lg border border-white/15 bg-[#101318] px-1 sm:px-2 py-1.5 font-mono text-white shadow-lg data-[pressed=true]:border-amber-400 data-[pressed=true]:bg-amber-500 data-[pressed=true]:text-[#08080C] active:scale-[0.98] transition-all"
           >
             <div className="flex items-center gap-1 text-xs sm:text-sm font-black tracking-wider">
-              <span>{isPicoMode ? '[L1] SQUAD' : '[L1] HEAL'}</span>
+              <span>{isPicoMode ? '[L1] SQUAD' : '[L1] SKILL'}</span>
             </div>
             <span className="text-[8px] sm:text-[9px] text-[#A1A1AA] truncate max-w-full">
-              {isPicoMode ? 'Follow / Stay' : 'Potion [3]'}
+              {isPicoMode ? 'Follow / Stay' : activeHeroClass.skills.L1.name}
             </span>
           </button>
 
@@ -648,7 +648,7 @@ export const ControllerApp: React.FC = () => {
           >
             <div className="flex items-center gap-1 text-xs sm:text-sm font-black tracking-wider">
               <Lightning size={14} weight="fill" />
-              <span>{isPicoMode ? '[R1] RETRY' : '[R1] HEAVY'}</span>
+              <span>{isPicoMode ? '[R1] RETRY' : '[R1] ULT'}</span>
             </div>
             <span className="text-[8px] sm:text-[9px] text-amber-200/75 truncate max-w-full">
               {isPicoMode ? 'Reset Stage' : activeHeroClass.skills.R1.name}

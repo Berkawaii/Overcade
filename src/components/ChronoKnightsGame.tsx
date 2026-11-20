@@ -382,7 +382,11 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
   return (
     <div className="relative w-full h-[100dvh] bg-[#09090B] overflow-hidden select-none font-['Space_Grotesk'] text-white">
       {/* 60 FPS HTML5 Canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block z-0" />
+      <canvas
+        ref={canvasRef}
+        style={{ imageRendering: 'pixelated' }}
+        className="absolute inset-0 w-full h-full block z-0"
+      />
 
       {/* Top Console Navigation & World Status Bar */}
       <header className="absolute top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
@@ -594,7 +598,16 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       </button>
 
                       <div className="text-center">
-                        <div className="text-3xl mb-1">{classDef.portraitSymbol}</div>
+                        {classDef.portraitImage ? (
+                          <img
+                            src={classDef.portraitImage}
+                            alt={classDef.name}
+                            style={{ imageRendering: 'pixelated' }}
+                            className="w-16 h-16 mx-auto mb-1.5 object-contain rounded-lg bg-black/50 border border-white/15 p-0.5 shadow-inner"
+                          />
+                        ) : (
+                          <div className="text-3xl mb-1">{classDef.portraitSymbol}</div>
+                        )}
                         <h2 className="text-lg font-bold text-white tracking-wide">
                           {classDef.name}
                         </h2>
@@ -656,20 +669,26 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       </div>
                     </div>
 
-                    {/* Skill List Preview */}
-                    <div className="grid grid-cols-4 gap-1.5 my-2">
-                      {(['A', 'B', 'X', 'Y'] as const).map((btn) => {
+                    {/* Skill List Preview (Full 6-Button Class Kit) */}
+                    <div className="grid grid-cols-6 gap-1 my-2">
+                      {(['A', 'B', 'X', 'Y', 'L1', 'R1'] as const).map((btn) => {
                         const skill = classDef.skills[btn];
                         return (
                           <div
                             key={btn}
-                            className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-white/[0.03] border border-white/5 text-center group relative"
-                            title={`${skill.name} (${btn}): ${skill.description}`}
+                            className={`flex flex-col items-center justify-center p-1.5 rounded-lg border text-center group relative ${
+                              skill.isUltimate
+                                ? 'bg-amber-500/10 border-amber-400/30'
+                                : 'bg-white/[0.03] border-white/5'
+                            }`}
+                            title={`${skill.name} [${btn}]: ${skill.description}`}
                           >
-                            <span className="text-[10px] font-['JetBrains_Mono'] font-bold text-white/50 mb-0.5">
-                              [{btn}]
+                            <span className="text-[9px] font-['JetBrains_Mono'] font-bold text-white/60 mb-0.5">
+                              {btn}
                             </span>
-                            <div className="text-white/80">{renderSkillIcon(skill.icon)}</div>
+                            <div className={skill.isUltimate ? 'text-amber-300' : 'text-white/85'}>
+                              {renderSkillIcon(skill.icon)}
+                            </div>
                           </div>
                         );
                       })}
@@ -809,7 +828,16 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
               <div className="w-full max-w-3xl mb-3 p-4 rounded-2xl bg-[#121215]/95 border-2 border-blue-500/40 backdrop-blur-xl shadow-2xl flex flex-col gap-3 pointer-events-auto animate-fade-in">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">{activeNpc.symbol}</span>
+                    {activeNpc.portraitImage ? (
+                      <img
+                        src={activeNpc.portraitImage}
+                        alt={activeNpc.name}
+                        style={{ imageRendering: 'pixelated' }}
+                        className="w-14 h-14 object-contain rounded-xl bg-black/60 border border-white/20 p-0.5 shrink-0"
+                      />
+                    ) : (
+                      <span className="text-3xl">{activeNpc.symbol}</span>
+                    )}
                     <div>
                       <h3 className="text-base font-bold text-white">{activeNpc.name}</h3>
                       <span className="text-xs text-blue-400 font-['JetBrains_Mono']">{activeNpc.title}</span>
@@ -1032,9 +1060,9 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                       </div>
                     </div>
 
-                    {/* Live Skill Cooldowns Grid */}
-                    <div className="grid grid-cols-4 gap-1 text-center">
-                      {(['A', 'B', 'X', 'Y'] as const).map((btn) => {
+                    {/* Live Skill Cooldowns Grid (6 Unique Class Skills) */}
+                    <div className="grid grid-cols-6 gap-1 text-center">
+                      {(['A', 'B', 'X', 'Y', 'L1', 'R1'] as const).map((btn) => {
                         const skill = classDef.skills[btn];
                         const cd = player.skillCooldowns[btn];
                         const isCooling = cd > 0;
@@ -1042,16 +1070,19 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
                         return (
                           <div
                             key={btn}
+                            title={`${skill.name}: ${skill.description}`}
                             className={`p-1 rounded-lg border text-[10px] font-['JetBrains_Mono'] flex flex-col items-center justify-center relative overflow-hidden ${
                               isCooling
                                 ? 'bg-black/60 border-white/5 text-white/40'
-                                : 'bg-white/5 border-white/15 text-white'
+                                : skill.isUltimate
+                                  ? 'bg-amber-500/15 border-amber-400/35 text-amber-200'
+                                  : 'bg-white/5 border-white/15 text-white'
                             }`}
                           >
-                            <span className="text-[9px] font-bold text-white/50">{btn}</span>
+                            <span className="text-[8px] font-bold text-white/55">{btn}</span>
                             <div className="my-0.5">{renderSkillIcon(skill.icon)}</div>
                             {isCooling && (
-                              <div className="absolute inset-0 bg-red-950/80 backdrop-blur-[1px] flex items-center justify-center font-bold text-red-400">
+                              <div className="absolute inset-0 bg-red-950/80 backdrop-blur-[1px] flex items-center justify-center font-bold text-[9px] text-red-400">
                                 {cd.toFixed(1)}s
                               </div>
                             )}
@@ -1084,12 +1115,12 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
               <span>KEYBOARD & GAMEPAD GUIDE</span>
             </div>
             <div>[WASD] / Left Stick: 8-Dir Move</div>
-            <div>[Space] / Button A: Attack & Revive</div>
+            <div>[Space] / Button A: Primary / Talk / Revive</div>
             <div>[Shift] / Button B: Class Skill 1</div>
             <div>[E] / Button X: Class Skill 2</div>
-            <div>[R] / Button Y: Ultimate Skill</div>
-            <div>[Q] / L1: Vitality Potion</div>
-            <div>[F] / R1: Charged Strike</div>
+            <div>[R] / Button Y: Class Skill 3</div>
+            <div>[Q] / L1: Signature Technique</div>
+            <div>[F] / R1: Class Ultimate</div>
           </div>
         </div>
       )}

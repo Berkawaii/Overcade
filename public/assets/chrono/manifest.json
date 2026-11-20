@@ -1,0 +1,2574 @@
+{
+  "version": 1,
+  "palette": "Resurrect-64",
+  "assetCount": 300,
+  "assets": {
+    "portrait_berserker": {
+      "file": "/assets/chrono/portraits/portrait_berserker.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_berserker_n.png"
+    },
+    "portrait_cleric": {
+      "file": "/assets/chrono/portraits/portrait_cleric.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_cleric_n.png"
+    },
+    "portrait_knight": {
+      "file": "/assets/chrono/portraits/portrait_knight.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_knight_n.png"
+    },
+    "portrait_pyromancer": {
+      "file": "/assets/chrono/portraits/portrait_pyromancer.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_pyromancer_n.png"
+    },
+    "portrait_ranger": {
+      "file": "/assets/chrono/portraits/portrait_ranger.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_ranger_n.png"
+    },
+    "portrait_rogue": {
+      "file": "/assets/chrono/portraits/portrait_rogue.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_rogue_n.png"
+    },
+    "berserker_attack": {
+      "file": "/assets/chrono/heroes/berserker_attack.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 12
+    },
+    "berserker_cast": {
+      "file": "/assets/chrono/heroes/berserker_cast.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "berserker_downed": {
+      "file": "/assets/chrono/heroes/berserker_downed.png",
+      "w": 64,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 2,
+      "fps": 2
+    },
+    "berserker_idle": {
+      "file": "/assets/chrono/heroes/berserker_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "berserker_walk": {
+      "file": "/assets/chrono/heroes/berserker_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 9
+    },
+    "cleric_attack": {
+      "file": "/assets/chrono/heroes/cleric_attack.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 11
+    },
+    "cleric_cast": {
+      "file": "/assets/chrono/heroes/cleric_cast.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "cleric_downed": {
+      "file": "/assets/chrono/heroes/cleric_downed.png",
+      "w": 64,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 2,
+      "fps": 2
+    },
+    "cleric_idle": {
+      "file": "/assets/chrono/heroes/cleric_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "cleric_walk": {
+      "file": "/assets/chrono/heroes/cleric_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "knight_attack": {
+      "file": "/assets/chrono/heroes/knight_attack.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 12
+    },
+    "knight_cast": {
+      "file": "/assets/chrono/heroes/knight_cast.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "knight_downed": {
+      "file": "/assets/chrono/heroes/knight_downed.png",
+      "w": 64,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 2,
+      "fps": 2
+    },
+    "knight_idle": {
+      "file": "/assets/chrono/heroes/knight_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "knight_walk": {
+      "file": "/assets/chrono/heroes/knight_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 9
+    },
+    "pyromancer_attack": {
+      "file": "/assets/chrono/heroes/pyromancer_attack.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 12
+    },
+    "pyromancer_cast": {
+      "file": "/assets/chrono/heroes/pyromancer_cast.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 9
+    },
+    "pyromancer_downed": {
+      "file": "/assets/chrono/heroes/pyromancer_downed.png",
+      "w": 64,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 2,
+      "fps": 2
+    },
+    "pyromancer_idle": {
+      "file": "/assets/chrono/heroes/pyromancer_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 6
+    },
+    "pyromancer_walk": {
+      "file": "/assets/chrono/heroes/pyromancer_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 9
+    },
+    "ranger_attack": {
+      "file": "/assets/chrono/heroes/ranger_attack.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 13
+    },
+    "ranger_cast": {
+      "file": "/assets/chrono/heroes/ranger_cast.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 9
+    },
+    "ranger_downed": {
+      "file": "/assets/chrono/heroes/ranger_downed.png",
+      "w": 64,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 2,
+      "fps": 2
+    },
+    "ranger_idle": {
+      "file": "/assets/chrono/heroes/ranger_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 6
+    },
+    "ranger_walk": {
+      "file": "/assets/chrono/heroes/ranger_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 10
+    },
+    "rogue_attack": {
+      "file": "/assets/chrono/heroes/rogue_attack.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 14
+    },
+    "rogue_cast": {
+      "file": "/assets/chrono/heroes/rogue_cast.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 9
+    },
+    "rogue_downed": {
+      "file": "/assets/chrono/heroes/rogue_downed.png",
+      "w": 64,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 2,
+      "fps": 2
+    },
+    "rogue_idle": {
+      "file": "/assets/chrono/heroes/rogue_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 6
+    },
+    "rogue_walk": {
+      "file": "/assets/chrono/heroes/rogue_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 11
+    },
+    "portrait_npc_bazaar": {
+      "file": "/assets/chrono/portraits/portrait_npc_bazaar.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_npc_bazaar_n.png"
+    },
+    "portrait_npc_blacksmith": {
+      "file": "/assets/chrono/portraits/portrait_npc_blacksmith.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_npc_blacksmith_n.png"
+    },
+    "portrait_npc_elder": {
+      "file": "/assets/chrono/portraits/portrait_npc_elder.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_npc_elder_n.png"
+    },
+    "portrait_npc_healer": {
+      "file": "/assets/chrono/portraits/portrait_npc_healer.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_npc_healer_n.png"
+    },
+    "portrait_npc_thorne": {
+      "file": "/assets/chrono/portraits/portrait_npc_thorne.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_npc_thorne_n.png"
+    },
+    "portrait_npc_zephyr": {
+      "file": "/assets/chrono/portraits/portrait_npc_zephyr.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/portrait_npc_zephyr_n.png"
+    },
+    "npc_bazaar_idle": {
+      "file": "/assets/chrono/npcs/npc_bazaar_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "npc_blacksmith_idle": {
+      "file": "/assets/chrono/npcs/npc_blacksmith_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "npc_elder_idle": {
+      "file": "/assets/chrono/npcs/npc_elder_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "npc_healer_idle": {
+      "file": "/assets/chrono/npcs/npc_healer_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "npc_thorne_idle": {
+      "file": "/assets/chrono/npcs/npc_thorne_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "npc_zephyr_idle": {
+      "file": "/assets/chrono/npcs/npc_zephyr_idle.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 6
+    },
+    "town_cat": {
+      "file": "/assets/chrono/npcs/town_cat.png",
+      "w": 64,
+      "h": 16,
+      "fw": 16,
+      "fh": 16,
+      "frames": 4,
+      "fps": 5
+    },
+    "training_dummy": {
+      "file": "/assets/chrono/npcs/training_dummy.png",
+      "w": 64,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 2,
+      "fps": 4
+    },
+    "villager_guard": {
+      "file": "/assets/chrono/npcs/villager_guard.png",
+      "w": 64,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 2,
+      "fps": 3
+    },
+    "bandit_attack": {
+      "file": "/assets/chrono/enemies/bandit_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 11
+    },
+    "bandit_walk": {
+      "file": "/assets/chrono/enemies/bandit_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "boar_attack": {
+      "file": "/assets/chrono/enemies/boar_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 10
+    },
+    "boar_walk": {
+      "file": "/assets/chrono/enemies/boar_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 7
+    },
+    "crypt_necromancer_attack": {
+      "file": "/assets/chrono/enemies/crypt_necromancer_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 9
+    },
+    "crypt_necromancer_walk": {
+      "file": "/assets/chrono/enemies/crypt_necromancer_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 6
+    },
+    "fire_imp_attack": {
+      "file": "/assets/chrono/enemies/fire_imp_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 10
+    },
+    "fire_imp_walk": {
+      "file": "/assets/chrono/enemies/fire_imp_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 9
+    },
+    "magma_golem_attack": {
+      "file": "/assets/chrono/enemies/magma_golem_attack.png",
+      "w": 120,
+      "h": 40,
+      "fw": 40,
+      "fh": 40,
+      "frames": 3,
+      "fps": 9
+    },
+    "magma_golem_walk": {
+      "file": "/assets/chrono/enemies/magma_golem_walk.png",
+      "w": 160,
+      "h": 40,
+      "fw": 40,
+      "fh": 40,
+      "frames": 4,
+      "fps": 6
+    },
+    "obsidian_scorpian_attack": {
+      "file": "/assets/chrono/enemies/obsidian_scorpian_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 11
+    },
+    "obsidian_scorpian_walk": {
+      "file": "/assets/chrono/enemies/obsidian_scorpian_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "shadow_assassin_attack": {
+      "file": "/assets/chrono/enemies/shadow_assassin_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 12
+    },
+    "shadow_assassin_walk": {
+      "file": "/assets/chrono/enemies/shadow_assassin_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 10
+    },
+    "skeleton_warrior_attack": {
+      "file": "/assets/chrono/enemies/skeleton_warrior_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 10
+    },
+    "skeleton_warrior_walk": {
+      "file": "/assets/chrono/enemies/skeleton_warrior_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "spider_hatchling_attack": {
+      "file": "/assets/chrono/enemies/spider_hatchling_attack.png",
+      "w": 72,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 3,
+      "fps": 12
+    },
+    "spider_hatchling_walk": {
+      "file": "/assets/chrono/enemies/spider_hatchling_walk.png",
+      "w": 96,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 4,
+      "fps": 10
+    },
+    "spider_spinner_attack": {
+      "file": "/assets/chrono/enemies/spider_spinner_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 11
+    },
+    "spider_spinner_walk": {
+      "file": "/assets/chrono/enemies/spider_spinner_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 9
+    },
+    "spider_spitter_attack": {
+      "file": "/assets/chrono/enemies/spider_spitter_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 10
+    },
+    "spider_spitter_walk": {
+      "file": "/assets/chrono/enemies/spider_spitter_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "tomb_wraith_attack": {
+      "file": "/assets/chrono/enemies/tomb_wraith_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 10
+    },
+    "tomb_wraith_walk": {
+      "file": "/assets/chrono/enemies/tomb_wraith_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 7
+    },
+    "void_summoner_attack": {
+      "file": "/assets/chrono/enemies/void_summoner_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 10
+    },
+    "void_summoner_walk": {
+      "file": "/assets/chrono/enemies/void_summoner_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 7
+    },
+    "wolf_attack": {
+      "file": "/assets/chrono/enemies/wolf_attack.png",
+      "w": 96,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 3,
+      "fps": 10
+    },
+    "wolf_walk": {
+      "file": "/assets/chrono/enemies/wolf_walk.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 8
+    },
+    "boss_dark_malakor_attack": {
+      "file": "/assets/chrono/bosses/boss_dark_malakor_attack.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 9
+    },
+    "boss_dark_malakor_idle": {
+      "file": "/assets/chrono/bosses/boss_dark_malakor_idle.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 6
+    },
+    "boss_ignis_attack": {
+      "file": "/assets/chrono/bosses/boss_ignis_attack.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 9
+    },
+    "boss_ignis_idle": {
+      "file": "/assets/chrono/bosses/boss_ignis_idle.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 6
+    },
+    "boss_malakor_attack": {
+      "file": "/assets/chrono/bosses/boss_malakor_attack.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 9
+    },
+    "boss_malakor_idle": {
+      "file": "/assets/chrono/bosses/boss_malakor_idle.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 5
+    },
+    "boss_vespera_attack": {
+      "file": "/assets/chrono/bosses/boss_vespera_attack.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 9
+    },
+    "boss_vespera_idle": {
+      "file": "/assets/chrono/bosses/boss_vespera_idle.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 6
+    },
+    "brazier_off": {
+      "file": "/assets/chrono/buildings/brazier_off.png",
+      "w": 32,
+      "h": 40,
+      "fw": 32,
+      "fh": 40,
+      "frames": 1
+    },
+    "cathedral_keep": {
+      "file": "/assets/chrono/buildings/cathedral_keep.png",
+      "w": 176,
+      "h": 120,
+      "fw": 176,
+      "fh": 120,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/cathedral_keep_n.png"
+    },
+    "chest_open": {
+      "file": "/assets/chrono/buildings/chest_open.png",
+      "w": 48,
+      "h": 40,
+      "fw": 48,
+      "fh": 40,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/chest_open_n.png"
+    },
+    "chest_sealed": {
+      "file": "/assets/chrono/buildings/chest_sealed.png",
+      "w": 48,
+      "h": 40,
+      "fw": 48,
+      "fh": 40,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/chest_sealed_n.png"
+    },
+    "chrono_shrine_unlit": {
+      "file": "/assets/chrono/buildings/chrono_shrine_unlit.png",
+      "w": 64,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 1
+    },
+    "cocoon_spire": {
+      "file": "/assets/chrono/buildings/cocoon_spire.png",
+      "w": 48,
+      "h": 56,
+      "fw": 48,
+      "fh": 56,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/cocoon_spire_n.png"
+    },
+    "crypt_pillar": {
+      "file": "/assets/chrono/buildings/crypt_pillar.png",
+      "w": 40,
+      "h": 48,
+      "fw": 40,
+      "fh": 48,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/crypt_pillar_n.png"
+    },
+    "crypt_sarcophagus": {
+      "file": "/assets/chrono/buildings/crypt_sarcophagus.png",
+      "w": 64,
+      "h": 40,
+      "fw": 64,
+      "fh": 40,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/crypt_sarcophagus_n.png"
+    },
+    "forge_anvil": {
+      "file": "/assets/chrono/buildings/forge_anvil.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/forge_anvil_n.png"
+    },
+    "house_apothecary": {
+      "file": "/assets/chrono/buildings/house_apothecary.png",
+      "w": 112,
+      "h": 88,
+      "fw": 112,
+      "fh": 88,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/house_apothecary_n.png"
+    },
+    "plate_off": {
+      "file": "/assets/chrono/buildings/plate_off.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/plate_off_n.png"
+    },
+    "plate_on": {
+      "file": "/assets/chrono/buildings/plate_on.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1
+    },
+    "portcullis_closed": {
+      "file": "/assets/chrono/buildings/portcullis_closed.png",
+      "w": 128,
+      "h": 32,
+      "fw": 128,
+      "fh": 32,
+      "frames": 1
+    },
+    "portcullis_open": {
+      "file": "/assets/chrono/buildings/portcullis_open.png",
+      "w": 128,
+      "h": 32,
+      "fw": 128,
+      "fh": 32,
+      "frames": 1
+    },
+    "prop_barrel": {
+      "file": "/assets/chrono/buildings/prop_barrel.png",
+      "w": 24,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_barrel_n.png"
+    },
+    "prop_crate": {
+      "file": "/assets/chrono/buildings/prop_crate.png",
+      "w": 24,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_crate_n.png"
+    },
+    "prop_fence_h": {
+      "file": "/assets/chrono/buildings/prop_fence_h.png",
+      "w": 48,
+      "h": 24,
+      "fw": 48,
+      "fh": 24,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_fence_h_n.png"
+    },
+    "prop_flowerbed": {
+      "file": "/assets/chrono/buildings/prop_flowerbed.png",
+      "w": 32,
+      "h": 24,
+      "fw": 32,
+      "fh": 24,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_flowerbed_n.png"
+    },
+    "prop_pillar_marble": {
+      "file": "/assets/chrono/buildings/prop_pillar_marble.png",
+      "w": 32,
+      "h": 64,
+      "fw": 32,
+      "fh": 64,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_pillar_marble_n.png"
+    },
+    "prop_rose_hedge": {
+      "file": "/assets/chrono/buildings/prop_rose_hedge.png",
+      "w": 48,
+      "h": 32,
+      "fw": 48,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_rose_hedge_n.png"
+    },
+    "prop_signpost": {
+      "file": "/assets/chrono/buildings/prop_signpost.png",
+      "w": 24,
+      "h": 32,
+      "fw": 24,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_signpost_n.png"
+    },
+    "prop_statue_knight": {
+      "file": "/assets/chrono/buildings/prop_statue_knight.png",
+      "w": 40,
+      "h": 64,
+      "fw": 40,
+      "fh": 64,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_statue_knight_n.png"
+    },
+    "prop_well": {
+      "file": "/assets/chrono/buildings/prop_well.png",
+      "w": 40,
+      "h": 48,
+      "fw": 40,
+      "fh": 48,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/prop_well_n.png"
+    },
+    "seal_pillar_moon": {
+      "file": "/assets/chrono/buildings/seal_pillar_moon.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1
+    },
+    "seal_pillar_off": {
+      "file": "/assets/chrono/buildings/seal_pillar_off.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1
+    },
+    "seal_pillar_star": {
+      "file": "/assets/chrono/buildings/seal_pillar_star.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1
+    },
+    "seal_pillar_sun": {
+      "file": "/assets/chrono/buildings/seal_pillar_sun.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1
+    },
+    "seal_pillar_void": {
+      "file": "/assets/chrono/buildings/seal_pillar_void.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1
+    },
+    "stall_bazaar": {
+      "file": "/assets/chrono/buildings/stall_bazaar.png",
+      "w": 104,
+      "h": 72,
+      "fw": 104,
+      "fh": 72,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/stall_bazaar_n.png"
+    },
+    "valve_off": {
+      "file": "/assets/chrono/buildings/valve_off.png",
+      "w": 48,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 1
+    },
+    "web_wall": {
+      "file": "/assets/chrono/buildings/web_wall.png",
+      "w": 128,
+      "h": 32,
+      "fw": 128,
+      "fh": 32,
+      "frames": 1
+    },
+    "brazier_on": {
+      "file": "/assets/chrono/buildings/brazier_on.png",
+      "w": 128,
+      "h": 40,
+      "fw": 32,
+      "fh": 40,
+      "frames": 4,
+      "fps": 7
+    },
+    "chest_unlocked": {
+      "file": "/assets/chrono/buildings/chest_unlocked.png",
+      "w": 96,
+      "h": 40,
+      "fw": 48,
+      "fh": 40,
+      "frames": 2,
+      "fps": 4
+    },
+    "chrono_shrine_lit": {
+      "file": "/assets/chrono/buildings/chrono_shrine_lit.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 7
+    },
+    "citadel_obelisk": {
+      "file": "/assets/chrono/buildings/citadel_obelisk.png",
+      "w": 224,
+      "h": 72,
+      "fw": 56,
+      "fh": 72,
+      "frames": 4,
+      "fps": 5
+    },
+    "forge_furnace": {
+      "file": "/assets/chrono/buildings/forge_furnace.png",
+      "w": 320,
+      "h": 64,
+      "fw": 80,
+      "fh": 64,
+      "frames": 4,
+      "fps": 6
+    },
+    "fountain_oakhaven": {
+      "file": "/assets/chrono/buildings/fountain_oakhaven.png",
+      "w": 320,
+      "h": 80,
+      "fw": 80,
+      "fh": 80,
+      "frames": 4,
+      "fps": 6
+    },
+    "fountain_royal": {
+      "file": "/assets/chrono/buildings/fountain_royal.png",
+      "w": 352,
+      "h": 88,
+      "fw": 88,
+      "fh": 88,
+      "frames": 4,
+      "fps": 6
+    },
+    "house_chief": {
+      "file": "/assets/chrono/buildings/house_chief.png",
+      "w": 512,
+      "h": 96,
+      "fw": 128,
+      "fh": 96,
+      "frames": 4,
+      "fps": 4
+    },
+    "house_forge": {
+      "file": "/assets/chrono/buildings/house_forge.png",
+      "w": 448,
+      "h": 88,
+      "fw": 112,
+      "fh": 88,
+      "frames": 4,
+      "fps": 6
+    },
+    "lantern_imperial": {
+      "file": "/assets/chrono/buildings/lantern_imperial.png",
+      "w": 48,
+      "h": 40,
+      "fw": 24,
+      "fh": 40,
+      "frames": 2,
+      "fps": 4
+    },
+    "lantern_village": {
+      "file": "/assets/chrono/buildings/lantern_village.png",
+      "w": 48,
+      "h": 40,
+      "fw": 24,
+      "fh": 40,
+      "frames": 2,
+      "fps": 4
+    },
+    "prop_banner_royal": {
+      "file": "/assets/chrono/buildings/prop_banner_royal.png",
+      "w": 48,
+      "h": 56,
+      "fw": 24,
+      "fh": 56,
+      "frames": 2,
+      "fps": 4
+    },
+    "stall_sorcery": {
+      "file": "/assets/chrono/buildings/stall_sorcery.png",
+      "w": 416,
+      "h": 72,
+      "fw": 104,
+      "fh": 72,
+      "frames": 4,
+      "fps": 6
+    },
+    "valve_on": {
+      "file": "/assets/chrono/buildings/valve_on.png",
+      "w": 96,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 2,
+      "fps": 5
+    },
+    "waygate_portal": {
+      "file": "/assets/chrono/buildings/waygate_portal.png",
+      "w": 384,
+      "h": 64,
+      "fw": 96,
+      "fh": 64,
+      "frames": 4,
+      "fps": 7
+    },
+    "tile_aethelgard_stone_0": {
+      "file": "/assets/chrono/tiles/tile_aethelgard_stone_0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_aethelgard_stone_1": {
+      "file": "/assets/chrono/tiles/tile_aethelgard_stone_1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_aethelgard_stone_2": {
+      "file": "/assets/chrono/tiles/tile_aethelgard_stone_2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_aethelgard_stone_3": {
+      "file": "/assets/chrono/tiles/tile_aethelgard_stone_3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_bridge_iron": {
+      "file": "/assets/chrono/tiles/tile_bridge_iron.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/tile_bridge_iron_n.png"
+    },
+    "tile_bridge_stone": {
+      "file": "/assets/chrono/tiles/tile_bridge_stone.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/tile_bridge_stone_n.png"
+    },
+    "tile_carpet_crypt_m0": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m1": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m10": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m10.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m11": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m11.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m12": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m12.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m13": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m13.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m14": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m14.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m15": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m15.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m2": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m3": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m4": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m4.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m5": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m5.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m6": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m6.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m7": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m7.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m8": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m8.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_crypt_m9": {
+      "file": "/assets/chrono/tiles/tile_carpet_crypt_m9.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m0": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m1": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m10": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m10.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m11": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m11.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m12": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m12.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m13": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m13.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m14": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m14.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m15": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m15.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m2": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m3": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m4": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m4.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m5": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m5.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m6": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m6.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m7": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m7.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m8": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m8.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_carpet_royal_m9": {
+      "file": "/assets/chrono/tiles/tile_carpet_royal_m9.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_caverns_floor_0": {
+      "file": "/assets/chrono/tiles/tile_caverns_floor_0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_caverns_floor_1": {
+      "file": "/assets/chrono/tiles/tile_caverns_floor_1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_caverns_floor_2": {
+      "file": "/assets/chrono/tiles/tile_caverns_floor_2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_caverns_floor_3": {
+      "file": "/assets/chrono/tiles/tile_caverns_floor_3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_citadel_void_0": {
+      "file": "/assets/chrono/tiles/tile_citadel_void_0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_citadel_void_1": {
+      "file": "/assets/chrono/tiles/tile_citadel_void_1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_citadel_void_2": {
+      "file": "/assets/chrono/tiles/tile_citadel_void_2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_citadel_void_3": {
+      "file": "/assets/chrono/tiles/tile_citadel_void_3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m0": {
+      "file": "/assets/chrono/tiles/tile_cobble_m0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m1": {
+      "file": "/assets/chrono/tiles/tile_cobble_m1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m10": {
+      "file": "/assets/chrono/tiles/tile_cobble_m10.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m11": {
+      "file": "/assets/chrono/tiles/tile_cobble_m11.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m12": {
+      "file": "/assets/chrono/tiles/tile_cobble_m12.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m13": {
+      "file": "/assets/chrono/tiles/tile_cobble_m13.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m14": {
+      "file": "/assets/chrono/tiles/tile_cobble_m14.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m15": {
+      "file": "/assets/chrono/tiles/tile_cobble_m15.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m2": {
+      "file": "/assets/chrono/tiles/tile_cobble_m2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m3": {
+      "file": "/assets/chrono/tiles/tile_cobble_m3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m4": {
+      "file": "/assets/chrono/tiles/tile_cobble_m4.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m5": {
+      "file": "/assets/chrono/tiles/tile_cobble_m5.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m6": {
+      "file": "/assets/chrono/tiles/tile_cobble_m6.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m7": {
+      "file": "/assets/chrono/tiles/tile_cobble_m7.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m8": {
+      "file": "/assets/chrono/tiles/tile_cobble_m8.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_cobble_m9": {
+      "file": "/assets/chrono/tiles/tile_cobble_m9.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_crypt_floor_0": {
+      "file": "/assets/chrono/tiles/tile_crypt_floor_0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_crypt_floor_1": {
+      "file": "/assets/chrono/tiles/tile_crypt_floor_1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_crypt_floor_2": {
+      "file": "/assets/chrono/tiles/tile_crypt_floor_2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_crypt_floor_3": {
+      "file": "/assets/chrono/tiles/tile_crypt_floor_3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_forge_basalt_0": {
+      "file": "/assets/chrono/tiles/tile_forge_basalt_0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_forge_basalt_1": {
+      "file": "/assets/chrono/tiles/tile_forge_basalt_1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_forge_basalt_2": {
+      "file": "/assets/chrono/tiles/tile_forge_basalt_2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_forge_basalt_3": {
+      "file": "/assets/chrono/tiles/tile_forge_basalt_3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m0": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m1": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m10": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m10.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m11": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m11.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m12": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m12.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m13": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m13.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m14": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m14.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m15": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m15.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m2": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m3": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m4": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m4.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m5": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m5.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m6": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m6.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m7": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m7.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m8": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m8.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_moss_glow_m9": {
+      "file": "/assets/chrono/tiles/tile_moss_glow_m9.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_oakhaven_grass_0": {
+      "file": "/assets/chrono/tiles/tile_oakhaven_grass_0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_oakhaven_grass_1": {
+      "file": "/assets/chrono/tiles/tile_oakhaven_grass_1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_oakhaven_grass_2": {
+      "file": "/assets/chrono/tiles/tile_oakhaven_grass_2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_oakhaven_grass_3": {
+      "file": "/assets/chrono/tiles/tile_oakhaven_grass_3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_plains_grass_0": {
+      "file": "/assets/chrono/tiles/tile_plains_grass_0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_plains_grass_1": {
+      "file": "/assets/chrono/tiles/tile_plains_grass_1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_plains_grass_2": {
+      "file": "/assets/chrono/tiles/tile_plains_grass_2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_plains_grass_3": {
+      "file": "/assets/chrono/tiles/tile_plains_grass_3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m0": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m0.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m1": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m1.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m10": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m10.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m11": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m11.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m12": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m12.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m13": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m13.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m14": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m14.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m15": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m15.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m2": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m2.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m3": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m3.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m4": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m4.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m5": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m5.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m6": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m6.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m7": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m7.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m8": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m8.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_walkway_astral_m9": {
+      "file": "/assets/chrono/tiles/tile_walkway_astral_m9.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1
+    },
+    "tile_wall_aethelgard": {
+      "file": "/assets/chrono/tiles/tile_wall_aethelgard.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/tile_wall_aethelgard_n.png"
+    },
+    "tile_wall_caverns": {
+      "file": "/assets/chrono/tiles/tile_wall_caverns.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/tile_wall_caverns_n.png"
+    },
+    "tile_wall_citadel": {
+      "file": "/assets/chrono/tiles/tile_wall_citadel.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/tile_wall_citadel_n.png"
+    },
+    "tile_wall_crypt": {
+      "file": "/assets/chrono/tiles/tile_wall_crypt.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/tile_wall_crypt_n.png"
+    },
+    "tile_wall_forge": {
+      "file": "/assets/chrono/tiles/tile_wall_forge.png",
+      "w": 32,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 1,
+      "normal": "/assets/chrono/normals/tile_wall_forge_n.png"
+    },
+    "tile_lava_river": {
+      "file": "/assets/chrono/tiles/tile_lava_river.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "tile_water_river": {
+      "file": "/assets/chrono/tiles/tile_water_river.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 5
+    },
+    "tree_oak": {
+      "file": "/assets/chrono/nature/tree_oak.png",
+      "w": 256,
+      "h": 72,
+      "fw": 64,
+      "fh": 72,
+      "frames": 4,
+      "fps": 4
+    },
+    "tree_oak_ancient": {
+      "file": "/assets/chrono/nature/tree_oak_ancient.png",
+      "w": 288,
+      "h": 80,
+      "fw": 72,
+      "fh": 80,
+      "frames": 4,
+      "fps": 4
+    },
+    "tree_pine": {
+      "file": "/assets/chrono/nature/tree_pine.png",
+      "w": 224,
+      "h": 72,
+      "fw": 56,
+      "fh": 72,
+      "frames": 4,
+      "fps": 4
+    },
+    "tree_withered": {
+      "file": "/assets/chrono/nature/tree_withered.png",
+      "w": 112,
+      "h": 64,
+      "fw": 56,
+      "fh": 64,
+      "frames": 2,
+      "fps": 4
+    },
+    "rock_meadow": {
+      "file": "/assets/chrono/nature/rock_meadow.png",
+      "w": 40,
+      "h": 32,
+      "fw": 40,
+      "fh": 32,
+      "frames": 1
+    },
+    "rock_waystone": {
+      "file": "/assets/chrono/nature/rock_waystone.png",
+      "w": 40,
+      "h": 48,
+      "fw": 40,
+      "fh": 48,
+      "frames": 1
+    },
+    "rock_cavern": {
+      "file": "/assets/chrono/nature/rock_cavern.png",
+      "w": 40,
+      "h": 32,
+      "fw": 40,
+      "fh": 32,
+      "frames": 1
+    },
+    "rock_volcanic": {
+      "file": "/assets/chrono/nature/rock_volcanic.png",
+      "w": 40,
+      "h": 32,
+      "fw": 40,
+      "fh": 32,
+      "frames": 1
+    },
+    "rock_astral": {
+      "file": "/assets/chrono/nature/rock_astral.png",
+      "w": 40,
+      "h": 48,
+      "fw": 40,
+      "fh": 48,
+      "frames": 1
+    },
+    "gem_ruby": {
+      "file": "/assets/chrono/nature/gem_ruby.png",
+      "w": 192,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 8,
+      "fps": 8
+    },
+    "gem_emerald": {
+      "file": "/assets/chrono/nature/gem_emerald.png",
+      "w": 192,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 8,
+      "fps": 8
+    },
+    "gem_sapphire": {
+      "file": "/assets/chrono/nature/gem_sapphire.png",
+      "w": 192,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 8,
+      "fps": 8
+    },
+    "gem_amethyst": {
+      "file": "/assets/chrono/nature/gem_amethyst.png",
+      "w": 192,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 8,
+      "fps": 8
+    },
+    "gem_eternity": {
+      "file": "/assets/chrono/nature/gem_eternity.png",
+      "w": 192,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 8,
+      "fps": 8
+    },
+    "bg_oakhaven": {
+      "file": "/assets/chrono/backdrops/bg_oakhaven.png",
+      "w": 256,
+      "h": 144,
+      "fw": 256,
+      "fh": 144,
+      "frames": 1
+    },
+    "bg_whispering_plains": {
+      "file": "/assets/chrono/backdrops/bg_whispering_plains.png",
+      "w": 256,
+      "h": 144,
+      "fw": 256,
+      "fh": 144,
+      "frames": 1
+    },
+    "bg_forgotten_crypt": {
+      "file": "/assets/chrono/backdrops/bg_forgotten_crypt.png",
+      "w": 256,
+      "h": 144,
+      "fw": 256,
+      "fh": 144,
+      "frames": 1
+    },
+    "bg_arachnid_caverns": {
+      "file": "/assets/chrono/backdrops/bg_arachnid_caverns.png",
+      "w": 256,
+      "h": 144,
+      "fw": 256,
+      "fh": 144,
+      "frames": 1
+    },
+    "bg_aethelgard": {
+      "file": "/assets/chrono/backdrops/bg_aethelgard.png",
+      "w": 256,
+      "h": 144,
+      "fw": 256,
+      "fh": 144,
+      "frames": 1
+    },
+    "bg_molten_forge": {
+      "file": "/assets/chrono/backdrops/bg_molten_forge.png",
+      "w": 256,
+      "h": 144,
+      "fw": 256,
+      "fh": 144,
+      "frames": 1
+    },
+    "bg_citadel_of_shadows": {
+      "file": "/assets/chrono/backdrops/bg_citadel_of_shadows.png",
+      "w": 256,
+      "h": 144,
+      "fw": 256,
+      "fh": 144,
+      "frames": 1
+    },
+    "vfx_fire_breath": {
+      "file": "/assets/chrono/vfx/vfx_fire_breath.png",
+      "w": 768,
+      "h": 64,
+      "fw": 96,
+      "fh": 64,
+      "frames": 8,
+      "fps": 10
+    },
+    "vfx_meteor_nova": {
+      "file": "/assets/chrono/vfx/vfx_meteor_nova.png",
+      "w": 768,
+      "h": 96,
+      "fw": 96,
+      "fh": 96,
+      "frames": 8,
+      "fps": 10
+    },
+    "vfx_holy_beam": {
+      "file": "/assets/chrono/vfx/vfx_holy_beam.png",
+      "w": 288,
+      "h": 128,
+      "fw": 48,
+      "fh": 128,
+      "frames": 6,
+      "fps": 10
+    },
+    "vfx_shadow_rift": {
+      "file": "/assets/chrono/vfx/vfx_shadow_rift.png",
+      "w": 384,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 6,
+      "fps": 10
+    },
+    "vfx_earthquake_fissure": {
+      "file": "/assets/chrono/vfx/vfx_earthquake_fissure.png",
+      "w": 480,
+      "h": 48,
+      "fw": 80,
+      "fh": 48,
+      "frames": 6,
+      "fps": 10
+    },
+    "vfx_aegis_dome": {
+      "file": "/assets/chrono/vfx/vfx_aegis_dome.png",
+      "w": 384,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 6,
+      "fps": 10
+    },
+    "vfx_poison_bloom": {
+      "file": "/assets/chrono/vfx/vfx_poison_bloom.png",
+      "w": 384,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 6,
+      "fps": 10
+    },
+    "vfx_frost_shatter": {
+      "file": "/assets/chrono/vfx/vfx_frost_shatter.png",
+      "w": 384,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 6,
+      "fps": 10
+    },
+    "vfx_smoke_bomb": {
+      "file": "/assets/chrono/vfx/vfx_smoke_bomb.png",
+      "w": 384,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 6,
+      "fps": 10
+    },
+    "vfx_whirlwind_slash": {
+      "file": "/assets/chrono/vfx/vfx_whirlwind_slash.png",
+      "w": 256,
+      "h": 64,
+      "fw": 64,
+      "fh": 64,
+      "frames": 4,
+      "fps": 10
+    },
+    "vfx_blood_cleave": {
+      "file": "/assets/chrono/vfx/vfx_blood_cleave.png",
+      "w": 224,
+      "h": 48,
+      "fw": 56,
+      "fh": 48,
+      "frames": 4,
+      "fps": 10
+    },
+    "proj_arrow": {
+      "file": "/assets/chrono/vfx/proj_arrow.png",
+      "w": 24,
+      "h": 8,
+      "fw": 24,
+      "fh": 8,
+      "frames": 1
+    },
+    "proj_arrow_emerald": {
+      "file": "/assets/chrono/vfx/proj_arrow_emerald.png",
+      "w": 48,
+      "h": 8,
+      "fw": 24,
+      "fh": 8,
+      "frames": 2,
+      "fps": 10
+    },
+    "proj_frost_arrow": {
+      "file": "/assets/chrono/vfx/proj_frost_arrow.png",
+      "w": 48,
+      "h": 16,
+      "fw": 24,
+      "fh": 16,
+      "frames": 2,
+      "fps": 10
+    },
+    "proj_fireball": {
+      "file": "/assets/chrono/vfx/proj_fireball.png",
+      "w": 96,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 4,
+      "fps": 10
+    },
+    "proj_pyre_orb": {
+      "file": "/assets/chrono/vfx/proj_pyre_orb.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 10
+    },
+    "proj_kunai": {
+      "file": "/assets/chrono/vfx/proj_kunai.png",
+      "w": 32,
+      "h": 8,
+      "fw": 16,
+      "fh": 8,
+      "frames": 2,
+      "fps": 10
+    },
+    "proj_holy_bolt": {
+      "file": "/assets/chrono/vfx/proj_holy_bolt.png",
+      "w": 48,
+      "h": 16,
+      "fw": 24,
+      "fh": 16,
+      "frames": 2,
+      "fps": 10
+    },
+    "proj_void_bolt": {
+      "file": "/assets/chrono/vfx/proj_void_bolt.png",
+      "w": 96,
+      "h": 16,
+      "fw": 24,
+      "fh": 16,
+      "frames": 4,
+      "fps": 10
+    },
+    "proj_web_glob": {
+      "file": "/assets/chrono/vfx/proj_web_glob.png",
+      "w": 32,
+      "h": 16,
+      "fw": 16,
+      "fh": 16,
+      "frames": 2,
+      "fps": 10
+    },
+    "proj_magma_boulder": {
+      "file": "/assets/chrono/vfx/proj_magma_boulder.png",
+      "w": 48,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 2,
+      "fps": 10
+    },
+    "proj_sword_wave": {
+      "file": "/assets/chrono/vfx/proj_sword_wave.png",
+      "w": 48,
+      "h": 32,
+      "fw": 24,
+      "fh": 32,
+      "frames": 2,
+      "fps": 10
+    },
+    "deploy_banner": {
+      "file": "/assets/chrono/vfx/deploy_banner.png",
+      "w": 96,
+      "h": 40,
+      "fw": 24,
+      "fh": 40,
+      "frames": 4,
+      "fps": 10
+    },
+    "deploy_firewall": {
+      "file": "/assets/chrono/vfx/deploy_firewall.png",
+      "w": 192,
+      "h": 32,
+      "fw": 48,
+      "fh": 32,
+      "frames": 4,
+      "fps": 10
+    },
+    "deploy_bear_trap_open": {
+      "file": "/assets/chrono/vfx/deploy_bear_trap_open.png",
+      "w": 48,
+      "h": 16,
+      "fw": 24,
+      "fh": 16,
+      "frames": 2,
+      "fps": 10
+    },
+    "deploy_bear_trap_snapped": {
+      "file": "/assets/chrono/vfx/deploy_bear_trap_snapped.png",
+      "w": 48,
+      "h": 16,
+      "fw": 24,
+      "fh": 16,
+      "frames": 2,
+      "fps": 10
+    },
+    "deploy_falcon": {
+      "file": "/assets/chrono/vfx/deploy_falcon.png",
+      "w": 96,
+      "h": 24,
+      "fw": 24,
+      "fh": 24,
+      "frames": 4,
+      "fps": 10
+    },
+    "deploy_sanctuary_rune": {
+      "file": "/assets/chrono/vfx/deploy_sanctuary_rune.png",
+      "w": 192,
+      "h": 48,
+      "fw": 48,
+      "fh": 48,
+      "frames": 4,
+      "fps": 10
+    },
+    "deploy_shadow_clone": {
+      "file": "/assets/chrono/vfx/deploy_shadow_clone.png",
+      "w": 128,
+      "h": 32,
+      "fw": 32,
+      "fh": 32,
+      "frames": 4,
+      "fps": 10
+    }
+  }
+}

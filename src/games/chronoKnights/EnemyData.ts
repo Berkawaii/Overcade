@@ -55,7 +55,34 @@ export interface EnemyEntity {
   shootCooldown?: number;
   isClone?: boolean;
   isReal?: boolean;
+  // Status & pixel-animation runtime fields
+  burnTimer: number;
+  burnDps: number;
+  burnOwnerSlot: number;
+  poisonTimer: number;
+  poisonDps: number;
+  poisonOwnerSlot: number;
+  markTimer: number;
+  rootTimer: number;
+  blindTimer: number;
+  kunaiStacks: number;
+  kunaiOwnerSlot: number;
+  animTime: number;
 }
+
+type StatusFields =
+  | 'burnTimer'
+  | 'burnDps'
+  | 'burnOwnerSlot'
+  | 'poisonTimer'
+  | 'poisonDps'
+  | 'poisonOwnerSlot'
+  | 'markTimer'
+  | 'rootTimer'
+  | 'blindTimer'
+  | 'kunaiStacks'
+  | 'kunaiOwnerSlot'
+  | 'animTime';
 
 export function createEnemy(
   id: string,
@@ -63,6 +90,30 @@ export function createEnemy(
   x: number,
   y: number
 ): EnemyEntity {
+  const base = buildBaseEnemy(id, kind, x, y);
+  return {
+    ...base,
+    burnTimer: 0,
+    burnDps: 0,
+    burnOwnerSlot: 0,
+    poisonTimer: 0,
+    poisonDps: 0,
+    poisonOwnerSlot: 0,
+    markTimer: 0,
+    rootTimer: 0,
+    blindTimer: 0,
+    kunaiStacks: 0,
+    kunaiOwnerSlot: 0,
+    animTime: Math.random() * 2,
+  };
+}
+
+function buildBaseEnemy(
+  id: string,
+  kind: EnemyKind,
+  x: number,
+  y: number
+): Omit<EnemyEntity, StatusFields> {
   switch (kind) {
     case 'wolf':
       return {

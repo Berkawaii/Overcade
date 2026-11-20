@@ -45,13 +45,14 @@ export interface HeroClassDefinition {
     R1: ClassSkill;
   };
   portraitSymbol: string;
+  portraitImage?: string;
 }
 
 export type FacingDirection = 'down' | 'up' | 'left' | 'right';
 
 export interface AttackState {
   isAttacking: boolean;
-  attackType: 'A' | 'B' | 'X' | 'Y' | 'R1' | null;
+  attackType: 'A' | 'B' | 'X' | 'Y' | 'L1' | 'R1' | null;
   timer: number;
   duration: number;
   comboIndex: number;
@@ -79,6 +80,16 @@ export interface PlayerEntity {
   spinTickTimer: number;
   orbitBladesTimer: number;
   orbitTickTimer: number;
+  shieldWallTimer: number;
+  aegisShieldTimer: number;
+  stealthTimer: number;
+  bloodlustTimer: number;
+  titanTimer: number;
+  seraphTimer: number;
+  seraphPulseTimer: number;
+  empoweredAttacks: number;
+  animTime: number;
+  hitFlashTimer: number;
   level: number;
   exp: number;
   gold: number;
@@ -109,10 +120,17 @@ export interface Projectile {
   vy: number;
   radius: number;
   damage: number;
-  element: 'physical' | 'fire' | 'ice' | 'holy' | 'poison';
+  element: 'physical' | 'fire' | 'ice' | 'holy' | 'poison' | 'void';
   lifeTimer: number;
   piercing: boolean;
   color: string;
+  spriteId?: string;
+  appliesBurn?: boolean;
+  appliesPoison?: boolean;
+  appliesFrost?: boolean;
+  appliesMark?: boolean;
+  embedsKunai?: boolean;
+  healsAlly?: boolean;
   hitTargetIds?: string[];
 }
 
@@ -306,4 +324,55 @@ export interface CinematicBannerState {
   accentColor: string;
   timer: number;
   maxTimer: number;
+}
+
+export interface DeployedEntity {
+  id: string;
+  kind: 'banner' | 'firewall' | 'bear_trap' | 'falcon' | 'sanctuary_rune' | 'shadow_clone';
+  ownerSlot: number;
+  x: number;
+  y: number;
+  radius: number;
+  timer: number;
+  maxTimer: number;
+  tickTimer: number;
+  triggered?: boolean;
+  angle?: number;
+  hp?: number;
+}
+
+export interface ActiveVfxSprite {
+  id: string;
+  spriteId: string;
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  timer: number;
+  duration: number;
+  flipX?: boolean;
+  followSlot?: number;
+}
+
+export interface AfterimageGhost {
+  classId: HeroClassId;
+  x: number;
+  y: number;
+  facing: FacingDirection;
+  alpha: number;
+  tint: string;
+  life: number;
+  maxLife: number;
+}
+
+export interface AmbientCritter {
+  id: string;
+  kind: 'guard' | 'cat' | 'firefly' | 'ember' | 'spore' | 'mote';
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  homeX: number;
+  homeY: number;
+  phase: number;
 }

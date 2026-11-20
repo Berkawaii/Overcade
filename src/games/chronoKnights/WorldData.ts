@@ -9,19 +9,44 @@ export interface NpcEntity {
   radius: number;
   role: 'quest' | 'blacksmith' | 'healer' | 'bazaar' | 'sorcerer';
   symbol: string;
+  portraitImage?: string;
   avatarColor: string;
   dialogue: string[];
 }
 
 export interface WorldObstacle {
   id: string;
-  type: 'house' | 'tree' | 'rock' | 'fountain' | 'lantern' | 'fence' | 'pillar' | 'stall' | 'cathedral';
+  type:
+    | 'house'
+    | 'tree'
+    | 'rock'
+    | 'fountain'
+    | 'lantern'
+    | 'fence'
+    | 'pillar'
+    | 'stall'
+    | 'cathedral'
+    | 'barrel'
+    | 'crate'
+    | 'flowerbed'
+    | 'well'
+    | 'signpost'
+    | 'statue'
+    | 'hedge'
+    | 'banner';
   x: number;
   y: number;
   width: number;
   height: number;
   solid: boolean;
   label?: string;
+}
+
+export interface AmbientSpawn {
+  id: string;
+  kind: 'guard' | 'cat';
+  x: number;
+  y: number;
 }
 
 export interface ZoneBoundary {
@@ -49,6 +74,7 @@ export const OAKHAVEN_NPCS: NpcEntity[] = [
     radius: 24,
     role: 'quest',
     symbol: '📜',
+    portraitImage: '/assets/chrono/portraits/portrait_npc_elder.png',
     avatarColor: '#3B82F6',
     dialogue: [
       'Greetings, champions of the realm! Shadows stir across Aethelvale once more.',
@@ -66,6 +92,7 @@ export const OAKHAVEN_NPCS: NpcEntity[] = [
     radius: 24,
     role: 'blacksmith',
     symbol: '🔨',
+    portraitImage: '/assets/chrono/portraits/portrait_npc_blacksmith.png',
     avatarColor: '#F97316',
     dialogue: [
       'Sharp steel makes the difference between glorious victory and an early grave.',
@@ -81,6 +108,7 @@ export const OAKHAVEN_NPCS: NpcEntity[] = [
     radius: 24,
     role: 'healer',
     symbol: '🌿',
+    portraitImage: '/assets/chrono/portraits/portrait_npc_healer.png',
     avatarColor: '#10B981',
     dialogue: [
       'May the light preserve your strength, travelers.',
@@ -146,6 +174,23 @@ export const OAKHAVEN_OBSTACLES: WorldObstacle[] = [
   { id: 'lantern-2', type: 'lantern', x: 1920, y: 1180, width: 22, height: 44, solid: false },
   { id: 'lantern-3', type: 'lantern', x: 1680, y: 1420, width: 22, height: 44, solid: false },
   { id: 'lantern-4', type: 'lantern', x: 1920, y: 1420, width: 22, height: 44, solid: false },
+  // Crafted Town Props & Landmarks
+  { id: 'well-oakhaven', type: 'well', x: 1615, y: 1065, width: 46, height: 48, solid: true },
+  { id: 'signpost-north', type: 'signpost', x: 1705, y: 815, width: 28, height: 40, solid: true },
+  { id: 'barrel-forge', type: 'barrel', x: 1358, y: 1245, width: 28, height: 28, solid: true },
+  { id: 'crate-forge', type: 'crate', x: 1358, y: 1285, width: 28, height: 28, solid: true },
+  { id: 'flowerbed-apoth', type: 'flowerbed', x: 2245, y: 1265, width: 44, height: 24, solid: false },
+  { id: 'flowerbed-plaza-w', type: 'flowerbed', x: 1665, y: 1300, width: 44, height: 24, solid: false },
+  { id: 'flowerbed-plaza-e', type: 'flowerbed', x: 1935, y: 1300, width: 44, height: 24, solid: false },
+  { id: 'fence-garden-w', type: 'fence', x: 1260, y: 1610, width: 56, height: 28, solid: true },
+  { id: 'fence-garden-e', type: 'fence', x: 2340, y: 1610, width: 56, height: 28, solid: true },
+];
+
+export const OAKHAVEN_AMBIENT: AmbientSpawn[] = [
+  { id: 'guard-gate-w', kind: 'guard', x: 1690, y: 765 },
+  { id: 'guard-gate-e', kind: 'guard', x: 1910, y: 765 },
+  { id: 'cat-plaza', kind: 'cat', x: 2040, y: 1380 },
+  { id: 'cat-forge', kind: 'cat', x: 1410, y: 1420 },
 ];
 
 // -------------------------------------------------------------
@@ -206,6 +251,7 @@ export const AETHELGARD_NPCS: NpcEntity[] = [
     radius: 26,
     role: 'quest',
     symbol: '⚔️',
+    portraitImage: '/assets/chrono/portraits/portrait_npc_thorne.png',
     avatarColor: '#6366F1',
     dialogue: [
       'Halt, heroes! You stand in the imperial courtyard of Aethelgard, Crown City of the realm.',
@@ -223,6 +269,7 @@ export const AETHELGARD_NPCS: NpcEntity[] = [
     radius: 24,
     role: 'bazaar',
     symbol: '💎',
+    portraitImage: '/assets/chrono/portraits/portrait_npc_bazaar.png',
     avatarColor: '#F59E0B',
     dialogue: [
       'Welcome to the Grand Bazaar! Finest imperial plate and enchanted relics from across the continent.',
@@ -238,6 +285,7 @@ export const AETHELGARD_NPCS: NpcEntity[] = [
     radius: 24,
     role: 'sorcerer',
     symbol: '🔮',
+    portraitImage: '/assets/chrono/portraits/portrait_npc_zephyr.png',
     avatarColor: '#A855F7',
     dialogue: [
       'The astral leylines sing of your valiant victories, champions.',
@@ -301,6 +349,22 @@ export const AETHELGARD_OBSTACLES: WorldObstacle[] = [
   { id: 'aeth-lantern-2', type: 'lantern', x: 1880, y: 1180, width: 22, height: 44, solid: false },
   { id: 'aeth-lantern-3', type: 'lantern', x: 1720, y: 1420, width: 22, height: 44, solid: false },
   { id: 'aeth-lantern-4', type: 'lantern', x: 1880, y: 1420, width: 22, height: 44, solid: false },
+  // Royal Statues, Rose Hedges & Banners
+  { id: 'statue-knight-w', type: 'statue', x: 1625, y: 920, width: 42, height: 68, solid: true },
+  { id: 'statue-knight-e', type: 'statue', x: 1975, y: 920, width: 42, height: 68, solid: true },
+  { id: 'banner-royal-w', type: 'banner', x: 1685, y: 745, width: 28, height: 52, solid: false },
+  { id: 'banner-royal-e', type: 'banner', x: 1915, y: 745, width: 28, height: 52, solid: false },
+  { id: 'hedge-rose-w', type: 'hedge', x: 1620, y: 1295, width: 48, height: 32, solid: true },
+  { id: 'hedge-rose-e', type: 'hedge', x: 1980, y: 1295, width: 48, height: 32, solid: true },
+  { id: 'barrel-bazaar', type: 'barrel', x: 1352, y: 1245, width: 28, height: 28, solid: true },
+  { id: 'crate-bazaar', type: 'crate', x: 1352, y: 1285, width: 28, height: 28, solid: true },
+];
+
+export const AETHELGARD_AMBIENT: AmbientSpawn[] = [
+  { id: 'aeth-guard-n1', kind: 'guard', x: 1700, y: 690 },
+  { id: 'aeth-guard-n2', kind: 'guard', x: 1900, y: 690 },
+  { id: 'aeth-guard-e1', kind: 'guard', x: 2495, y: 1210 },
+  { id: 'aeth-cat-1', kind: 'cat', x: 2060, y: 1410 },
 ];
 
 // -------------------------------------------------------------
