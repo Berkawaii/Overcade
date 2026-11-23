@@ -5,50 +5,100 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/controller",
-        "destination": "/controller.html"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "**/*",
-        "headers": [
-          {
-            "key": "Cross-Origin-Opener-Policy",
-            "value": "same-origin"
-          },
-          {
-            "key": "Cross-Origin-Embedder-Policy",
-            "value": "credentialless"
-          },
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
-      },
-      {
-        "source": "**/*.wasm",
-        "headers": [
-          {
-            "key": "Content-Type",
-            "value": "application/wasm"
-          }
-        ]
-      }
-    ]
-  }
+  "hosting": [
+    {
+      "site": "overcade",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/controller",
+          "destination": "/controller.html"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**/*",
+          "headers": [
+            {
+              "key": "Cross-Origin-Opener-Policy",
+              "value": "same-origin"
+            },
+            {
+              "key": "Cross-Origin-Embedder-Policy",
+              "value": "credentialless"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "**/*.wasm",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/wasm"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "site": "overcade-b22ff",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/controller",
+          "destination": "/controller.html"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**/*",
+          "headers": [
+            {
+              "key": "Cross-Origin-Opener-Policy",
+              "value": "same-origin"
+            },
+            {
+              "key": "Cross-Origin-Embedder-Policy",
+              "value": "credentialless"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "**/*.wasm",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/wasm"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
