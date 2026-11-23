@@ -183,7 +183,11 @@ export interface ParticleEffect {
   alpha: number;
   life: number;
   maxLife: number;
-  shape?: 'circle' | 'spark' | 'ring';
+  shape?: 'circle' | 'spark' | 'ring' | 'flame' | 'smoke' | 'ember';
+  additive?: boolean;
+  gravity?: number;
+  drag?: number;
+  growRate?: number;
 }
 
 export interface FloatingText {

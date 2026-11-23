@@ -1,6 +1,7 @@
 import { GameEngineBridge, useConsoleConnectionStore } from '../../lib/gameEngineBridge';
 import { MAX_PLAYERS } from '../../lib/binaryProtocol';
 import { SoundFX } from '../../lib/soundEffects';
+import { ChronoSfx } from './ChronoSfxManager';
 import { BoundingBoxCamera } from './BoundingBoxCamera';
 import {
   CLASS_LIST,
@@ -1262,24 +1263,24 @@ export class ChronoKnightsEngine {
     const atk = this.getPlayerAtk(player);
 
     if (player.classId === 'pyromancer') {
-      SoundFX.playSpellCast();
+      ChronoSfx.play('pyro_fireball', () => SoundFX.playSpellCast(), { maxDurationSec: 0.8 });
       this.fireProjectile(player, 'proj_fireball', 500, 15, atk * skill.damageMultiplier, 'fire', {
         spriteId: 'proj_fireball',
         appliesBurn: true,
       });
     } else if (player.classId === 'ranger') {
-      SoundFX.playArrowShot();
+      ChronoSfx.play('ranger_quickshot', () => SoundFX.playArrowShot(), { maxDurationSec: 0.65 });
       this.fireProjectile(player, 'proj_arrow', 680, 12, atk * skill.damageMultiplier, 'physical', {
         spriteId: 'proj_arrow',
       });
     } else if (player.classId === 'cleric') {
-      SoundFX.playSpellCast();
+      ChronoSfx.play('cleric_sunbolt', () => SoundFX.playSpellCast(), { maxDurationSec: 0.75 });
       this.fireProjectile(player, 'proj_holy_bolt', 470, 15, atk * skill.damageMultiplier, 'holy', {
         spriteId: 'proj_holy_bolt',
         healsAlly: true,
       });
     } else if (player.classId === 'berserker') {
-      SoundFX.playSwordSlash();
+      ChronoSfx.play('berserker_greataxe', () => SoundFX.playSwordSlash(), { maxDurationSec: 0.75 });
       const empowered = player.empoweredAttacks > 0;
       if (empowered) {
         player.empoweredAttacks -= 1;
@@ -1288,19 +1289,23 @@ export class ChronoKnightsEngine {
       const mult = empowered ? skill.damageMultiplier * 1.5 : skill.damageMultiplier;
       this.checkMeleeHitbox(player, empowered ? skill.range + 24 : skill.range, mult, empowered);
     } else if (player.classId === 'rogue') {
-      SoundFX.playSwordSlash();
       const ambush = player.stealthTimer > 0;
+      if (ambush) {
+        ChronoSfx.play('rogue_backstab', () => SoundFX.playSwordSlash(), { maxDurationSec: 0.9 });
+      } else {
+        ChronoSfx.play('rogue_twin_fang', () => SoundFX.playSwordSlash(), { maxDurationSec: 0.55 });
+      }
       this.checkMeleeHitbox(player, skill.range, ambush ? skill.damageMultiplier * 2.2 : skill.damageMultiplier, false, ambush);
       if (ambush) {
         player.stealthTimer = 0;
         this.spawnFloatingText(player.x, player.y - 44, 'AMBUSH CRIT!', '#EAADED');
       }
     } else {
-      SoundFX.playSwordSlash();
+      ChronoSfx.play('knight_sword_slash', () => SoundFX.playSwordSlash(), { maxDurationSec: 0.7 });
       this.checkMeleeHitbox(player, skill.range, skill.damageMultiplier);
       if (player.classId === 'knight' && player.attackState.comboIndex === 2) {
         player.valorStacks = Math.min(5, player.valorStacks + 1);
-        SoundFX.playShieldActivate();
+        ChronoSfx.play('knight_shield_bash', () => SoundFX.playShieldActivate(), { maxDurationSec: 0.95 });
         const ang = this.getFacingAngle(player.facing);
         this.checkAreaDamage(
           player.x + Math.cos(ang) * 44,
@@ -1355,8 +1360,10 @@ export class ChronoKnightsEngine {
       if (button === 'B') {
         this.tryMovePlayerSafely(player, Math.cos(facingAngle) * 125, Math.sin(facingAngle) * 125);
         player.shieldWallTimer = 2.6;
-        SoundFX.playShieldActivate();
-        SoundFX.playHeavySlam();
+        ChronoSfx.play('knight_fortress_ram', () => {
+          SoundFX.playShieldActivate();
+          SoundFX.playHeavySlam();
+        }, { maxDurationSec: 1.5 });
         this.spawnAuraParticles(player.x, player.y, '#60A5FA', 28);
         this.spawnFloatingText(player.x, player.y - 34, 'FORTRESS GUARD!', '#8FD3FF');
         this.checkAreaDamage(player.x, player.y, skill.range, atk * skill.damageMultiplier, 'physical', 0.9, {
@@ -1367,8 +1374,10 @@ export class ChronoKnightsEngine {
       }
       if (button === 'X') {
         // Consecrated Chain Pull: yanks forward-cone enemies directly in front of Knight
-        SoundFX.playHeavySlam();
-        SoundFX.playShieldActivate();
+        ChronoSfx.play('knight_chain_pull', () => {
+          SoundFX.playHeavySlam();
+          SoundFX.playShieldActivate();
+        }, { maxDurationSec: 1.6 });
         const pullAngle = this.getAimAngle(player, 260);
         const destX = player.x + Math.cos(pullAngle) * 62;
         const destY = player.y + Math.sin(pullAngle) * 62;
@@ -1414,8 +1423,10 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'Y') {
-        SoundFX.playHeavySlam();
-        SoundFX.playFanfare();
+        ChronoSfx.play('knight_war_banner', () => {
+          SoundFX.playHeavySlam();
+          SoundFX.playFanfare();
+        }, { maxDurationSec: 2.2 });
         this.deployedEntities.push({
           id: `banner-${Date.now()}-${Math.random()}`,
           kind: 'banner',
@@ -1433,9 +1444,11 @@ export class ChronoKnightsEngine {
       }
       if (button === 'L1') {
         // Vanguard Intercept: leap toward most injured ally within 360px & raise Aegis Dome
-        SoundFX.playDash();
-        SoundFX.playShieldActivate();
-        SoundFX.playHeal();
+        ChronoSfx.play('knight_vanguard_intercept', () => {
+          SoundFX.playDash();
+          SoundFX.playShieldActivate();
+          SoundFX.playHeal();
+        }, { maxDurationSec: 1.8 });
         const hurtAlly = this.players
           .filter((a) => a.connected && !a.isDowned && a.slotIndex !== player.slotIndex && Math.hypot(a.x - player.x, a.y - player.y) <= 380)
           .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
@@ -1477,31 +1490,39 @@ export class ChronoKnightsEngine {
     // --- 2. SOLAR PYROMANCER KIT ---
     if (player.classId === 'pyromancer') {
       if (button === 'B') {
-        SoundFX.playDash();
-        SoundFX.playSpellCast();
+        ChronoSfx.play('pyro_flame_blink', () => {
+          SoundFX.playDash();
+          SoundFX.playSpellCast();
+        }, { maxDurationSec: 1.1 });
         const originX = player.x;
         const originY = player.y;
         this.checkAreaDamage(originX, originY, 105, atk * skill.damageMultiplier, 'fire', 0.35, {
           ownerSlot: player.slotIndex,
           appliesBurn: true,
         });
-        this.spawnAuraParticles(originX, originY, '#FB6B1D', 24);
-        this.spawnAfterimageTrail(player, 3, '#FB6B1D');
+        this.spawnFireBurst(originX, originY, 0.95);
+        this.spawnAfterimageTrail(player, 4, '#FB6B1D');
         this.tryMovePlayerSafely(player, Math.cos(facingAngle) * 175, Math.sin(facingAngle) * 175);
         player.invulnerableTimer = 0.45;
-        this.spawnAuraParticles(player.x, player.y, '#F9C22B', 20);
+        this.spawnFireBurst(player.x, player.y, 0.7);
         return;
       }
       if (button === 'X') {
-        SoundFX.playSpellCast();
+        ChronoSfx.play('pyro_dragons_breath', () => SoundFX.playSpellCast(), { maxDurationSec: 2.2 });
         const aimAngle = this.getAimAngle(player, 300);
         this.spawnActiveVfx(
           'vfx_fire_breath',
-          player.x + Math.cos(aimAngle) * 86,
-          player.y + Math.sin(aimAngle) * 86 - 10,
+          player.x + Math.cos(aimAngle) * 102,
+          player.y + Math.sin(aimAngle) * 102 - 12,
           aimAngle,
-          2.0,
-          0.55
+          2.45,
+          0.65
+        );
+        this.spawnFlameConeParticles(
+          player.x + Math.cos(aimAngle) * 20,
+          player.y - 10 + Math.sin(aimAngle) * 20,
+          aimAngle,
+          34
         );
         this.checkConeDamage(player.x, player.y, aimAngle, 235, 0.85, atk * skill.damageMultiplier, 'fire', {
           ownerSlot: player.slotIndex,
@@ -1511,7 +1532,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'Y') {
-        SoundFX.playSpellCast();
+        ChronoSfx.play('pyro_hellfire_wall', () => SoundFX.playSpellCast(), { maxDurationSec: 2.2 });
         const aimAngle = this.getAimAngle(player, 260);
         this.deployedEntities.push({
           id: `firewall-${Date.now()}-${Math.random()}`,
@@ -1529,8 +1550,10 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'L1') {
-        SoundFX.playSpellCast();
-        SoundFX.playExplosion();
+        ChronoSfx.play('pyro_cinder_detonate', () => {
+          SoundFX.playSpellCast();
+          SoundFX.playExplosion();
+        }, { maxDurationSec: 1.8 });
         let burnedCount = 0;
         for (let i = this.enemies.length - 1; i >= 0; i--) {
           const e = this.enemies[i];
@@ -1543,7 +1566,8 @@ export class ChronoKnightsEngine {
             const applied = e.isBoss ? Math.min(Math.ceil(e.maxHp * 0.055), detDmg) : detDmg;
             e.hp -= applied;
             e.hurtTimer = e.isBoss ? 0.12 : 0.35;
-            this.spawnActiveVfx('vfx_meteor_nova', e.x, e.y, 0, 1.35, 0.42);
+            this.spawnActiveVfx('vfx_meteor_nova', e.x, e.y, 0, 1.5, 0.48);
+            this.spawnFireBurst(e.x, e.y, 1.05);
             this.spawnFloatingText(e.x, e.y - 36, `CINDER POP ${applied}!`, '#FB923C');
             if (e.hp <= 0) this.handleEnemyDefeat(e, i);
           }
@@ -1551,7 +1575,7 @@ export class ChronoKnightsEngine {
         const mpGain = Math.min(player.maxMp, 20 + burnedCount * 18);
         player.mp = Math.min(player.maxMp, player.mp + mpGain);
         player.regenDelayTimer = 0;
-        this.spawnAuraParticles(player.x, player.y, '#F79617', 35);
+        this.spawnFireBurst(player.x, player.y, 0.9);
         this.spawnFloatingText(
           player.x,
           player.y - 34,
@@ -1566,7 +1590,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'R1') {
-        SoundFX.playSpellCast();
+        ChronoSfx.play('pyro_rune_chant', () => SoundFX.playSpellCast(), { maxDurationSec: 0.85 });
         const pool: UltimateButton[] = ['A', 'B', 'X', 'Y'];
         const seq: UltimateButton[] = [0, 1, 2, 3].map(
           () => pool[Math.floor(Math.random() * pool.length)]
@@ -1587,8 +1611,10 @@ export class ChronoKnightsEngine {
     // --- 3. SYLVAN RANGER KIT ---
     if (player.classId === 'ranger') {
       if (button === 'B') {
-        SoundFX.playGateClick();
-        SoundFX.playDash();
+        ChronoSfx.play('ranger_bear_trap', () => {
+          SoundFX.playGateClick();
+          SoundFX.playDash();
+        }, { maxDurationSec: 1.2 });
         this.deployedEntities.push({
           id: `trap-${Date.now()}-${Math.random()}`,
           kind: 'bear_trap',
@@ -1608,7 +1634,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'X') {
-        SoundFX.playArrowShot();
+        ChronoSfx.play('ranger_venom_spread', () => SoundFX.playArrowShot(), { maxDurationSec: 1.2 });
         const baseAngle = this.getAimAngle(player, 550);
         for (let a = -2; a <= 2; a++) {
           this.fireProjectileWithAngle(
@@ -1625,7 +1651,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'Y') {
-        SoundFX.playArrowShot();
+        ChronoSfx.play('ranger_glacial_piercer', () => SoundFX.playArrowShot(), { maxDurationSec: 1.6 });
         const angle = this.getAimAngle(player, 620);
         this.fireProjectileWithAngle(
           player,
@@ -1641,7 +1667,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'L1') {
-        SoundFX.playFanfare();
+        ChronoSfx.play('ranger_sky_falcon', () => SoundFX.playFanfare(), { maxDurationSec: 2.0 });
         this.deployedEntities.push({
           id: `falcon-${Date.now()}-${Math.random()}`,
           kind: 'falcon',
@@ -1675,7 +1701,7 @@ export class ChronoKnightsEngine {
     // --- 4. DAWN CLERIC KIT ---
     if (player.classId === 'cleric') {
       if (button === 'B') {
-        SoundFX.playHeal();
+        ChronoSfx.play('cleric_sanctuary', () => SoundFX.playHeal(), { maxDurationSec: 2.0 });
         this.deployedEntities.push({
           id: `sanctuary-${Date.now()}-${Math.random()}`,
           kind: 'sanctuary_rune',
@@ -1691,7 +1717,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'X') {
-        SoundFX.playSpellCast();
+        ChronoSfx.play('cleric_judgment_pillar', () => SoundFX.playSpellCast(), { maxDurationSec: 2.2 });
         const fallback = {
           x: player.x + Math.cos(facingAngle) * 165,
           y: player.y + Math.sin(facingAngle) * 165,
@@ -1706,7 +1732,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'Y') {
-        SoundFX.playShieldActivate();
+        ChronoSfx.play('cleric_aegis_light', () => SoundFX.playShieldActivate(), { maxDurationSec: 1.8 });
         for (const p of this.players) {
           if (!p.connected || p.isDowned) continue;
           if (Math.hypot(p.x - player.x, p.y - player.y) <= skill.range) {
@@ -1721,7 +1747,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'L1') {
-        SoundFX.playHeal();
+        ChronoSfx.play('cleric_purify_heal', () => SoundFX.playHeal(), { maxDurationSec: 2.0 });
         for (const p of this.players) {
           if (!p.connected || p.isDowned) continue;
           if (Math.hypot(p.x - player.x, p.y - player.y) <= skill.range) {
@@ -1735,7 +1761,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'R1') {
-        SoundFX.playFanfare();
+        ChronoSfx.play('cleric_ult_choir', () => SoundFX.playFanfare(), { maxDurationSec: 3.0 });
         player.ultimateState = {
           kind: 'cleric_choir',
           timer: 3.6,
@@ -1752,10 +1778,12 @@ export class ChronoKnightsEngine {
     // --- 5. BLOOD BERSERKER KIT ---
     if (player.classId === 'berserker') {
       if (button === 'B') {
-        SoundFX.playDash();
         this.spawnAfterimageTrail(player, 3, '#E83B3B');
         this.tryMovePlayerSafely(player, Math.cos(facingAngle) * 170, Math.sin(facingAngle) * 170);
-        SoundFX.playHeavySlam();
+        ChronoSfx.play('berserker_seismic_leap', () => {
+          SoundFX.playDash();
+          SoundFX.playHeavySlam();
+        }, { maxDurationSec: 1.6 });
         this.triggerScreenShake(7, 0.28);
         this.spawnActiveVfx('vfx_earthquake_fissure', player.x, player.y + 6, 0, 2.1, 0.55);
         this.checkAreaDamage(player.x, player.y, 130, atk * skill.damageMultiplier, 'physical', 1.2, {
@@ -1768,8 +1796,10 @@ export class ChronoKnightsEngine {
         player.spinAttackTimer = 1.15;
         player.spinAttackMaxTimer = 1.15;
         player.spinTickTimer = 0.16;
-        SoundFX.playSwordSlash();
-        SoundFX.playHeavySlam();
+        ChronoSfx.play('berserker_whirlwind', () => {
+          SoundFX.playSwordSlash();
+          SoundFX.playHeavySlam();
+        }, { maxDurationSec: 1.6 });
         this.spawnFloatingText(player.x, player.y - 34, 'CYCLONE WHIRLWIND!', '#F79617');
         this.checkAreaDamage(player.x, player.y, skill.range, atk * 0.85, 'physical', 0.4, {
           ownerSlot: player.slotIndex,
@@ -1777,8 +1807,10 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'Y') {
-        SoundFX.playHeavySlam();
-        SoundFX.playFanfare();
+        ChronoSfx.play('berserker_warlord_roar', () => {
+          SoundFX.playHeavySlam();
+          SoundFX.playFanfare();
+        }, { maxDurationSec: 2.4 });
         this.triggerScreenShake(6, 0.25);
         player.bloodlustTimer = 6.0;
         player.rage = Math.min(100, player.rage + 25);
@@ -1796,8 +1828,10 @@ export class ChronoKnightsEngine {
         player.hp = Math.max(minFloor, player.hp - sacrifice);
         player.rage = Math.min(100, player.rage + 45);
         player.empoweredAttacks = 4;
-        SoundFX.playSwordSlash();
-        SoundFX.playPlayerHurt();
+        ChronoSfx.play('berserker_blood_pact', () => {
+          SoundFX.playSwordSlash();
+          SoundFX.playPlayerHurt();
+        }, { maxDurationSec: 1.6 });
         this.spawnActiveVfx('vfx_blood_cleave', player.x, player.y - 10, facingAngle, 2.0, 0.36);
         this.checkMeleeHitbox(player, skill.range, skill.damageMultiplier, true);
         this.spawnFloatingText(player.x, player.y - 36, `BLOOD PACT! -${sacrifice}HP +45 RAGE`, '#F04F78');
@@ -1821,7 +1855,7 @@ export class ChronoKnightsEngine {
     // --- 6. NIGHTBLADE ROGUE KIT ---
     if (player.classId === 'rogue') {
       if (button === 'B') {
-        SoundFX.playDash();
+        ChronoSfx.play('rogue_shadowstep', () => SoundFX.playDash(), { maxDurationSec: 1.1 });
         this.spawnAfterimageTrail(player, 4, '#A884F3');
         const target = this.findNearestEnemyTarget(player.x, player.y, 310);
         if (target) {
@@ -1843,12 +1877,12 @@ export class ChronoKnightsEngine {
         }
         player.invulnerableTimer = 0.4;
         this.spawnActiveVfx('vfx_shadow_rift', player.x, player.y - 8, 0, 1.4, 0.35);
-        SoundFX.playSwordSlash();
+        ChronoSfx.play('rogue_backstab', () => SoundFX.playSwordSlash(), { maxDurationSec: 0.9 });
         this.checkMeleeHitbox(player, 92, skill.damageMultiplier, false, true);
         return;
       }
       if (button === 'X') {
-        SoundFX.playArrowShot();
+        ChronoSfx.play('rogue_kunai_barrage', () => SoundFX.playArrowShot(), { maxDurationSec: 1.0 });
         const baseAngle = this.getAimAngle(player, 480);
         for (let k = 0; k < 4; k++) {
           const offset = (k - 1.5) * 0.13;
@@ -1866,7 +1900,7 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'Y') {
-        SoundFX.playDash();
+        ChronoSfx.play('rogue_smoke_bomb', () => SoundFX.playDash(), { maxDurationSec: 1.6 });
         this.spawnActiveVfx('vfx_smoke_bomb', player.x, player.y - 8, 0, 2.0, 0.55);
         player.stealthTimer = 3.2;
         this.deployedEntities.push({
@@ -1889,8 +1923,10 @@ export class ChronoKnightsEngine {
         return;
       }
       if (button === 'L1') {
-        SoundFX.playSwordSlash();
-        SoundFX.playExplosion();
+        ChronoSfx.play('rogue_rupture', () => {
+          SoundFX.playSwordSlash();
+          SoundFX.playExplosion();
+        }, { maxDurationSec: 1.7 });
         let rupturedTargets = 0;
         for (let i = this.enemies.length - 1; i >= 0; i--) {
           const enemy = this.enemies[i];
@@ -1957,11 +1993,11 @@ export class ChronoKnightsEngine {
           const seq = ult.sequence ?? ['A', 'B', 'X', 'Y'];
           const idx = ult.stepIndex ?? 0;
           if (seq[idx] === b) {
-            SoundFX.playSpellCast();
+            ChronoSfx.play('pyro_rune_chant', () => SoundFX.playSpellCast(), { maxDurationSec: 0.85 });
             const nextIdx = idx + 1;
             ult.stepIndex = nextIdx;
             const label = ult.chantedLabels?.[idx] ?? 'IGNIS';
-            this.spawnAuraParticles(player.x, player.y, '#FB923C', 22);
+            this.spawnFlameConeParticles(player.x, player.y - 14, Math.random() * Math.PI * 2, 10);
             this.spawnFloatingText(player.x, player.y - 44, `${label}! (${nextIdx}/4)`, '#FDE047');
             if (nextIdx >= seq.length) {
               this.executePyroSpellweave(player, 4);
@@ -2112,7 +2148,7 @@ export class ChronoKnightsEngine {
           while (diff < -Math.PI) diff += Math.PI * 2;
           if (Math.abs(diff) <= 0.6 && !locked.has(t.id)) {
             locked.add(t.id);
-            SoundFX.playGateClick();
+            ChronoSfx.play('ranger_deadeye_lock', () => SoundFX.playGateClick(), { maxDurationSec: 0.45 });
           }
         }
       }
@@ -2159,8 +2195,10 @@ export class ChronoKnightsEngine {
     const target = this.findNearestEnemyTarget(player.x, player.y, 480) || fallback;
 
     if (correctCount >= 4) {
-      SoundFX.playExplosion();
-      SoundFX.playFanfare();
+      ChronoSfx.play('pyro_ult_supernova', () => {
+        SoundFX.playExplosion();
+        SoundFX.playFanfare();
+      }, { maxDurationSec: 3.4, volume: 0.75 });
       this.triggerScreenShake(12, 0.55);
       const offsets = [
         { dx: 0, dy: 0 },
@@ -2168,7 +2206,8 @@ export class ChronoKnightsEngine {
         { dx: 75, dy: -40 },
       ];
       for (const off of offsets) {
-        this.spawnActiveVfx('vfx_meteor_nova', target.x + off.dx, target.y + off.dy, 0, 2.5, 0.8);
+        this.spawnActiveVfx('vfx_meteor_nova', target.x + off.dx, target.y + off.dy, 0, 2.75, 0.9);
+        this.spawnFireBurst(target.x + off.dx, target.y + off.dy, 1.55);
         this.checkAreaDamage(target.x + off.dx, target.y + off.dy, 185, atk * 2.1, 'fire', 1.1, {
           ownerSlot: player.slotIndex,
           appliesBurn: true,
@@ -2176,18 +2215,20 @@ export class ChronoKnightsEngine {
       }
       this.spawnFloatingText(target.x, target.y - 54, 'SOLAR SUPERNOVA 4.6x!', '#FDE047');
     } else if (correctCount > 0) {
-      SoundFX.playExplosion();
+      ChronoSfx.play('pyro_ult_supernova', () => SoundFX.playExplosion(), { maxDurationSec: 2.2, volume: 0.65 });
       this.triggerScreenShake(7, 0.3);
       const mult = 1.4 + correctCount * 0.55;
-      this.spawnActiveVfx('vfx_meteor_nova', target.x, target.y, 0, 1.9, 0.6);
+      this.spawnActiveVfx('vfx_meteor_nova', target.x, target.y, 0, 2.15, 0.72);
+      this.spawnFireBurst(target.x, target.y, 1.15);
       this.checkAreaDamage(target.x, target.y, 155, atk * mult, 'fire', 0.8, {
         ownerSlot: player.slotIndex,
         appliesBurn: true,
       });
       this.spawnFloatingText(target.x, target.y - 44, `CATACLYSM (${correctCount}/4)!`, '#FB923C');
     } else {
-      SoundFX.playSpellCast();
-      this.spawnActiveVfx('vfx_meteor_nova', player.x, player.y, 0, 1.2, 0.38);
+      ChronoSfx.play('pyro_fireball', () => SoundFX.playSpellCast(), { maxDurationSec: 0.85 });
+      this.spawnActiveVfx('vfx_meteor_nova', player.x, player.y, 0, 1.35, 0.44);
+      this.spawnFireBurst(player.x, player.y, 0.7);
       this.checkAreaDamage(player.x, player.y, 115, atk * 1.3, 'fire', 0.4, {
         ownerSlot: player.slotIndex,
         appliesBurn: true,
@@ -2201,8 +2242,10 @@ export class ChronoKnightsEngine {
     const atk = this.getPlayerAtk(player);
     const mult = isPeak ? 4.2 : 1.5 + prog * 1.9;
 
-    SoundFX.playHeavySlam();
-    SoundFX.playExplosion();
+    ChronoSfx.play('berserker_ult_cataclysm', () => {
+      SoundFX.playHeavySlam();
+      SoundFX.playExplosion();
+    }, { maxDurationSec: isPeak ? 3.4 : 2.0, volume: isPeak ? 0.78 : 0.62 });
     this.triggerScreenShake(isPeak ? 12 : 7, isPeak ? 0.5 : 0.28);
 
     this.spawnActiveVfx('vfx_earthquake_fissure', player.x, player.y + 8, 0, isPeak ? 2.8 : 2.0, 0.65);
@@ -2235,8 +2278,10 @@ export class ChronoKnightsEngine {
 
   private executeKnightParryCounter(player: PlayerEntity, perfect: boolean): void {
     const atk = this.getPlayerAtk(player);
-    SoundFX.playHeavySlam();
-    SoundFX.playShieldActivate();
+    ChronoSfx.play('knight_ult_parry', () => {
+      SoundFX.playHeavySlam();
+      SoundFX.playShieldActivate();
+    }, { maxDurationSec: perfect ? 3.0 : 1.6, volume: perfect ? 0.75 : 0.6 });
     player.invulnerableTimer = Math.max(player.invulnerableTimer, perfect ? 1.4 : 0.5);
 
     if (perfect) {
@@ -2277,8 +2322,10 @@ export class ChronoKnightsEngine {
   private executeRogueEclipseSlash(player: PlayerEntity, step: number, sweet: boolean): void {
     const atk = this.getPlayerAtk(player);
     const mult = sweet ? 1.6 + (step - 1) * 0.72 : 1.1;
-    SoundFX.playDash();
-    SoundFX.playSwordSlash();
+    ChronoSfx.play('rogue_ult_eclipse', () => {
+      SoundFX.playDash();
+      SoundFX.playSwordSlash();
+    }, { maxDurationSec: 1.2, volume: sweet ? 0.72 : 0.52 });
     this.triggerScreenShake(sweet ? 6 : 3, 0.2);
     player.invulnerableTimer = Math.max(player.invulnerableTimer, 0.45);
 
@@ -2309,8 +2356,10 @@ export class ChronoKnightsEngine {
     const lockedIds = player.ultimateState?.lockedTargetIds ?? [];
     const baseAngle = player.ultimateState?.coneAngle ?? this.getFacingAngle(player.facing);
 
-    SoundFX.playArrowShot();
-    SoundFX.playExplosion();
+    ChronoSfx.play('ranger_ult_deadeye', () => {
+      SoundFX.playArrowShot();
+      SoundFX.playExplosion();
+    }, { maxDurationSec: 2.6, volume: 0.74 });
 
     if (lockedIds.length === 0) {
       for (let k = 0; k < 6; k++) {
@@ -2350,8 +2399,10 @@ export class ChronoKnightsEngine {
 
   private executeClericChoirBeat(player: PlayerEntity, beatIdx: number, _perfect: boolean): void {
     const atk = this.getPlayerAtk(player);
-    SoundFX.playHeal();
-    SoundFX.playSpellCast();
+    ChronoSfx.play('cleric_ult_choir', () => {
+      SoundFX.playHeal();
+      SoundFX.playSpellCast();
+    }, { maxDurationSec: 2.2, volume: 0.68 });
     for (const p of this.players) {
       if (!p.connected || p.isDowned) continue;
       if (Math.hypot(p.x - player.x, p.y - player.y) <= 300) {
@@ -2562,7 +2613,11 @@ export class ChronoKnightsEngine {
           d.hp = Math.max(0, d.hp - dmg);
           d.hurtTimer = 0.2;
 
-          SoundFX.playHit(isCrit);
+          if (isCrit) {
+            ChronoSfx.play('combat_crit', () => SoundFX.playHit(true), { maxDurationSec: 0.85, minIntervalMs: 55 });
+          } else {
+            ChronoSfx.play('combat_hit', () => SoundFX.playHit(false), { maxDurationSec: 0.65, minIntervalMs: 55 });
+          }
           this.spawnFloatingText(
             d.x + (Math.random() * 20 - 10),
             d.y - 20,
@@ -2626,7 +2681,13 @@ export class ChronoKnightsEngine {
           }
           this.applyEnemyHitStatus(enemy, dmg, 0.22, { ownerSlot: player.slotIndex });
 
-          SoundFX.playHit(isCrit);
+          if (backstabBonus) {
+            ChronoSfx.play('rogue_backstab', () => SoundFX.playHit(true), { maxDurationSec: 0.9, minIntervalMs: 55 });
+          } else if (isCrit) {
+            ChronoSfx.play('combat_crit', () => SoundFX.playHit(true), { maxDurationSec: 0.85, minIntervalMs: 55 });
+          } else {
+            ChronoSfx.play('combat_hit', () => SoundFX.playHit(false), { maxDurationSec: 0.65, minIntervalMs: 55 });
+          }
           this.spawnFloatingText(
             enemy.x + (Math.random() * 20 - 10),
             enemy.y - 25,
@@ -3086,17 +3147,51 @@ export class ChronoKnightsEngine {
       p.y += p.vy * delta;
       p.lifeTimer -= delta;
 
-      if (Math.random() < 0.4) {
+      if (p.element === 'fire') {
+        if (Math.random() < 0.85) {
+          this.particles.push({
+            x: p.x + (Math.random() - 0.5) * 6,
+            y: p.y + (Math.random() - 0.5) * 6,
+            vx: -p.vx * 0.14 + (Math.random() - 0.5) * 28,
+            vy: -p.vy * 0.14 - 16 - Math.random() * 24,
+            color: Math.random() < 0.45 ? '#FDE047' : '#FB6B1D',
+            size: 4 + Math.random() * 3.5,
+            alpha: 0.92,
+            life: 0.26,
+            maxLife: 0.26,
+            shape: Math.random() < 0.3 ? 'ember' : 'flame',
+            additive: true,
+            drag: 0.92,
+          });
+        }
+        if (Math.random() < 0.28) {
+          this.particles.push({
+            x: p.x - p.vx * 0.02,
+            y: p.y - p.vy * 0.02,
+            vx: (Math.random() - 0.5) * 16,
+            vy: -22 - Math.random() * 14,
+            color: '#475569',
+            size: 3.5 + Math.random() * 2.5,
+            alpha: 0.42,
+            life: 0.36,
+            maxLife: 0.36,
+            shape: 'smoke',
+            growRate: 6,
+          });
+        }
+      } else if (Math.random() < 0.45) {
         this.particles.push({
           x: p.x,
           y: p.y,
-          vx: (Math.random() - 0.5) * 15,
-          vy: (Math.random() - 0.5) * 15,
+          vx: (Math.random() - 0.5) * 18,
+          vy: (Math.random() - 0.5) * 18,
           color: p.color,
-          size: p.radius * 0.7,
-          alpha: 0.8,
-          life: 0.25,
-          maxLife: 0.25,
+          size: p.radius * 0.55,
+          alpha: 0.82,
+          life: 0.24,
+          maxLife: 0.24,
+          shape: p.element === 'holy' || p.element === 'ice' ? 'ember' : 'spark',
+          additive: p.element !== 'poison',
         });
       }
 
@@ -3123,7 +3218,7 @@ export class ChronoKnightsEngine {
               p.color = '#60A5FA';
               p.lifeTimer = 1.2;
               p.hitTargetIds = [];
-              SoundFX.playShieldActivate();
+              ChronoSfx.play('combat_shield_deflect', () => SoundFX.playShieldActivate(), { maxDurationSec: 1.0 });
               this.spawnFloatingText(player.x, player.y - 36, 'SHIELD DEFLECT!', '#60A5FA');
               this.spawnHitSparks(p.x, p.y, '#93C5FD');
               hit = false;
@@ -3176,7 +3271,11 @@ export class ChronoKnightsEngine {
               d.hp = Math.max(0, d.hp - p.damage);
               d.hurtTimer = 0.2;
               this.spawnFloatingText(d.x, d.y - 20, `${Math.floor(p.damage)}`, p.color);
-              this.spawnHitSparks(d.x, d.y, p.color);
+              if (p.element === 'fire') {
+                this.spawnFireBurst(d.x, d.y - 8, 0.68);
+              } else {
+                this.spawnHitSparks(d.x, d.y, p.color);
+              }
               SoundFX.playHit();
               if (!p.piercing) break;
             }
@@ -3197,7 +3296,7 @@ export class ChronoKnightsEngine {
               p.hitTargetIds.push(enemy.id);
 
               if (enemy.isShielded) {
-                SoundFX.playShieldActivate();
+                ChronoSfx.play('combat_shield_deflect', () => SoundFX.playShieldActivate(), { maxDurationSec: 1.0 });
                 this.spawnFloatingText(enemy.x, enemy.y - 25, 'TOMB SHIELD (IMMUNE)', '#A855F7');
                 this.spawnHitSparks(enemy.x, enemy.y, '#A855F7');
                 break;
@@ -3227,8 +3326,12 @@ export class ChronoKnightsEngine {
               });
 
               this.spawnFloatingText(enemy.x, enemy.y - 25, `${Math.floor(appliedDmg)}`, p.color);
-              this.spawnHitSparks(enemy.x, enemy.y, p.color);
-              SoundFX.playHit();
+              if (p.element === 'fire') {
+                this.spawnFireBurst(enemy.x, enemy.y - 10, 0.75);
+              } else {
+                this.spawnHitSparks(enemy.x, enemy.y, p.color);
+              }
+              ChronoSfx.play('combat_hit', () => SoundFX.playHit(), { maxDurationSec: 0.65, minIntervalMs: 55 });
 
               if (enemy.hp <= 0) {
                 this.handleEnemyDefeat(enemy, eIdx);
@@ -3315,7 +3418,7 @@ export class ChronoKnightsEngine {
     if (target.classId === 'berserker') {
       target.rage = Math.min(100, target.rage + 14);
     }
-    SoundFX.playPlayerHurt();
+    ChronoSfx.play('combat_player_hurt', () => SoundFX.playPlayerHurt(), { maxDurationSec: 0.75, minIntervalMs: 120 });
 
     const hpPct = Math.max(0, target.hp / target.maxHp);
     const mpPct = Math.max(0, target.mp / target.maxMp);
@@ -3703,7 +3806,7 @@ export class ChronoKnightsEngine {
       }
     }
 
-    SoundFX.playBossIntro();
+    ChronoSfx.play('boss_intro_roar', () => SoundFX.playBossIntro(), { maxDurationSec: 3.4, volume: 0.78 });
     this.triggerScreenShake(9, 0.45);
     this.activeBoss.attackCooldown = 1.4;
     this.activeBoss.specialTimer = 2.0;
@@ -4025,12 +4128,51 @@ export class ChronoKnightsEngine {
       const owner = this.players[d.ownerSlot];
       const ownerAtk = owner ? this.getPlayerAtk(owner) : 30;
 
-      if (d.kind === 'firewall' && d.tickTimer <= 0) {
-        d.tickTimer = 0.45;
-        this.checkAreaDamage(d.x, d.y, 92, ownerAtk * 0.42, 'fire', 0.1, {
-          ownerSlot: d.ownerSlot,
-          appliesBurn: true,
-        });
+      if (d.kind === 'firewall') {
+        const cos = Math.cos(d.angle ?? 0);
+        const sin = Math.sin(d.angle ?? 0);
+        // Emit continuous rising flame wisps, glowing embers, and dark smoke plumes along firewall
+        for (let fIdx = 0; fIdx < 2; fIdx++) {
+          const along = (Math.random() - 0.5) * 145;
+          const fx = d.x + cos * along + (Math.random() - 0.5) * 10;
+          const fy = d.y + sin * along - 4;
+          this.particles.push({
+            x: fx,
+            y: fy,
+            vx: (Math.random() - 0.5) * 24,
+            vy: -52 - Math.random() * 48,
+            color: Math.random() < 0.4 ? '#FDE047' : '#FB6B1D',
+            size: 4 + Math.random() * 4,
+            alpha: 0.9,
+            life: 0.36 + Math.random() * 0.18,
+            maxLife: 0.54,
+            shape: Math.random() < 0.32 ? 'ember' : 'flame',
+            additive: true,
+          });
+        }
+        if (Math.random() < 0.45) {
+          const along = (Math.random() - 0.5) * 135;
+          this.particles.push({
+            x: d.x + cos * along,
+            y: d.y + sin * along - 18,
+            vx: (Math.random() - 0.5) * 16,
+            vy: -32 - Math.random() * 20,
+            color: '#475569',
+            size: 4.5 + Math.random() * 3.5,
+            alpha: 0.36,
+            life: 0.55,
+            maxLife: 0.55,
+            shape: 'smoke',
+            growRate: 7,
+          });
+        }
+        if (d.tickTimer <= 0) {
+          d.tickTimer = 0.45;
+          this.checkAreaDamage(d.x, d.y, 108, ownerAtk * 0.42, 'fire', 0.1, {
+            ownerSlot: d.ownerSlot,
+            appliesBurn: true,
+          });
+        }
       } else if (d.kind === 'bear_trap' && !d.triggered && this.currentZone !== 'oakhaven') {
         for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
           const e = this.enemies[eIdx];
@@ -4114,6 +4256,21 @@ export class ChronoKnightsEngine {
       const prevBurn = Math.ceil(e.burnTimer);
       if (e.burnTimer > 0) {
         e.burnTimer = Math.max(0, e.burnTimer - delta);
+        if (Math.random() < 0.45) {
+          this.particles.push({
+            x: e.x + (Math.random() - 0.5) * e.radius * 1.1,
+            y: e.y - 6 + (Math.random() - 0.5) * 12,
+            vx: (Math.random() - 0.5) * 18,
+            vy: -38 - Math.random() * 28,
+            color: Math.random() < 0.4 ? '#FDE047' : '#FB6B1D',
+            size: 3.5 + Math.random() * 2.5,
+            alpha: 0.85,
+            life: 0.3,
+            maxLife: 0.3,
+            shape: Math.random() < 0.35 ? 'ember' : 'flame',
+            additive: true,
+          });
+        }
         if (Math.ceil(e.burnTimer) < prevBurn) {
           const tick = e.isBoss ? Math.min(18, Math.round(e.burnDps * 0.7)) : Math.round(e.burnDps);
           e.hp -= tick;
@@ -4273,7 +4430,7 @@ export class ChronoKnightsEngine {
         boss.y = 450;
         boss.vx = 0;
         boss.vy = 0;
-        SoundFX.playBossIntro();
+        ChronoSfx.play('boss_intro_roar', () => SoundFX.playBossIntro(), { maxDurationSec: 3.4, volume: 0.78 });
         this.triggerScreenShake(8, 0.35);
         this.showDungeonNotice(
           'PHASE II // TOMB AEGIS SHIELD',
@@ -4367,7 +4524,7 @@ export class ChronoKnightsEngine {
     else if (boss.kind === 'boss_vespera') {
       if (boss.bossPhase === 1 && boss.hp <= boss.maxHp * 0.5) {
         boss.bossPhase = 2;
-        SoundFX.playBossIntro();
+        ChronoSfx.play('boss_intro_roar', () => SoundFX.playBossIntro(), { maxDurationSec: 3.4, volume: 0.78 });
         this.triggerScreenShake(8, 0.35);
         this.showDungeonNotice(
           'PHASE II // BROOD SWARM AWAKENED',
@@ -4465,7 +4622,7 @@ export class ChronoKnightsEngine {
     else if (boss.kind === 'boss_ignis') {
       if (boss.bossPhase === 1 && boss.hp <= boss.maxHp * 0.5) {
         boss.bossPhase = 2;
-        SoundFX.playBossIntro();
+        ChronoSfx.play('boss_intro_roar', () => SoundFX.playBossIntro(), { maxDurationSec: 3.4, volume: 0.78 });
         this.triggerScreenShake(9, 0.4);
         this.showDungeonNotice(
           'PHASE II // MOLTEN CORE OVERDRIVE',
@@ -4562,7 +4719,7 @@ export class ChronoKnightsEngine {
     else if (boss.kind === 'boss_dark_malakor') {
       if (boss.bossPhase === 1 && boss.hp <= boss.maxHp * 0.5 && !boss.isClone) {
         boss.bossPhase = 2;
-        SoundFX.playBossIntro();
+        ChronoSfx.play('boss_intro_roar', () => SoundFX.playBossIntro(), { maxDurationSec: 3.4, volume: 0.78 });
         this.triggerScreenShake(10, 0.45);
         this.showDungeonNotice(
           'PHASE II // ASTRAL SHADOW MIRRORS',
@@ -4843,7 +5000,7 @@ export class ChronoKnightsEngine {
 
     if (!checkpoint.isKindled) {
       checkpoint.isKindled = true;
-      SoundFX.playCheckpointKindle();
+      ChronoSfx.play('shrine_kindle', () => SoundFX.playCheckpointKindle(), { maxDurationSec: 2.6, volume: 0.72 });
       for (const p of this.players) {
         if (!p.connected) continue;
         p.isDowned = false;
@@ -4994,7 +5151,7 @@ export class ChronoKnightsEngine {
       if (Math.hypot(player.x - urn.x, player.y - urn.y) <= urn.radius + 42) {
         const ang = this.getFacingAngle(player.facing);
         this.moveCryptUrnSafely(urn, Math.cos(ang) * 58, Math.sin(ang) * 58);
-        SoundFX.playGateClick();
+        ChronoSfx.play('dungeon_urn_push', () => SoundFX.playGateClick(), { maxDurationSec: 1.1 });
         this.spawnHitSparks(urn.x, urn.y, '#818CF8');
         this.spawnFloatingText(urn.x, urn.y - 30, 'URN NUDGED!', '#C7D2FE');
         return true;
@@ -5041,7 +5198,7 @@ export class ChronoKnightsEngine {
         sac.hp = Math.max(0, sac.hp - applied);
         this.spawnHitSparks(sac.x, sac.y, isFire ? '#FB923C' : '#A3E635');
         this.spawnFloatingText(sac.x, sac.y - 28, `-${applied}`, '#A3E635');
-        SoundFX.playHit();
+        ChronoSfx.play('combat_hit', () => SoundFX.playHit(), { maxDurationSec: 0.6, minIntervalMs: 60 });
         if (sac.hp <= 0) {
           sac.isDestroyed = true;
           SoundFX.playExplosion();
@@ -5108,7 +5265,7 @@ export class ChronoKnightsEngine {
           urn.y = targetPlate.y;
           urn.lockedPlateId = targetPlate.id;
           targetPlate.isPressed = true;
-          SoundFX.playGateClick();
+          ChronoSfx.play('dungeon_urn_push', () => SoundFX.playGateClick(), { maxDurationSec: 1.4 });
           this.spawnAuraParticles(targetPlate.x, targetPlate.y, '#38BDF8', 38);
           this.spawnFloatingText(targetPlate.x, targetPlate.y - 34, `${targetPlate.label} SEALED!`, '#30E1B9');
           this.enemies.push(
@@ -5121,7 +5278,7 @@ export class ChronoKnightsEngine {
       const allPlatesBound = this.cryptPlates.every((p) => p.isPressed);
       if (allPlatesBound && !this.cryptGate.isOpen) {
         this.cryptGate.isOpen = true;
-        SoundFX.playGateClick();
+        ChronoSfx.play('dungeon_gate_unlock', () => SoundFX.playGateClick(), { maxDurationSec: 2.8, volume: 0.72 });
         this.showDungeonNotice(
           'ALL 3 RUNIC URNS SEATED // PORTCULLIS UNLOCKED',
           'Kindle the Shrine of Grace ahead before crossing the Boss Mist!',
@@ -5144,7 +5301,7 @@ export class ChronoKnightsEngine {
         if ((nearEternal || nearLitBrazier) && p.carryingFlameTimer < 14.5) {
           p.carryingFlameTimer = 16.0;
           this.spawnFloatingText(p.x, p.y - 38, 'ETERNAL FLAME LIT!', '#FB923C');
-          SoundFX.playSpellCast();
+          ChronoSfx.play('dungeon_torch_ignite', () => SoundFX.playSpellCast(), { maxDurationSec: 1.5 });
         }
 
         if (p.carryingFlameTimer > 0) {
@@ -5173,7 +5330,7 @@ export class ChronoKnightsEngine {
           );
           if (isFlameCarrierNear) {
             brazier.isLit = true;
-            SoundFX.playSpellCast();
+            ChronoSfx.play('dungeon_torch_ignite', () => SoundFX.playSpellCast(), { maxDurationSec: 1.6 });
             this.spawnAuraParticles(brazier.x, brazier.y, '#FB923C', 35);
             this.spawnFloatingText(brazier.x, brazier.y - 25, 'BRAZIER IGNITED!', '#FB923C');
             this.enemies.push(
@@ -5218,7 +5375,7 @@ export class ChronoKnightsEngine {
           }
           if (this.cavernsWebWall.hp <= 0) {
             this.cavernsWebWall.isBurned = true;
-            SoundFX.playExplosion();
+            ChronoSfx.play('dungeon_gate_unlock', () => SoundFX.playExplosion(), { maxDurationSec: 2.8, volume: 0.72 });
             this.showDungeonNotice(
               'WEB BARRIER INCINERATED',
               'Kindle the Shrine of Verdant Ember ahead before entering the Nest!',
@@ -5241,7 +5398,7 @@ export class ChronoKnightsEngine {
             if (valve.progress >= 1) {
               valve.isTurned = true;
               valve.pressureTimer = valve.maxPressureTimer;
-              SoundFX.playDash();
+              ChronoSfx.play('dungeon_steam_valve', () => SoundFX.playDash(), { maxDurationSec: 1.8 });
               this.spawnAuraParticles(valve.x, valve.y, '#38BDF8', 35);
               this.spawnFloatingText(valve.x, valve.y - 28, `${valve.label} PRESSURIZED!`, '#7DD3FC');
               this.enemies.push(createEnemy(`forge-ambush-${Date.now()}`, 'fire_imp', valve.x, valve.y - 75));
@@ -5296,8 +5453,10 @@ export class ChronoKnightsEngine {
       const allValvesTurned = this.forgeValves.every((v) => v.isTurned);
       if (allValvesTurned && !this.forgeBridge.isRaised) {
         this.forgeBridge.isRaised = true;
-        SoundFX.playGateClick();
-        SoundFX.playFanfare();
+        ChronoSfx.play('dungeon_gate_unlock', () => {
+          SoundFX.playGateClick();
+          SoundFX.playFanfare();
+        }, { maxDurationSec: 2.8, volume: 0.74 });
         this.showDungeonNotice(
           'ALL 3 VALVES PRESSURIZED // MAGMA BRIDGE LOCKED',
           'Kindle the Shrine of the Immortal Flame ahead before facing Ignis!',
@@ -5320,7 +5479,7 @@ export class ChronoKnightsEngine {
             p.y = rift.targetY;
             p.riftCooldown = 1.6;
             p.chronoHasteTimer = 2.5;
-            SoundFX.playDash();
+            ChronoSfx.play('dungeon_mirror_rift', () => SoundFX.playDash(), { maxDurationSec: 1.5 });
             this.spawnActiveVfx('vfx_shadow_rift', p.x, p.y - 8, 0, 1.8, 0.45);
             this.spawnFloatingText(p.x, p.y - 36, 'CHRONO WARP! (+HASTE)', rift.color);
             break;
@@ -5355,7 +5514,7 @@ export class ChronoKnightsEngine {
           this.enemies.push(createEnemy(`cit-ambush-${Date.now()}`, 'shadow_assassin', seal.x, seal.y - 75));
         } else if ((seal.paradoxCooldown ?? 0) <= 0) {
           seal.paradoxCooldown = 2.4;
-          SoundFX.playBargeBlast();
+          ChronoSfx.play('dungeon_seal_paradox', () => SoundFX.playBargeBlast(), { maxDurationSec: 1.8 });
           const ang = Math.atan2(visitor.y - seal.y, visitor.x - seal.x);
           this.tryMovePlayerSafely(visitor, Math.cos(ang) * 65, Math.sin(ang) * 65);
           this.damagePlayer(visitor, 16, 'VOID PARADOX');
@@ -5373,8 +5532,10 @@ export class ChronoKnightsEngine {
       const allSealsActive = this.citadelSeals.every((s) => s.isActivated);
       if (allSealsActive && !this.citadelGate.isOpen) {
         this.citadelGate.isOpen = true;
-        SoundFX.playGateClick();
-        SoundFX.playFanfare();
+        ChronoSfx.play('dungeon_gate_unlock', () => {
+          SoundFX.playGateClick();
+          SoundFX.playFanfare();
+        }, { maxDurationSec: 2.8, volume: 0.74 });
         this.showDungeonNotice(
           'ALL 4 CARDINAL SEALS ALIGNED // VOID GATE UNSEALED',
           'Kindle the Shrine of Eternal Chronos ahead before facing Malakor!',
@@ -5407,7 +5568,7 @@ export class ChronoKnightsEngine {
               pool.type === 'fire' ? '-14 MAGMA' : '-12 VENOM',
               pool.color
             );
-            SoundFX.playPlayerHurt();
+            ChronoSfx.play('combat_player_hurt', () => SoundFX.playPlayerHurt(), { maxDurationSec: 0.75, minIntervalMs: 120 });
           }
           if (p.hp <= 0 && !p.isDowned) {
             p.isDowned = true;
@@ -5426,10 +5587,24 @@ export class ChronoKnightsEngine {
   private updateParticles(delta: number): void {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
+      if (p.drag !== undefined && p.drag > 0 && p.drag < 1) {
+        const factor = Math.pow(p.drag, delta * 60);
+        p.vx *= factor;
+        p.vy *= factor;
+      }
+      if (p.gravity !== undefined) {
+        p.vy += p.gravity * delta;
+      }
+      if (p.shape === 'flame' || p.shape === 'smoke') {
+        p.vx += Math.sin(performance.now() * 0.015 + i * 1.7) * 28 * delta;
+      }
       p.x += p.vx * delta;
       p.y += p.vy * delta;
+      if (p.growRate !== undefined) {
+        p.size = Math.max(0.5, p.size + p.growRate * delta);
+      }
       p.life -= delta;
-      p.alpha = Math.max(0, p.life / p.maxLife);
+      p.alpha = Math.max(0, p.life / Math.max(0.01, p.maxLife));
 
       if (p.life <= 0) {
         this.particles.splice(i, 1);
@@ -5465,19 +5640,23 @@ export class ChronoKnightsEngine {
   }
 
   private spawnHitSparks(x: number, y: number, color: string): void {
-    for (let i = 0; i < 9; i++) {
+    const isFire = color === '#FB6B1D' || color === '#FB923C' || color === '#EF4444';
+    for (let i = 0; i < 10; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const spd = 60 + Math.random() * 120;
+      const spd = 85 + Math.random() * 145;
       this.particles.push({
         x,
         y,
         vx: Math.cos(angle) * spd,
         vy: Math.sin(angle) * spd,
-        color,
-        size: 2.5 + Math.random() * 3,
+        color: isFire && i % 3 === 0 ? '#FEF08A' : color,
+        size: 2.2 + Math.random() * 2.4,
         alpha: 1.0,
-        life: 0.35,
-        maxLife: 0.35,
+        life: 0.28 + Math.random() * 0.1,
+        maxLife: 0.38,
+        shape: 'spark',
+        additive: true,
+        drag: 0.92,
       });
     }
   }
@@ -5486,18 +5665,124 @@ export class ChronoKnightsEngine {
     const angle = this.getFacingAngle(player.facing);
     const theme = SLOT_THEMES[player.slotIndex];
     for (let i = -3; i <= 3; i++) {
-      const a = angle + (i * Math.PI) / 12;
-      const dist = 32 + Math.random() * 25;
+      const a = angle + (i * Math.PI) / 11;
+      const dist = 34 + Math.random() * 22;
       this.particles.push({
         x: player.x + Math.cos(a) * dist,
-        y: player.y + Math.sin(a) * dist,
-        vx: Math.cos(a) * 40,
-        vy: Math.sin(a) * 40,
+        y: player.y - 6 + Math.sin(a) * dist,
+        vx: Math.cos(a) * 95,
+        vy: Math.sin(a) * 95,
         color: theme.color,
-        size: 3.5,
+        size: 3.0,
         alpha: 1.0,
         life: 0.22,
         maxLife: 0.22,
+        shape: 'spark',
+        additive: true,
+        drag: 0.9,
+      });
+    }
+  }
+
+  private spawnFireBurst(x: number, y: number, intensity = 1): void {
+    const ringCount = intensity >= 1.3 ? 2 : 1;
+    for (let r = 0; r < ringCount; r++) {
+      this.particles.push({
+        x,
+        y: y + 4,
+        vx: 0,
+        vy: 0,
+        color: r === 0 ? '#FDE047' : '#FB6B1D',
+        size: 10 + r * 8,
+        alpha: 0.95,
+        life: 0.32 + r * 0.1,
+        maxLife: 0.42,
+        shape: 'ring',
+        additive: true,
+        growRate: (220 + r * 60) * Math.min(1.5, intensity),
+      });
+    }
+
+    const flameCount = Math.round(14 * intensity);
+    for (let i = 0; i < flameCount; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = (35 + Math.random() * 115) * Math.min(1.4, intensity);
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 18 * intensity,
+        y: y + (Math.random() - 0.5) * 14 * intensity,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 35 - Math.random() * 45,
+        color: i % 3 === 0 ? '#FEF08A' : i % 3 === 1 ? '#FB923C' : '#EA580C',
+        size: (5 + Math.random() * 5.5) * Math.min(1.35, intensity),
+        alpha: 0.96,
+        life: 0.34 + Math.random() * 0.22,
+        maxLife: 0.56,
+        shape: 'flame',
+        additive: true,
+        drag: 0.94,
+      });
+    }
+
+    const emberCount = Math.round(12 * intensity);
+    for (let i = 0; i < emberCount; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = (90 + Math.random() * 190) * Math.min(1.5, intensity);
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 45,
+        color: i % 2 === 0 ? '#FEF08A' : '#FB6B1D',
+        size: 2.2 + Math.random() * 2.2,
+        alpha: 1.0,
+        life: 0.38 + Math.random() * 0.26,
+        maxLife: 0.64,
+        shape: 'ember',
+        additive: true,
+        gravity: 95,
+        drag: 0.96,
+      });
+    }
+
+    const smokeCount = Math.round(6 * intensity);
+    for (let i = 0; i < smokeCount; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 20 + Math.random() * 45;
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 16,
+        y: y - 4,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 28 - Math.random() * 25,
+        color: '#334155',
+        size: 6 + Math.random() * 4,
+        alpha: 0.44,
+        life: 0.55 + Math.random() * 0.25,
+        maxLife: 0.8,
+        shape: 'smoke',
+        growRate: 14,
+      });
+    }
+  }
+
+  private spawnFlameConeParticles(x: number, y: number, angle: number, count: number): void {
+    for (let i = 0; i < count; i++) {
+      const spread = (Math.random() - 0.5) * 0.72;
+      const a = angle + spread;
+      const spd = 175 + Math.random() * 240;
+      const isEmber = i % 4 === 0;
+      this.particles.push({
+        x: x + Math.cos(a) * 10,
+        y: y + Math.sin(a) * 10,
+        vx: Math.cos(a) * spd,
+        vy: Math.sin(a) * spd - 14,
+        color: i % 3 === 0 ? '#FEF08A' : '#FB6B1D',
+        size: isEmber ? 2.6 + Math.random() * 1.8 : 5 + Math.random() * 5,
+        alpha: 0.95,
+        life: 0.28 + Math.random() * 0.24,
+        maxLife: 0.52,
+        shape: isEmber ? 'ember' : 'flame',
+        additive: true,
+        drag: 0.93,
       });
     }
   }
@@ -6143,11 +6428,67 @@ export class ChronoKnightsEngine {
   private renderParticles(ctx: CanvasRenderingContext2D): void {
     for (const p of this.particles) {
       ctx.save();
+      if (p.additive) {
+        ctx.globalCompositeOperation = 'lighter';
+      }
       ctx.globalAlpha = p.alpha;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
+
+      if (p.shape === 'flame') {
+        const lifeRatio = Math.max(0, p.life / Math.max(0.01, p.maxLife));
+        const r = Math.max(1.5, p.size * (0.45 + lifeRatio * 0.65));
+        const fill =
+          lifeRatio > 0.72 ? '#FEF08A' : lifeRatio > 0.42 ? '#FB923C' : '#DC2626';
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y - r * 1.35);
+        ctx.quadraticCurveTo(p.x + r * 0.9, p.y, p.x, p.y + r * 0.8);
+        ctx.quadraticCurveTo(p.x - r * 0.9, p.y, p.x, p.y - r * 1.35);
+        ctx.fill();
+        if (lifeRatio > 0.55) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y - r * 0.15, r * 0.34, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (p.shape === 'ember') {
+        ctx.fillStyle = p.color;
+        const s = Math.max(1.5, p.size);
+        ctx.fillRect(Math.round(p.x - s * 0.5), Math.round(p.y - s * 0.5), s, s);
+        ctx.fillStyle = 'rgba(255, 250, 200, 0.55)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, s * 1.1, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.shape === 'smoke') {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha * 0.45;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.shape === 'ring') {
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = Math.max(1.5, 4 * p.alpha);
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (p.shape === 'spark') {
+        const spd = Math.hypot(p.vx, p.vy) || 1;
+        const len = Math.min(18, Math.max(6, spd * 0.06));
+        const dx = (p.vx / spd) * len;
+        const dy = (p.vy / spd) * len;
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = Math.max(1.5, p.size * 0.8);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(p.x - dx, p.y - dy);
+        ctx.lineTo(p.x + dx * 0.35, p.y + dy * 0.35);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       ctx.restore();
     }
   }

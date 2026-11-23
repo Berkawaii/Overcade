@@ -41,141 +41,240 @@ function paintRing(buf, cx, cy, rOuter, rInner, col, yScale = 1, thicknessBias =
   }
 }
 
+function addHeatBlob(heat, w, h, cx, cy, rx, ry, amount) {
+  const x0 = Math.max(0, Math.floor(cx - rx * 1.4));
+  const x1 = Math.min(w - 1, Math.ceil(cx + rx * 1.4));
+  const y0 = Math.max(0, Math.floor(cy - ry * 1.4));
+  const y1 = Math.min(h - 1, Math.ceil(cy + ry * 1.4));
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = (x - cx) / Math.max(0.5, rx);
+      const dy = (y - cy) / Math.max(0.5, ry);
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= 1.7) continue;
+      heat[y * w + x] += amount * Math.exp(-d2 * 1.85);
+    }
+  }
+}
+
+function renderHeatToBuf(buf, heat, phase, scaleNoise = 1.0) {
+  const { w, h } = buf;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const base = heat[y * w + x];
+      if (base <= 0.14) continue;
+      // Layered pixel turbulence so edges curl & lick like real pixel fire
+      const n1 = Math.sin(x * 0.42 + phase * 1.7 + Math.sin(y * 0.35 - phase)) * 0.12;
+      const n2 = Math.cos(y * 0.55 - phase * 2.3 + x * 0.19) * 0.09;
+      const v = base + (n1 + n2) * scaleNoise;
+      if (v < 0.32) continue;
+
+      let col;
+      if (v >= 1.72) col = R64.WHITE;
+      else if (v >= 1.25) col = R64.SUN_YELLOW;
+      else if (v >= 0.94) col = R64.GOLD;
+      else if (v >= 0.72) col = R64.GOLD_ORANGE;
+      else if (v >= 0.56) col = R64.EMBER;
+      else if (v >= 0.43) col = R64.SCARLET;
+      else col = R64.CRIMSON;
+      buf.pset(x, y, P.col(col));
+    }
+  }
+}
+
 function generateAnimatedVfx(vfxDir) {
   const assets = [];
 
-  // 1. vfx_fire_breath (96x64 x 8f = 768x64) via Codixel Breath
+  // 1. vfx_fire_breath (96x64 x 8f = 768x64) organic billowing dragon flame via scalar heat field
   {
-    const sim = new P.Breath({
-      length: 84,
-      seed: 109,
-      cols: [R64.GARNET, R64.CRIMSON, R64.SCARLET, R64.EMBER, R64.GOLD_ORANGE, R64.GOLD, R64.SUN_YELLOW, R64.WHITE],
-    });
-    for (let k = 0; k < 22; k++) sim.step(true, 2);
     const frames = [];
     for (let f = 0; f < 8; f++) {
-      sim.step(f < 6, 3);
       const buf = new P.Buf(96, 64);
-      sim.draw(buf, 8, 32, -0.46, 0.46, f * 0.14, 1, 62);
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 100, dither: 0.08, outlineRgb: R64.INK }));
+      const heat = new Float32Array(96 * 64);
+      const reach = f <= 2 ? 0.52 + f * 0.22 : f <= 5 ? 0.96 : 0.9 - (f - 5) * 0.14;
+      const cool = f >= 6 ? 1.0 - (f - 5) * 0.24 : 1.0;
+
+      for (let i = 0; i < 34; i++) {
+        const u = i / 33;
+        if (u > reach) break;
+        const spineX = 7 + u * 75;
+        const whip = Math.sin(u * 9.0 - f * 1.35) * (1.8 + u * 5.2);
+        const fan = ((i % 5) - 2) * (1.2 + u * 5.6);
+        const rx = 5.4 + u * 8.2;
+        const ry = 4.2 + u * 8.4;
+        const power = (0.34 - u * 0.16) * cool;
+        addHeatBlob(heat, 96, 64, spineX, 32 + whip * 0.5 + fan * 0.52, rx, ry, power);
+        // Tighter golden/white-hot nozzle jet near caster hand/staff
+        if (u < 0.42) {
+          addHeatBlob(heat, 96, 64, spineX, 32 + whip * 0.28, rx * 0.52, ry * 0.42, (0.48 - u * 0.7) * cool);
+        }
+      }
+      renderHeatToBuf(buf, heat, f * 1.15, 1.25);
+
+      // Clean 2x2 flying sparks near outer edges
+      for (let s = 0; s < 8; s++) {
+        const u = ((s * 0.14 + f * 0.19) % 0.82) + 0.14;
+        if (u > reach) continue;
+        const sign = s % 2 === 0 ? -1 : 1;
+        const sx = Math.round(14 + u * 68 + Math.cos(f + s) * 3);
+        const sy = Math.round(32 + sign * (5 + u * 17) + Math.sin(f * 1.6 + s * 2) * 3);
+        fillRect(buf, sx, sy, 2, 2, s % 3 === 0 ? R64.SUN_YELLOW : R64.EMBER);
+      }
+
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.06, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 8 });
     savePng(sheet, path.join(vfxDir, 'vfx_fire_breath.png'));
     assets.push({ id: 'vfx_fire_breath', file: 'vfx/vfx_fire_breath.png', w: 768, h: 64, fw: 96, fh: 64, frames: 8 });
   }
 
-  // 2. vfx_meteor_nova (96x96 x 8f = 768x96) expanding fireball blast dome + HellFire eruptive core
+  // 2. vfx_meteor_nova (96x96 x 8f = 768x96) true meteor strike -> starburst impact -> towering inferno plume
   {
-    const fire = new P.HellFire(46, 52, {
-      seed: 211,
-      cols: [R64.GARNET, R64.CRIMSON, R64.EMBER, R64.GOLD, R64.SUN_YELLOW, R64.WHITE],
-    });
-    for (let k = 0; k < 20; k++) fire.step(0.95, 1, 2);
     const frames = [];
     for (let f = 0; f < 8; f++) {
-      fire.step(f < 6 ? 1 : 0.35, f >= 5 ? 2 : 1, 3);
       const buf = new P.Buf(96, 96);
-      const t = f / 7;
-      // Expanding ground shock rings
-      const rRing = 14 + f * 4.2;
-      paintRing(buf, 48, 72, rRing, Math.max(4, rRing - 4), R64.CRIMSON, 0.36);
-      paintRing(buf, 48, 72, Math.max(6, rRing - 3), Math.max(2, rRing - 6), R64.GOLD, 0.36);
-      // Molten explosion fireball dome
-      const domeR = 12 + Math.sin(t * Math.PI) * 20;
-      paintDisc(buf, 48, 60 - t * 8, domeR, R64.CRIMSON);
-      paintDisc(buf, 48, 59 - t * 8, domeR * 0.78, R64.EMBER);
-      paintDisc(buf, 48, 57 - t * 8, domeR * 0.52, R64.GOLD);
-      paintDisc(buf, 48, 56 - t * 8, domeR * 0.28, f < 4 ? R64.WHITE : R64.SUN_YELLOW);
-      // Codixel cellular fire plumes masked cleanly into blast ellipse
-      const fbuf = new P.Buf(96, 96);
-      fire.draw(fbuf, 25, 76);
-      for (let fy = 22; fy < 77; fy++) {
-        for (let fx = 25; fx < 71; fx++) {
-          const c = fbuf.px[fy * 96 + fx];
-          if ((c >>> 24) === 0) continue;
-          const ndx = (fx - 48) / 22;
-          const ndy = (fy - 58) / 22;
-          if (ndx * ndx + ndy * ndy <= 1.0) buf.px[fy * 96 + fx] = c;
+      const heat = new Float32Array(96 * 96);
+
+      if (f <= 1) {
+        const mx = f === 0 ? 68 : 54;
+        const my = f === 0 ? 24 : 52;
+        paintRing(buf, 48, 68, 22 - f * 5, 19 - f * 5, R64.CRIMSON, 0.38);
+        paintRing(buf, 48, 68, 12 - f * 2, 10 - f * 2, R64.GOLD, 0.38);
+
+        for (let k = 0; k < 18; k++) {
+          const u = k / 17;
+          const tx = mx + u * 24 + Math.sin(k * 1.4 + f) * 1.8;
+          const ty = my - u * 28;
+          addHeatBlob(heat, 96, 96, tx, ty, (1 - u * 0.65) * 9.5, (1 - u * 0.65) * 9.5, 0.72 - u * 0.45);
+        }
+        addHeatBlob(heat, 96, 96, mx, my, 10, 10, 1.3);
+        renderHeatToBuf(buf, heat, f * 1.4, 0.9);
+      } else if (f <= 3) {
+        const expand = f === 2 ? 1.0 : 1.22;
+        const shockR = 26 * expand;
+        paintRing(buf, 48, 68, shockR + 5, shockR + 1, R64.CRIMSON, 0.38);
+        paintRing(buf, 48, 68, Math.max(5, shockR - 1), Math.max(2, shockR - 4), R64.EMBER, 0.38);
+
+        // Radiating angular plasma flare jets summed smoothly into heat field
+        for (let ray = 0; ray < 9; ray++) {
+          const ang = -Math.PI + (ray / 8) * Math.PI + (f - 2) * 0.15;
+          const len = (22 + (ray % 2) * 9) * expand;
+          for (let d = 2; d < len; d += 3.5) {
+            const u = d / len;
+            addHeatBlob(
+              heat,
+              96,
+              96,
+              48 + Math.cos(ang) * d,
+              62 + Math.sin(ang) * d * 0.9,
+              (1 - u * 0.6) * 5.2,
+              (1 - u * 0.6) * 5.2,
+              (1 - u * 0.55) * 0.75
+            );
+          }
+        }
+        addHeatBlob(heat, 96, 96, 48, 60, 17 * expand, 16 * expand, 1.45);
+        renderHeatToBuf(buf, heat, f * 1.3, 1.0);
+      } else {
+        const age = (f - 4) / 3;
+        const shockR = 30 + (f - 4) * 4.2;
+        if (f <= 6) {
+          paintRing(buf, 48, 70, shockR, Math.max(6, shockR - 2), age > 0.45 ? R64.CRIMSON : R64.EMBER, 0.36);
+        }
+
+        // Ground molten crater pool + wide billowing inferno mushroom
+        addHeatBlob(heat, 96, 96, 48, 70, 22 - age * 4, 8 - age * 2, 1.05 - age * 0.45);
+        const riseY = 58 - age * 18;
+        const cool = 1.0 - age * 0.38;
+        addHeatBlob(heat, 96, 96, 48, riseY - 4, 19, 17, 0.92 * cool);
+        addHeatBlob(heat, 96, 96, 33, riseY + 3, 14, 13, 0.68 * cool);
+        addHeatBlob(heat, 96, 96, 63, riseY + 3, 14, 13, 0.68 * cool);
+        addHeatBlob(heat, 96, 96, 41, riseY - 16, 12, 13, 0.62 * cool);
+        addHeatBlob(heat, 96, 96, 55, riseY - 14, 12, 13, 0.58 * cool);
+        addHeatBlob(heat, 96, 96, 48, 65 - age * 7, 13, 15, 0.78 * cool);
+        renderHeatToBuf(buf, heat, f * 1.25, 1.25);
+
+        for (let s = 0; s < 8; s++) {
+          const ang = -Math.PI * 0.92 + (s / 7) * Math.PI * 0.84;
+          const dist = 20 + (f - 3) * 5.2 + (s % 2) * 4;
+          const sx = Math.round(48 + Math.cos(ang) * dist);
+          const sy = Math.round(62 + Math.sin(ang) * dist * 0.9 - age * 6);
+          fillRect(buf, sx, sy, 2, 2, s % 2 === 0 ? R64.SUN_YELLOW : R64.EMBER);
         }
       }
-      // Flying magma chunks (2x2 or 3x3 so never orphans)
-      for (let s = 0; s < 6; s++) {
-        const ang = -Math.PI + ((s + 0.5) / 6) * Math.PI;
-        const dist = 14 + f * 4.5 + (s % 2) * 4;
-        const sx = Math.round(48 + Math.cos(ang) * dist);
-        const sy = Math.round(64 + Math.sin(ang) * dist * 0.85);
-        fillRect(buf, sx, sy, 3, 3, s % 2 === 0 ? R64.SUN_YELLOW : R64.FLAME_ORANGE);
-      }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.06, outlineRgb: R64.INK }));
+
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.06, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 8 });
     savePng(sheet, path.join(vfxDir, 'vfx_meteor_nova.png'));
     assets.push({ id: 'vfx_meteor_nova', file: 'vfx/vfx_meteor_nova.png', w: 768, h: 96, fw: 96, fh: 96, frames: 8 });
   }
 
-  // 3. vfx_holy_beam (48x128 x 6f = 288x128) radiant vertical smite pillar + shock rings
+  // 3. vfx_holy_beam (48x128 x 6f = 288x128) celestial light shaft with cross-glints (no ink border)
   {
     const frames = [];
     for (let f = 0; f < 6; f++) {
       const buf = new P.Buf(48, 128);
-      const pulse = f < 2 ? 0.55 + f * 0.22 : f < 4 ? 1.0 : 1.0 - (f - 3) * 0.28;
-      const halfW = Math.max(3, Math.round(11 * pulse));
+      const pulse = f < 2 ? 0.65 + f * 0.2 : f < 4 ? 1.0 : 1.0 - (f - 3) * 0.24;
+      const halfW = Math.max(3, Math.round(12 * pulse));
       for (let y = 4; y < 118; y++) {
-        const taper = 1 - Math.sin((y / 128) * Math.PI) * 0.15;
+        const taper = 0.85 + Math.sin((y / 128) * Math.PI) * 0.22;
         const w = Math.max(2, Math.round(halfW * taper));
         for (let dx = -w; dx <= w; dx++) {
           const dist = Math.abs(dx) / Math.max(1, w);
           let col = R64.GOLD_ORANGE;
-          if (dist < 0.35) col = R64.WHITE;
-          else if (dist < 0.65) col = R64.SUN_YELLOW;
-          else if (dist < 0.85) col = R64.GOLD;
+          if (dist < 0.34) col = R64.WHITE;
+          else if (dist < 0.64) col = R64.SUN_YELLOW;
+          else if (dist < 0.84) col = R64.GOLD;
           buf.pset(24 + dx, y, P.col(col));
         }
       }
-      const rRing = 10 + f * 2;
+      // Radiant floor flare rings
+      const rRing = 12 + f * 2.2;
       paintRing(buf, 24, 114, rRing, Math.max(3, rRing - 3), R64.GOLD, 0.38);
       paintRing(buf, 24, 114, Math.max(4, rRing - 2), Math.max(1, rRing - 5), R64.WHITE, 0.38);
-      for (let s = 0; s < 4; s++) {
-        const sy = ((f * 18 + s * 28) % 94) + 12;
-        const sx = Math.round(24 + Math.sin(f * 1.1 + s * 1.7) * 14);
+      // Rising 2x2 golden light motes
+      for (let s = 0; s < 5; s++) {
+        const sy = ((f * 16 + s * 24) % 92) + 12;
+        const sx = Math.round(24 + Math.sin(f * 1.1 + s * 1.7) * 15);
         fillRect(buf, sx, sy, 2, 2, s % 2 === 0 ? R64.WHITE : R64.SUN_YELLOW);
       }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 6 });
     savePng(sheet, path.join(vfxDir, 'vfx_holy_beam.png'));
     assets.push({ id: 'vfx_holy_beam', file: 'vfx/vfx_holy_beam.png', w: 288, h: 128, fw: 48, fh: 128, frames: 6 });
   }
 
-  // 4. vfx_shadow_rift (64x64 x 6f = 384x64)
+  // 4. vfx_shadow_rift (64x64 x 6f = 384x64) borderless swirling cosmic void vortex
   {
     const frames = [];
     for (let f = 0; f < 6; f++) {
       const buf = new P.Buf(64, 64);
-      const scale = 0.55 + 0.45 * Math.sin(((f + 0.5) / 6) * Math.PI);
-      const rMax = 26 * scale;
+      const scale = 0.6 + 0.4 * Math.sin(((f + 0.5) / 6) * Math.PI);
+      const rMax = 27 * scale;
       for (let y = 4; y < 60; y++) {
         for (let x = 4; x < 60; x++) {
           const dx = x - 32;
           const dy = y - 32;
           const d = Math.hypot(dx, dy);
           if (d > rMax) continue;
-          const ang = Math.atan2(dy, dx) + f * 0.65 - d * 0.14;
+          const ang = Math.atan2(dy, dx) + f * 0.7 - d * 0.15;
           const arm = Math.sin(ang * 3);
-          const v = 1 - d / rMax + arm * 0.25;
-          if (v < 0.22) continue;
-          const c = v > 0.85 ? R64.WHITE : v > 0.65 ? R64.ORCHID : v > 0.48 ? R64.LAVENDER : v > 0.32 ? R64.VIOLET : R64.VOID_DARK;
+          const v = 1 - d / rMax + arm * 0.28;
+          if (v < 0.24) continue;
+          const c = v > 0.88 ? R64.WHITE : v > 0.68 ? R64.ORCHID : v > 0.48 ? R64.LAVENDER : v > 0.34 ? R64.VIOLET : R64.VOID_DARK;
           buf.pset(x, y, P.col(c));
         }
       }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.05, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.05, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 6 });
     savePng(sheet, path.join(vfxDir, 'vfx_shadow_rift.png'));
     assets.push({ id: 'vfx_shadow_rift', file: 'vfx/vfx_shadow_rift.png', w: 384, h: 64, fw: 64, fh: 64, frames: 6 });
   }
 
-  // 5. vfx_earthquake_fissure (80x48 x 6f = 480x48)
+  // 5. vfx_earthquake_fissure (80x48 x 6f = 480x48) solid jagged basalt spires over magma crack
   {
     const frames = [];
     for (let f = 0; f < 6; f++) {
@@ -195,7 +294,7 @@ function generateAnimatedVfx(vfxDir) {
       for (let x = 8; x < 72; x++) {
         const cy = 41 + Math.round(Math.sin(x * 0.25 + f) * 2);
         fillRect(buf, x, cy, 2, 2, R64.EMBER);
-        if (x % 3 === 0) buf.pset(x, cy - 1, P.col(R64.GOLD));
+        if (x % 3 === 0) fillRect(buf, x, cy - 1, 2, 2, R64.GOLD);
       }
       frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
     }
@@ -204,7 +303,7 @@ function generateAnimatedVfx(vfxDir) {
     assets.push({ id: 'vfx_earthquake_fissure', file: 'vfx/vfx_earthquake_fissure.png', w: 480, h: 48, fw: 80, fh: 48, frames: 6 });
   }
 
-  // 6. vfx_aegis_dome (64x64 x 6f = 384x64)
+  // 6. vfx_aegis_dome (64x64 x 6f = 384x64) clean radiant golden-sky barrier halo (no dark prison hatching)
   {
     const frames = [];
     for (let f = 0; f < 6; f++) {
@@ -212,22 +311,22 @@ function generateAnimatedVfx(vfxDir) {
       const r = 24 + (f % 2);
       paintRing(buf, 32, 32, r, r - 3, R64.GOLD, 1);
       paintRing(buf, 32, 32, r - 2, r - 4, R64.SUN_YELLOW, 1);
-      for (let y = 10; y < 54; y++) {
-        for (let x = 10; x < 54; x++) {
-          const d = Math.hypot(x - 32, y - 32);
-          if (d < r - 4 && d > 8 && (x + y + f * 2) % 7 === 0) {
-            fillRect(buf, x, y, 2, 1, d > r - 9 ? R64.SKY : R64.ICE);
-          }
-        }
+      // Rotating cardinal rune diamond glints along shield rim
+      for (let s = 0; s < 6; s++) {
+        const ang = (s / 6) * TWO_PI + (f / 6) * TWO_PI;
+        const sx = Math.round(32 + Math.cos(ang) * (r - 2));
+        const sy = Math.round(32 + Math.sin(ang) * (r - 2));
+        paintDisc(buf, sx, sy, 2.2, s % 2 === 0 ? R64.WHITE : R64.ICE);
       }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      paintRing(buf, 32, 32, r - 8, r - 10, R64.SKY, 1);
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 6 });
     savePng(sheet, path.join(vfxDir, 'vfx_aegis_dome.png'));
     assets.push({ id: 'vfx_aegis_dome', file: 'vfx/vfx_aegis_dome.png', w: 384, h: 64, fw: 64, fh: 64, frames: 6 });
   }
 
-  // 7. vfx_poison_bloom (64x64 x 6f = 384x64)
+  // 7. vfx_poison_bloom (64x64 x 6f = 384x64) borderless toxic emerald spore cloud
   {
     const frames = [];
     for (let f = 0; f < 6; f++) {
@@ -250,14 +349,14 @@ function generateAnimatedVfx(vfxDir) {
         const by = Math.round(30 + Math.sin(ang) * (spread * 0.55) - f);
         fillRect(buf, bx, by, 3, 3, R64.LEAF_HI);
       }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 6 });
     savePng(sheet, path.join(vfxDir, 'vfx_poison_bloom.png'));
     assets.push({ id: 'vfx_poison_bloom', file: 'vfx/vfx_poison_bloom.png', w: 384, h: 64, fw: 64, fh: 64, frames: 6 });
   }
 
-  // 8. vfx_frost_shatter (64x64 x 6f = 384x64)
+  // 8. vfx_frost_shatter (64x64 x 6f = 384x64) borderless crystalline ice burst
   {
     const frames = [];
     for (let f = 0; f < 6; f++) {
@@ -277,14 +376,14 @@ function generateAnimatedVfx(vfxDir) {
           fillRect(buf, px, py, 3, 3, k > 0 ? R64.WHITE : s % 2 === 0 ? R64.ICE : R64.SKY);
         }
       }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 6 });
     savePng(sheet, path.join(vfxDir, 'vfx_frost_shatter.png'));
     assets.push({ id: 'vfx_frost_shatter', file: 'vfx/vfx_frost_shatter.png', w: 384, h: 64, fw: 64, fh: 64, frames: 6 });
   }
 
-  // 9. vfx_smoke_bomb (64x64 x 6f = 384x64)
+  // 9. vfx_smoke_bomb (64x64 x 6f = 384x64) borderless ninja smoke billows
   {
     const frames = [];
     for (let f = 0; f < 6; f++) {
@@ -302,49 +401,59 @@ function generateAnimatedVfx(vfxDir) {
         paintDisc(buf, cx - 1, cy - 2, lr * 0.75, R64.SLATE);
         paintDisc(buf, cx - 2, cy - 3, lr * 0.45, R64.STEEL);
       }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 6 });
     savePng(sheet, path.join(vfxDir, 'vfx_smoke_bomb.png'));
     assets.push({ id: 'vfx_smoke_bomb', file: 'vfx/vfx_smoke_bomb.png', w: 384, h: 64, fw: 64, fh: 64, frames: 6 });
   }
 
-  // 10. vfx_whirlwind_slash (64x64 x 4f = 256x64)
+  // 10. vfx_whirlwind_slash (64x64 x 4f = 256x64) tapered borderless twin steel-wind arcs
   {
     const frames = [];
     for (let f = 0; f < 4; f++) {
       const buf = new P.Buf(64, 64);
       const startAng = f * (Math.PI / 2);
-      for (let deg = 0; deg < 280; deg += 4) {
-        const ang = startAng + (deg * Math.PI) / 180;
-        const r = 24 - (deg / 280) * 5;
-        const x = Math.round(32 + Math.cos(ang) * r);
-        const y = Math.round(32 + Math.sin(ang) * r * 0.72);
-        const col = deg < 55 ? R64.WHITE : deg < 150 ? R64.ICE : R64.SKY;
-        fillRect(buf, x - 2, y - 2, 4, 4, col);
+      for (let arc = 0; arc < 2; arc++) {
+        const aBase = startAng + arc * Math.PI;
+        for (let deg = 0; deg < 155; deg += 4) {
+          const u = deg / 155;
+          const ang = aBase + (deg * Math.PI) / 180;
+          const r = 24 - u * 4;
+          const thickness = Math.max(1.2, Math.sin(u * Math.PI) * 3.2);
+          const x = Math.round(32 + Math.cos(ang) * r);
+          const y = Math.round(32 + Math.sin(ang) * r * 0.72);
+          const col = u < 0.25 ? R64.WHITE : u < 0.65 ? R64.ICE : R64.SKY;
+          paintDisc(buf, x, y, thickness, col);
+        }
       }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 4 });
     savePng(sheet, path.join(vfxDir, 'vfx_whirlwind_slash.png'));
     assets.push({ id: 'vfx_whirlwind_slash', file: 'vfx/vfx_whirlwind_slash.png', w: 256, h: 64, fw: 64, fh: 64, frames: 4 });
   }
 
-  // 11. vfx_blood_cleave (56x48 x 4f = 224x48)
+  // 11. vfx_blood_cleave (56x48 x 4f = 224x48) razor-tapered crimson crescent blade arc (no ink outline)
   {
     const frames = [];
     for (let f = 0; f < 4; f++) {
       const buf = new P.Buf(56, 48);
-      const a0 = -1.2 + f * 0.35;
-      for (let t = 0; t <= 40; t++) {
-        const ang = a0 + (t / 40) * 1.9;
-        const r = 18 + Math.sin((t / 40) * Math.PI) * 5;
-        const x = Math.round(18 + Math.cos(ang) * r);
-        const y = Math.round(24 + Math.sin(ang) * r * 0.85);
-        const col = t > 26 ? R64.SUN_YELLOW : t > 14 ? R64.SCARLET : R64.CRIMSON;
-        fillRect(buf, x - 2, y - 2, 4, 4, col);
+      const a0 = -1.25 + f * 0.35;
+      for (let t = 0; t <= 48; t++) {
+        const u = t / 48;
+        const ang = a0 + u * 2.0;
+        const r = 19 + Math.sin(u * Math.PI) * 5;
+        const thick = Math.max(1.2, Math.sin(u * Math.PI) * 3.8);
+        const x = 18 + Math.cos(ang) * r;
+        const y = 24 + Math.sin(ang) * r * 0.85;
+        paintDisc(buf, x, y, thick, R64.CRIMSON);
+        paintDisc(buf, x + Math.cos(ang) * 1.2, y + Math.sin(ang) * 1.0, thick * 0.68, R64.SCARLET);
+        if (u > 0.32 && u < 0.92) {
+          paintDisc(buf, x + Math.cos(ang) * 2.2, y + Math.sin(ang) * 1.8, thick * 0.38, R64.SUN_YELLOW);
+        }
       }
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 4 });
     savePng(sheet, path.join(vfxDir, 'vfx_blood_cleave.png'));
@@ -357,12 +466,12 @@ function generateAnimatedVfx(vfxDir) {
 function generateProjectiles(vfxDir) {
   const assets = [];
 
-  const drawSimpleProj = (id, fw, fh, frameCount, drawFn) => {
+  const drawSimpleProj = (id, fw, fh, frameCount, outlineRgb, drawFn) => {
     const frames = [];
     for (let f = 0; f < frameCount; f++) {
       const buf = new P.Buf(fw, fh);
       drawFn(buf, f);
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb }));
     }
     const sheet = P.pack(frames, { cols: frameCount });
     savePng(sheet, path.join(vfxDir, `${id}.png`));
@@ -370,7 +479,7 @@ function generateProjectiles(vfxDir) {
   };
 
   // proj_arrow (24x8, 1f)
-  drawSimpleProj('proj_arrow', 24, 8, 1, (b) => {
+  drawSimpleProj('proj_arrow', 24, 8, 1, R64.INK, (b) => {
     fillRect(b, 4, 3, 13, 2, R64.BARK_LIGHT);
     fillRect(b, 2, 2, 4, 4, R64.WHITE_WARM);
     fillRect(b, 16, 2, 4, 4, R64.STEEL);
@@ -378,7 +487,7 @@ function generateProjectiles(vfxDir) {
   });
 
   // proj_arrow_emerald (24x8, 2f)
-  drawSimpleProj('proj_arrow_emerald', 24, 8, 2, (b, f) => {
+  drawSimpleProj('proj_arrow_emerald', 24, 8, 2, R64.INK, (b, f) => {
     fillRect(b, 4, 3, 13, 2, R64.DEEP_LEAF);
     fillRect(b, 2, 2, 4, 4, R64.LIME);
     fillRect(b, 16, 2, 4, 4, R64.EMERALD);
@@ -386,8 +495,8 @@ function generateProjectiles(vfxDir) {
     fillRect(b, 10 + f * 3, 5, 2, 2, R64.EMERALD);
   });
 
-  // proj_frost_arrow (24x16, 2f)
-  drawSimpleProj('proj_frost_arrow', 24, 16, 2, (b, f) => {
+  // proj_frost_arrow (24x16, 2f) borderless crystal ice arrow
+  drawSimpleProj('proj_frost_arrow', 24, 16, 2, null, (b, f) => {
     fillRect(b, 4, 7, 13, 2, R64.SKY);
     fillRect(b, 2, 5, 4, 6, R64.ICE);
     fillRect(b, 16, 5, 4, 6, R64.ICE);
@@ -395,42 +504,55 @@ function generateProjectiles(vfxDir) {
     fillRect(b, 7 + f * 3, 4, 2, 2, R64.MINT);
   });
 
-  // proj_fireball (24x24, 4f)
-  drawSimpleProj('proj_fireball', 24, 24, 4, (b, f) => {
-    paintDisc(b, 14, 12, 6, R64.CRIMSON);
-    paintDisc(b, 14, 12, 4.5, R64.EMBER);
-    paintDisc(b, 15, 11, 2.5, R64.SUN_YELLOW);
-    fillRect(b, 4 + (f % 2), 9, 7, 6, R64.SCARLET);
-    fillRect(b, 2, 10 + (f % 2), 4, 4, R64.GOLD_ORANGE);
+  // proj_fireball (24x24, 4f) whipping blazing comet fireball with incandescent core (no ink outline!)
+  drawSimpleProj('proj_fireball', 24, 24, 4, null, (b, f) => {
+    // Undulating flame comet tail from tail x=2 up to head x=16
+    for (let k = 0; k < 10; k++) {
+      const u = k / 9;
+      const tx = 3 + u * 13;
+      const wave = Math.sin(u * 5.2 - f * 1.65) * (1.8 * (1 - u * 0.5));
+      const tr = 1.6 + u * 4.6;
+      paintDisc(b, tx, 12 + wave, tr, u < 0.35 ? R64.CRIMSON : u < 0.7 ? R64.SCARLET : R64.EMBER);
+    }
+    paintDisc(b, 16, 12, 5.2, R64.EMBER);
+    paintDisc(b, 16.5, 11.5, 3.6, R64.GOLD);
+    paintDisc(b, 17, 11.5, 2.2, R64.SUN_YELLOW);
+    paintDisc(b, 17.5, 11.5, 1.4, R64.WHITE);
+    // Detached ember streak cluster
+    fillRect(b, 2 + (f % 2), 9 + (f % 3), 2, 2, R64.GOLD_ORANGE);
+    fillRect(b, 4 + ((f + 1) % 3), 14 - (f % 2), 2, 2, R64.SCARLET);
   });
 
-  // proj_pyre_orb (32x32, 4f)
-  drawSimpleProj('proj_pyre_orb', 32, 32, 4, (b, f) => {
-    paintDisc(b, 16, 16, 10, R64.GARNET);
-    paintDisc(b, 16, 16, 8, R64.EMBER);
-    paintDisc(b, 16, 16, 5, R64.GOLD);
-    paintDisc(b, 15, 15, 3, R64.WHITE);
-    const a = (f / 4) * TWO_PI;
-    fillRect(b, Math.round(16 + Math.cos(a) * 11), Math.round(16 + Math.sin(a) * 11), 3, 3, R64.SUN_YELLOW);
+  // proj_pyre_orb (32x32, 4f) rotating solar flare orb (no ink outline)
+  drawSimpleProj('proj_pyre_orb', 32, 32, 4, null, (b, f) => {
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4 + f / 16) * TWO_PI;
+      paintDisc(b, 16 + Math.cos(a) * 8, 16 + Math.sin(a) * 8, 4.2, R64.CRIMSON);
+      paintDisc(b, 16 + Math.cos(a) * 6, 16 + Math.sin(a) * 6, 3.0, R64.EMBER);
+    }
+    paintDisc(b, 16, 16, 9, R64.SCARLET);
+    paintDisc(b, 16, 16, 7, R64.EMBER);
+    paintDisc(b, 16, 16, 4.8, R64.GOLD);
+    paintDisc(b, 16, 16, 2.8, R64.WHITE);
   });
 
   // proj_kunai (16x8, 2f)
-  drawSimpleProj('proj_kunai', 16, 8, 2, (b, f) => {
+  drawSimpleProj('proj_kunai', 16, 8, 2, R64.INK, (b, f) => {
     fillRect(b, 2, 3, 4, 2, f === 0 ? R64.ROSE_HOT : R64.VIOLET);
     fillRect(b, 6, 2, 6, 4, R64.STEEL);
     fillRect(b, 12, 3, 3, 2, R64.WHITE);
   });
 
-  // proj_holy_bolt (24x16, 2f)
-  drawSimpleProj('proj_holy_bolt', 24, 16, 2, (b, f) => {
+  // proj_holy_bolt (24x16, 2f) borderless radiant lance
+  drawSimpleProj('proj_holy_bolt', 24, 16, 2, null, (b, f) => {
     fillRect(b, 4, 6, 14, 4, R64.GOLD_ORANGE);
     fillRect(b, 6, 7, 13, 2, R64.WHITE);
     fillRect(b, 17, 5, 5, 6, R64.SUN_YELLOW);
     fillRect(b, 9 + f * 3, 4, 2, 2, R64.WHITE);
   });
 
-  // proj_void_bolt (24x16, 4f)
-  drawSimpleProj('proj_void_bolt', 24, 16, 4, (b, f) => {
+  // proj_void_bolt (24x16, 4f) borderless void orb
+  drawSimpleProj('proj_void_bolt', 24, 16, 4, null, (b, f) => {
     paintDisc(b, 14, 8, 5.5, R64.VOID_DARK);
     paintDisc(b, 14, 8, 4, R64.VIOLET);
     paintDisc(b, 15, 8, 2, R64.ORCHID);
@@ -438,27 +560,28 @@ function generateProjectiles(vfxDir) {
   });
 
   // proj_web_glob (16x16, 2f)
-  drawSimpleProj('proj_web_glob', 16, 16, 2, (b, f) => {
+  drawSimpleProj('proj_web_glob', 16, 16, 2, R64.INK, (b, f) => {
     paintDisc(b, 8, 8, 5, R64.DEEP_LEAF);
     paintDisc(b, 8, 7, 3.5, R64.LIME);
     fillRect(b, 3 + f, 10, 3, 3, R64.WHITE_WARM);
   });
 
   // proj_magma_boulder (24x24, 2f)
-  drawSimpleProj('proj_magma_boulder', 24, 24, 2, (b, f) => {
+  drawSimpleProj('proj_magma_boulder', 24, 24, 2, R64.INK, (b, f) => {
     paintDisc(b, 12, 12, 8, R64.SLATE_DARK);
     paintDisc(b, 11, 10, 6, R64.SLATE);
     fillRect(b, 8 + f * 2, 10, 6, 3, R64.EMBER);
     fillRect(b, 10, 12 - f, 4, 3, R64.GOLD);
   });
 
-  // proj_sword_wave (24x32, 2f)
-  drawSimpleProj('proj_sword_wave', 24, 32, 2, (b, f) => {
+  // proj_sword_wave (24x32, 2f) tapered glowing Excalibur crescent
+  drawSimpleProj('proj_sword_wave', 24, 32, 2, null, (b, f) => {
     for (let y = 3; y < 29; y++) {
       const k = (y - 16) / 13;
       const x = Math.round(18 - k * k * 10);
-      fillRect(b, x - 3, y, 4, 1, R64.SKY);
-      fillRect(b, x, y, 3, 1, f === 0 ? R64.WHITE : R64.SUN_YELLOW);
+      const thick = Math.max(1, Math.round((1 - k * k) * 3));
+      fillRect(b, x - thick - 1, y, thick + 2, 1, R64.SKY);
+      fillRect(b, x, y, 2 + (thick > 1 ? 1 : 0), 1, f === 0 ? R64.WHITE : R64.SUN_YELLOW);
     }
   });
 
@@ -491,29 +614,54 @@ function generateDeployables(vfxDir) {
     assets.push({ id: 'deploy_banner', file: 'vfx/deploy_banner.png', w: 96, h: 40, fw: 24, fh: 40, frames: 4 });
   }
 
-  // 2. deploy_firewall (48x32 x 4f = 192x32) via Codixel HellFire
+  // 2. deploy_firewall (48x32 x 4f = 192x32) unified scalar-heat licking flame curtain
   {
-    const fire = new P.HellFire(42, 26, {
-      seed: 331,
-      cols: [R64.GARNET, R64.CRIMSON, R64.EMBER, R64.GOLD_ORANGE, R64.GOLD, R64.SUN_YELLOW],
-    });
-    for (let k = 0; k < 20; k++) fire.step(1, 1, 2);
     const frames = [];
+    const baseTongues = [
+      { x: 9, h: 16, w: 3.4, phase: 0.2 },
+      { x: 15, h: 22, w: 4.0, phase: 1.4 },
+      { x: 20, h: 18, w: 3.8, phase: 2.5 },
+      { x: 24, h: 25, w: 4.4, phase: 0.8 },
+      { x: 29, h: 19, w: 3.8, phase: 3.1 },
+      { x: 34, h: 22, w: 4.0, phase: 1.9 },
+      { x: 39, h: 15, w: 3.4, phase: 4.0 },
+    ];
     for (let f = 0; f < 4; f++) {
-      fire.step(1, 1, 4);
       const buf = new P.Buf(48, 32);
-      const fbuf = new P.Buf(48, 32);
-      fire.draw(fbuf, 3, 29);
-      for (let fy = 4; fy < 29; fy++) {
-        const edgeInset = Math.max(0, Math.round((fy - 22) * 0.4));
-        for (let fx = 3 + edgeInset; fx < 45 - edgeInset; fx++) {
-          const c = fbuf.px[fy * 48 + fx];
-          if ((c >>> 24) > 0) buf.px[fy * 48 + fx] = c;
+      const heat = new Float32Array(48 * 32);
+      // Warm continuous ember seam at ground y=28..29
+      for (let gx = 9; gx <= 39; gx += 3) {
+        addHeatBlob(heat, 48, 32, gx, 28, 4.5, 3.2, 0.72);
+      }
+
+      for (const t of baseTongues) {
+        const heightFlicker = Math.sin((f / 4) * TWO_PI + t.phase) * 3.8;
+        const tipH = Math.max(8, t.h + heightFlicker);
+        const steps = Math.ceil(tipH);
+        for (let dy = 0; dy < steps; dy += 2) {
+          const u = dy / steps;
+          const sway = Math.sin(u * 4.2 - (f / 4) * TWO_PI + t.phase) * (2.2 * u);
+          addHeatBlob(
+            heat,
+            48,
+            32,
+            t.x + sway,
+            28 - dy,
+            Math.max(1.2, t.w * (1 - u * 0.78)),
+            2.6,
+            (1 - u * 0.72) * 0.56
+          );
         }
       }
-      fillRect(buf, 6, 28, 36, 2, R64.CRIMSON);
-      fillRect(buf, 9, 28, 30, 1, R64.GOLD);
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.06, outlineRgb: R64.INK }));
+      renderHeatToBuf(buf, heat, f * 1.55, 0.95);
+
+      for (let s = 0; s < 4; s++) {
+        const sx = Math.round(11 + s * 8 + ((f * 3 + s) % 4));
+        const sy = Math.round(3 + ((f * 4 + s * 3) % 5));
+        fillRect(buf, sx, sy, 2, 2, s % 2 === 0 ? R64.SUN_YELLOW : R64.GOLD);
+      }
+
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 4 });
     savePng(sheet, path.join(vfxDir, 'deploy_firewall.png'));
@@ -583,7 +731,7 @@ function generateDeployables(vfxDir) {
       paintRing(buf, 24, 24, 13, 11, R64.EMERALD, 0.72);
       fillRect(buf, 22, 14, 4, 20, R64.SUN_YELLOW);
       fillRect(buf, 15, 22, 18, 4, R64.SUN_YELLOW);
-      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: R64.INK }));
+      frames.push(finalizeResurrectBuffer(buf, { alphaThreshold: 96, dither: 0.04, outlineRgb: null }));
     }
     const sheet = P.pack(frames, { cols: 4 });
     savePng(sheet, path.join(vfxDir, 'deploy_sanctuary_rune.png'));

@@ -49,6 +49,7 @@ import { GameEngineBridge, useConsoleConnectionStore } from '../lib/gameEngineBr
 import { SoundFX } from '../lib/soundEffects';
 import { ChronoKnightsEngine, type WorldZone } from '../games/chronoKnights/ChronoKnightsEngine';
 import { ChronoAudio, type ChronoTrackId } from '../games/chronoKnights/ChronoAudioManager';
+import { ChronoSfx } from '../games/chronoKnights/ChronoSfxManager';
 import { CLASS_LIST, HERO_CLASSES, SLOT_THEMES } from '../games/chronoKnights/constants';
 import type { HeroClassId, PlayerEntity } from '../games/chronoKnights/types';
 import type { NpcEntity } from '../games/chronoKnights/WorldData';
@@ -140,6 +141,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
     if (canvasRef.current) {
       engine.start(canvasRef.current);
     }
+    ChronoSfx.preloadAvailable();
 
 
     return () => {
@@ -316,6 +318,7 @@ export const ChronoKnightsGame: React.FC<ChronoKnightsGameProps> = ({
     setSoundEnabled(next);
     SoundFX.setEnabled(next);
     ChronoAudio.setEnabled(next);
+    ChronoSfx.setEnabled(next);
   };
 
   const toggleFullscreen = () => {

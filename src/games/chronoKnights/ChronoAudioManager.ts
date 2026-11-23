@@ -126,11 +126,11 @@ class ChronoAudioManager {
 
     const durationMs = 650;
     const tick = (now: number) => {
-      const elapsed = now - startTime;
-      const t = Math.min(1, elapsed / durationMs);
+      const elapsed = Math.max(0, now - startTime);
+      const t = Math.max(0, Math.min(1, elapsed / durationMs));
 
       if (this.fadingAudio) {
-        this.fadingAudio.volume = Math.max(0, (1 - t) * this.targetVolume);
+        this.fadingAudio.volume = Math.max(0, Math.min(1, (1 - t) * this.targetVolume));
         if (t >= 1) {
           this.fadingAudio.pause();
           this.fadingAudio.src = '';
@@ -139,7 +139,7 @@ class ChronoAudioManager {
       }
 
       if (this.activeAudio && this.enabled) {
-        this.activeAudio.volume = Math.min(this.targetVolume, t * this.targetVolume);
+        this.activeAudio.volume = Math.max(0, Math.min(1, Math.min(this.targetVolume, t * this.targetVolume)));
       }
 
       if (t < 1 && (this.fadingAudio || this.activeAudio)) {

@@ -231,16 +231,48 @@ export class PixelArtRenderer {
       ctx.restore();
     }
 
+    // Pyromancer Sunstaff ambient ember glow & orbiting sparks
+    if (player.classId === 'pyromancer' && !player.isDowned) {
+      const orbX = player.x + (player.facing === 'left' ? -15 : 15);
+      const orbY = player.y - 40;
+      const pulse = 0.85 + 0.15 * Math.sin(now * 0.012);
+      const casting = player.attackState.isAttacking || player.ultimateState?.kind === 'pyro_incantation';
+      const glowR = (casting ? 24 : 15) * pulse;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const grad = ctx.createRadialGradient(orbX, orbY, 1, orbX, orbY, glowR);
+      grad.addColorStop(0, 'rgba(255, 248, 190, 0.68)');
+      grad.addColorStop(0.5, 'rgba(251, 107, 29, 0.34)');
+      grad.addColorStop(1, 'rgba(232, 59, 59, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, glowR, 0, Math.PI * 2);
+      ctx.fill();
+      for (let m = 0; m < (casting ? 3 : 1); m++) {
+        const ang = now * 0.008 + (m * Math.PI * 2) / 3;
+        const mx = orbX + Math.cos(ang) * (casting ? 12 : 7);
+        const my = orbY + Math.sin(ang) * (casting ? 9 : 5) - Math.abs(Math.sin(ang)) * 3;
+        ctx.fillStyle = m % 2 === 0 ? '#FEF08A' : '#FB923C';
+        ctx.fillRect(Math.round(mx - 1), Math.round(my - 1), 3, 3);
+      }
+      ctx.restore();
+    }
+
     // Carrying Eternal Torch Flame aura (Arachnid Caverns)
     if (player.carryingFlameTimer > 0) {
       const fx = player.x + (player.facing === 'left' ? -18 : 18);
-      const fy = player.y - 36 + Math.sin(now * 0.015) * 3;
+      const fy = player.y - 38 + Math.sin(now * 0.015) * 3;
       ctx.save();
-      ctx.fillStyle = 'rgba(251, 146, 60, 0.35)';
+      ctx.globalCompositeOperation = 'lighter';
+      const grad = ctx.createRadialGradient(fx, fy, 2, fx, fy, 26);
+      grad.addColorStop(0, 'rgba(255, 250, 190, 0.8)');
+      grad.addColorStop(0.45, 'rgba(251, 146, 60, 0.45)');
+      grad.addColorStop(1, 'rgba(232, 59, 59, 0)');
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(fx, fy, 18, 0, Math.PI * 2);
+      ctx.arc(fx, fy, 26, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#FB923C';
+      ctx.fillStyle = '#FB6B1D';
       ctx.beginPath();
       ctx.arc(fx, fy, 7, 0, Math.PI * 2);
       ctx.fill();
@@ -288,12 +320,40 @@ export class PixelArtRenderer {
       const step = ult.stepIndex ?? 0;
       const ratio = Math.max(0, ult.timer / Math.max(0.1, ult.maxTimer));
 
-      // Arcane ground sigil ring
-      ctx.strokeStyle = 'rgba(251, 146, 60, 0.72)';
-      ctx.lineWidth = 2;
+      // Rotating Solar Arcane Magic Circle beneath caster
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const baseR = 46 + step * 5 + Math.sin(now * 0.014) * 3;
+      const rot = now * 0.0025;
+      const gRad = ctx.createRadialGradient(player.x, player.y, 4, player.x, player.y, baseR * 1.15);
+      gRad.addColorStop(0, `rgba(251, 146, 60, ${0.18 + step * 0.06})`);
+      gRad.addColorStop(0.65, `rgba(232, 59, 59, ${0.14 + step * 0.04})`);
+      gRad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gRad;
       ctx.beginPath();
-      ctx.arc(player.x, player.y, 48 + Math.sin(now * 0.014) * 4, 0, Math.PI * 2);
+      ctx.arc(player.x, player.y, baseR * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = step >= 3 ? '#FEF08A' : '#FB923C';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, baseR, 0, Math.PI * 2);
       ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(249, 194, 43, 0.65)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, baseR * 0.72, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (let s = 0; s < 6; s++) {
+        const a = rot + (s * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.moveTo(player.x + Math.cos(a) * (baseR * 0.72), player.y + Math.sin(a) * (baseR * 0.72));
+        ctx.lineTo(player.x + Math.cos(a) * baseR, player.y + Math.sin(a) * baseR);
+        ctx.stroke();
+      }
+      ctx.restore();
 
       // Sequence tiles above caster
       const startX = player.x - ((seq.length - 1) * 26) / 2;

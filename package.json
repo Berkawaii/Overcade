@@ -9,6 +9,8 @@
     "preview": "vite preview --host",
     "build:chrono-art": "node tools/pixel-pipeline/chrono/build-chrono-assets.mjs",
     "audit:chrono-art": "node tools/pixel-pipeline/chrono/build-chrono-assets.mjs --audit-only",
+    "build:firedup-art": "node tools/pixel-pipeline/firedup/build-firedup-assets.mjs",
+    "audit:firedup-art": "node tools/pixel-pipeline/firedup/build-firedup-assets.mjs --audit-only",
     "deploy": "npm run build && npx -y firebase-tools@latest deploy"
   },
   "dependencies": {
