@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { ChassisStyle } from './vortexTypes';
 
 export interface TrackTextureBundle {
   roadMap: THREE.CanvasTexture;
@@ -51,9 +52,34 @@ function paintRoadMaps(
   const h = 512;
   const [albedoCanvas, ctx] = makeCanvas(w, h);
   const [roughCanvas, rCtx] = makeCanvas(w, h);
-  const rand = seededNoise(trackId === 'redline-canyon' ? 202 : trackId === 'cryo-sector' ? 303 : 101);
+  const rand = seededNoise(
+    trackId === 'apex-gp-circuit'
+      ? 151
+      : trackId === 'redline-canyon'
+      ? 202
+      : trackId === 'cryo-sector'
+      ? 303
+      : trackId === 'hypernova-skyway'
+      ? 404
+      : trackId === 'volcano-citadel'
+      ? 455
+      : trackId === 'tokyo-touge-downhill'
+      ? 505
+      : trackId === 'fuji-grand-touge'
+      ? 606
+      : 101
+  );
 
-  if (trackId === 'neon-tokyo') {
+  const isTougeRoad =
+    trackId === 'tokyo-touge-downhill' || trackId === 'fuji-grand-touge';
+  const isGpRoad = trackId === 'apex-gp-circuit';
+
+  if (isGpRoad) {
+    ctx.fillStyle = '#14161c';
+    ctx.fillRect(0, 0, w, h);
+    rCtx.fillStyle = '#8c8c8c';
+    rCtx.fillRect(0, 0, w, h);
+  } else if (trackId === 'neon-tokyo') {
     ctx.fillStyle = '#0e1019';
     ctx.fillRect(0, 0, w, h);
     rCtx.fillStyle = '#787878';
@@ -62,6 +88,25 @@ function paintRoadMaps(
     ctx.fillStyle = '#1b1412';
     ctx.fillRect(0, 0, w, h);
     rCtx.fillStyle = '#c8c8c8';
+    rCtx.fillRect(0, 0, w, h);
+  } else if (trackId === 'volcano-citadel') {
+    ctx.fillStyle = '#151010';
+    ctx.fillRect(0, 0, w, h);
+    rCtx.fillStyle = '#b4b4b4';
+    rCtx.fillRect(0, 0, w, h);
+  } else if (trackId === 'hypernova-skyway') {
+    const skyGrad = ctx.createLinearGradient(0, 0, w, 0);
+    skyGrad.addColorStop(0, '#190b36');
+    skyGrad.addColorStop(0.5, '#120a28');
+    skyGrad.addColorStop(1, '#190b36');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, h);
+    rCtx.fillStyle = '#525252';
+    rCtx.fillRect(0, 0, w, h);
+  } else if (isTougeRoad) {
+    ctx.fillStyle = '#16181f';
+    ctx.fillRect(0, 0, w, h);
+    rCtx.fillStyle = '#9a9a9a';
     rCtx.fillRect(0, 0, w, h);
   } else {
     ctx.fillStyle = '#112233';
@@ -80,6 +125,17 @@ function paintRoadMaps(
       ctx.fillStyle = v > 0.6 ? 'rgba(186,230,253,0.12)' : 'rgba(10,22,36,0.22)';
     } else if (trackId === 'redline-canyon') {
       ctx.fillStyle = v > 0.65 ? 'rgba(180,100,72,0.12)' : 'rgba(12,8,7,0.28)';
+    } else if (trackId === 'volcano-citadel') {
+      ctx.fillStyle = v > 0.86 ? 'rgba(255,95,20,0.24)' : 'rgba(10,6,5,0.34)';
+    } else if (trackId === 'hypernova-skyway') {
+      ctx.fillStyle =
+        v > 0.85
+          ? 'rgba(232,121,249,0.22)'
+          : v > 0.65
+          ? 'rgba(56,189,248,0.18)'
+          : 'rgba(6,3,16,0.3)';
+    } else if (isTougeRoad) {
+      ctx.fillStyle = v > 0.6 ? 'rgba(120,128,145,0.11)' : 'rgba(7,8,12,0.3)';
     } else {
       ctx.fillStyle = v > 0.65 ? 'rgba(90,115,155,0.11)' : 'rgba(4,5,10,0.32)';
     }
@@ -142,6 +198,60 @@ function paintRoadMaps(
     rightDust.addColorStop(1, 'rgba(194,85,48,0.34)');
     ctx.fillStyle = rightDust;
     ctx.fillRect(w - 48, 0, 48, h);
+  } else if (trackId === 'hypernova-skyway') {
+    // Rainbow cosmic light ribs + prism star sparkles
+    const prismColors = ['#E879F9', '#38BDF8', '#FACC15', '#34D399'];
+    for (let y = 0; y < h; y += 32) {
+      ctx.fillStyle = prismColors[(y / 32) % prismColors.length];
+      ctx.globalAlpha = 0.14;
+      ctx.fillRect(32, y, w - 64, 4);
+    }
+    ctx.globalAlpha = 1;
+    for (let s = 0; s < 32; s++) {
+      ctx.fillStyle = prismColors[s % prismColors.length];
+      ctx.fillRect(40 + rand() * (w - 80), rand() * h, 3, 3);
+    }
+  } else if (trackId === 'volcano-citadel') {
+    // Basalt volcanic magma fissures glowing softly under tires
+    ctx.strokeStyle = 'rgba(255,69,0,0.38)';
+    ctx.lineWidth = 2.2;
+    for (let c = 0; c < 18; c++) {
+      let cx = 40 + rand() * (w - 80);
+      let cy = rand() * h;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      for (let s = 0; s < 5; s++) {
+        cx += (rand() - 0.5) * 44;
+        cy += (rand() - 0.5) * 52;
+        ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+    }
+  } else if (isTougeRoad) {
+    // Weathered mountain asphalt expansion seams + subtle leaf litter on outer shoulders
+    ctx.strokeStyle = 'rgba(7,8,11,0.55)';
+    ctx.lineWidth = 1.6;
+    for (let y = 32; y < h; y += 96) {
+      ctx.beginPath();
+      ctx.moveTo(28, y);
+      ctx.lineTo(w - 28, y + (rand() - 0.5) * 14);
+      ctx.stroke();
+    }
+    for (let p = 0; p < 22; p++) {
+      const sideX = p % 2 === 0 ? 16 + rand() * 34 : w - 50 + rand() * 34;
+      ctx.fillStyle = rand() > 0.45 ? 'rgba(244,114,182,0.25)' : 'rgba(161,98,7,0.22)';
+      ctx.fillRect(sideX, rand() * h, 4, 3);
+    }
+  } else if (isGpRoad) {
+    // High-grip motorsport tarmac micro-grain & subtle rubbered racing line
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1.4;
+    for (let y = 24; y < h; y += 64) {
+      ctx.beginPath();
+      ctx.moveTo(26, y);
+      ctx.lineTo(w - 26, y);
+      ctx.stroke();
+    }
   } else {
     // Cryo sector crystalline frost seams
     ctx.strokeStyle = 'rgba(186,230,253,0.28)';
@@ -166,23 +276,51 @@ function paintRoadMaps(
     }
   }
 
-  // Alternating high-contrast racing shoulder curbs baked near edges + crisp glow boundary lines
-  for (let y = 0; y < h; y += 64) {
-    const isAlt = (y / 64) % 2 === 0;
-    ctx.fillStyle = isAlt ? accentA : '#E2E8F0';
-    ctx.fillRect(0, y, 12, 64);
-    ctx.fillStyle = isAlt ? accentB : '#E2E8F0';
-    ctx.fillRect(w - 12, y, 12, 64);
-  }
-  ctx.fillStyle = accentA;
-  ctx.fillRect(14, 0, 7, h);
-  ctx.fillStyle = accentB;
-  ctx.fillRect(w - 21, 0, 7, h);
+  if (isTougeRoad) {
+    // Authentic Japanese Touge white outer shoulder lines + yellow double center line
+    ctx.fillStyle = '#E2E8F0';
+    ctx.fillRect(10, 0, 6, h);
+    ctx.fillRect(w - 16, 0, 6, h);
+    ctx.fillStyle = '#F59E0B';
+    ctx.fillRect(w * 0.5 - 9, 0, 5, h);
+    ctx.fillRect(w * 0.5 + 4, 0, 5, h);
+  } else if (isGpRoad) {
+    // Bold FIA Red & White alternating rumble curbs on both track edges + crisp white boundary lines
+    for (let y = 0; y < h; y += 64) {
+      const isRed = (y / 64) % 2 === 0;
+      ctx.fillStyle = isRed ? '#EF4444' : '#F8FAFC';
+      ctx.fillRect(0, y, 18, 64);
+      ctx.fillRect(w - 18, y, 18, 64);
+    }
+    ctx.fillStyle = '#F8FAFC';
+    ctx.fillRect(18, 0, 6, h);
+    ctx.fillRect(w - 24, 0, 6, h);
 
-  // Subtle dashed center lane ticks (both sides of center strip)
-  ctx.fillStyle = trackId === 'cryo-sector' ? 'rgba(224,242,254,0.65)' : 'rgba(248,250,252,0.58)';
-  for (let y = 12; y < h; y += 64) {
-    ctx.fillRect(w * 0.5 - 3, y, 6, 32);
+    // Subtle FIA center dashes for overtaking guidance
+    ctx.fillStyle = 'rgba(248,250,252,0.35)';
+    for (let y = 16; y < h; y += 64) {
+      ctx.fillRect(w * 0.5 - 2, y, 4, 24);
+    }
+  } else {
+    // Alternating high-contrast racing shoulder curbs baked near edges + crisp glow boundary lines
+    for (let y = 0; y < h; y += 64) {
+      const isAlt = (y / 64) % 2 === 0;
+      ctx.fillStyle = isAlt ? accentA : '#E2E8F0';
+      ctx.fillRect(0, y, 12, 64);
+      ctx.fillStyle = isAlt ? accentB : '#E2E8F0';
+      ctx.fillRect(w - 12, y, 12, 64);
+    }
+    ctx.fillStyle = accentA;
+    ctx.fillRect(14, 0, 7, h);
+    ctx.fillStyle = accentB;
+    ctx.fillRect(w - 21, 0, 7, h);
+
+    // Subtle dashed center lane ticks (both sides of center strip)
+    ctx.fillStyle =
+      trackId === 'cryo-sector' ? 'rgba(224,242,254,0.65)' : 'rgba(248,250,252,0.58)';
+    for (let y = 12; y < h; y += 64) {
+      ctx.fillRect(w * 0.5 - 3, y, 6, 32);
+    }
   }
 
   // Faint secondary lane dividers
@@ -272,9 +410,49 @@ function paintSceneryMap(trackId: string, glowColor: string): THREE.CanvasTextur
   const w = 256;
   const h = 512;
   const [canvas, ctx] = makeCanvas(w, h);
-  const rand = seededNoise(trackId === 'redline-canyon' ? 77 : trackId === 'cryo-sector' ? 88 : 66);
+  const rand = seededNoise(
+    trackId === 'redline-canyon'
+      ? 77
+      : trackId === 'cryo-sector'
+      ? 88
+      : trackId === 'hypernova-skyway'
+      ? 99
+      : trackId === 'volcano-citadel'
+      ? 111
+      : trackId === 'tokyo-touge-downhill' || trackId === 'fuji-grand-touge'
+      ? 55
+      : 66
+  );
 
-  if (trackId === 'neon-tokyo') {
+  if (trackId === 'apex-gp-circuit') {
+    // Terraced Stadium Grandstand Facade with Spectators & White Canopy Strip
+    ctx.fillStyle = '#181c26';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#F8FAFC';
+    ctx.fillRect(0, 0, w, 28);
+    ctx.fillStyle = '#EF4444';
+    ctx.fillRect(0, 28, w, 10);
+    for (let y = 52; y < h - 24; y += 26) {
+      ctx.fillStyle = '#11141c';
+      ctx.fillRect(0, y, w, 10);
+      for (let x = 10; x < w - 10; x += 14) {
+        const roll = rand();
+        if (roll > 0.32) {
+          ctx.fillStyle =
+            roll > 0.85
+              ? '#EF4444'
+              : roll > 0.65
+              ? '#38BDF8'
+              : roll > 0.5
+              ? '#FACC15'
+              : '#E2E8F0';
+          ctx.fillRect(x, y + 12, 8, 10);
+        }
+      }
+    }
+    ctx.fillStyle = '#252a38';
+    ctx.fillRect(0, h - 24, w, 24);
+  } else if (trackId === 'neon-tokyo') {
     ctx.fillStyle = '#0a0b14';
     ctx.fillRect(0, 0, w, h);
     // Steel glass curtain mullions
@@ -304,6 +482,39 @@ function paintSceneryMap(trackId: string, glowColor: string): THREE.CanvasTextur
           ctx.fillRect(x, y + 4, 18, 10);
         }
       }
+    }
+  } else if (trackId === 'hypernova-skyway') {
+    ctx.fillStyle = '#14082b';
+    ctx.fillRect(0, 0, w, h);
+    const cols = ['#E879F9', '#38BDF8', '#FACC15'];
+    for (let y = 0; y < h; y += 36) {
+      ctx.fillStyle = cols[(y / 36) % cols.length];
+      ctx.fillRect(0, y, w, 5);
+    }
+    for (let x = 16; x < w; x += 48) {
+      ctx.fillStyle = 'rgba(255,255,255,0.16)';
+      ctx.fillRect(x, 0, 8, h);
+    }
+  } else if (trackId === 'volcano-citadel') {
+    ctx.fillStyle = '#1c0906';
+    ctx.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 18) {
+      ctx.fillStyle = rand() > 0.65 ? '#FF4500' : '#2e0e08';
+      ctx.fillRect(0, y, w, rand() > 0.8 ? 4 : 11);
+    }
+    ctx.fillStyle = '#FACC15';
+    ctx.fillRect(0, h * 0.6, w, 5);
+  } else if (trackId === 'tokyo-touge-downhill' || trackId === 'fuji-grand-touge') {
+    ctx.fillStyle = '#0d1a13';
+    ctx.fillRect(0, 0, w, h);
+    // Cedar bark / forest canopy shading & subtle blossom patches
+    for (let y = 0; y < h; y += 20) {
+      ctx.fillStyle = rand() > 0.5 ? '#12241a' : '#0a140f';
+      ctx.fillRect(0, y, w, 12);
+    }
+    for (let i = 0; i < 24; i++) {
+      ctx.fillStyle = rand() > 0.65 ? 'rgba(244,114,182,0.35)' : 'rgba(245,158,11,0.22)';
+      ctx.fillRect(rand() * (w - 18), rand() * (h - 18), 14, 14);
     }
   } else if (trackId === 'redline-canyon') {
     ctx.fillStyle = '#2d130c';
@@ -358,9 +569,35 @@ function paintGroundMap(trackId: string, glowColor: string): THREE.CanvasTexture
   const w = 512;
   const h = 512;
   const [canvas, ctx] = makeCanvas(w, h);
-  const rand = seededNoise(trackId === 'redline-canyon' ? 911 : trackId === 'cryo-sector' ? 922 : 900);
+  const rand = seededNoise(
+    trackId === 'redline-canyon'
+      ? 911
+      : trackId === 'cryo-sector'
+      ? 922
+      : trackId === 'hypernova-skyway'
+      ? 933
+      : trackId === 'volcano-citadel'
+      ? 955
+      : trackId === 'tokyo-touge-downhill' || trackId === 'fuji-grand-touge'
+      ? 944
+      : 900
+  );
 
-  if (trackId === 'neon-tokyo') {
+  if (trackId === 'apex-gp-circuit') {
+    // Manicured emerald motorsport turf with mowed lawn bands & subtle gravel pockets
+    ctx.fillStyle = '#0c1a12';
+    ctx.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 64) {
+      if ((y / 64) % 2 === 0) {
+        ctx.fillStyle = 'rgba(24,58,36,0.45)';
+        ctx.fillRect(0, y, w, 32);
+      }
+    }
+    for (let i = 0; i < 24; i++) {
+      ctx.fillStyle = rand() > 0.7 ? 'rgba(110,98,82,0.18)' : 'rgba(18,44,28,0.32)';
+      ctx.fillRect(rand() * w, rand() * h, 18 + rand() * 34, 10 + rand() * 24);
+    }
+  } else if (trackId === 'neon-tokyo') {
     ctx.fillStyle = '#06070d';
     ctx.fillRect(0, 0, w, h);
     ctx.strokeStyle = 'rgba(56,189,248,0.12)';
@@ -375,6 +612,55 @@ function paintGroundMap(trackId: string, glowColor: string): THREE.CanvasTexture
     }
     ctx.strokeStyle = 'rgba(255,85,0,0.08)';
     ctx.strokeRect(4, 4, w - 8, h - 8);
+  } else if (trackId === 'hypernova-skyway') {
+    ctx.fillStyle = '#090418';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(232,121,249,0.16)';
+    ctx.lineWidth = 2;
+    for (let g = 0; g < w; g += 64) {
+      ctx.beginPath();
+      ctx.moveTo(g, 0);
+      ctx.lineTo(g, h);
+      ctx.moveTo(0, g);
+      ctx.lineTo(w, g);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(56,189,248,0.14)';
+    ctx.strokeRect(12, 12, w - 24, h - 24);
+  } else if (trackId === 'volcano-citadel') {
+    ctx.fillStyle = '#180502';
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 42; i++) {
+      ctx.fillStyle = rand() > 0.55 ? 'rgba(255,69,0,0.22)' : 'rgba(250,204,21,0.12)';
+      ctx.beginPath();
+      ctx.ellipse(
+        rand() * w,
+        rand() * h,
+        24 + rand() * 58,
+        14 + rand() * 36,
+        rand() * Math.PI,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+  } else if (trackId === 'tokyo-touge-downhill' || trackId === 'fuji-grand-touge') {
+    ctx.fillStyle = '#07100c';
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 45; i++) {
+      ctx.fillStyle = rand() > 0.5 ? 'rgba(20,44,30,0.28)' : 'rgba(5,10,7,0.34)';
+      ctx.beginPath();
+      ctx.ellipse(
+        rand() * w,
+        rand() * h,
+        26 + rand() * 58,
+        18 + rand() * 44,
+        rand() * Math.PI,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
   } else if (trackId === 'redline-canyon') {
     ctx.fillStyle = '#190a07';
     ctx.fillRect(0, 0, w, h);
@@ -466,7 +752,7 @@ export function getGlowDiscTexture(): THREE.CanvasTexture {
 
 const vehicleLiveryCache = new Map<string, THREE.CanvasTexture>();
 export function getVehicleLiveryTexture(
-  chassisStyle: 'coupe' | 'hyper' | 'muscle' | 'tuner',
+  chassisStyle: ChassisStyle,
   accentHex: string
 ): THREE.CanvasTexture {
   const key = `${chassisStyle}:${accentHex}`;
@@ -552,6 +838,73 @@ export function getVehicleLiveryTexture(
     ctx.fill();
     ctx.fillStyle = accentHex;
     ctx.fillRect(0, 180, 256, 18);
+  } else if (chassisStyle === 'formula') {
+    // Open-wheel Cyber Formula sleek twin aerodynamic stripes + cockpit crest
+    ctx.fillStyle = '#0e0a1a';
+    ctx.fillRect(0, 0, 256, 256);
+    ctx.fillStyle = accentHex;
+    ctx.fillRect(28, 0, 44, 256);
+    ctx.fillRect(184, 0, 44, 256);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(118, 0, 20, 256);
+    ctx.fillStyle = '#09090B';
+    ctx.fillRect(96, 108, 64, 52);
+    ctx.fillStyle = accentHex;
+    ctx.font = 'bold 28px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('09', 128, 134);
+  } else if (chassisStyle === 'rally') {
+    // All-terrain Dakar armored desert rally split camo + hazard slashes
+    ctx.fillStyle = '#1e1b18';
+    ctx.fillRect(0, 0, 256, 256);
+    ctx.fillStyle = accentHex;
+    ctx.fillRect(0, 0, 256, 98);
+    ctx.fillStyle = '#FACC15';
+    ctx.fillRect(0, 98, 256, 14);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    for (let x = 24; x < 256; x += 48) {
+      ctx.fillRect(x, 124, 20, 112);
+    }
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(8, 8, 240, 240);
+  } else if (chassisStyle === 'classic_jdm') {
+    // Iconic Panda AE-86 crisp white upper body with matte black lower rocker trim
+    ctx.fillStyle = '#F8FAFC';
+    ctx.fillRect(0, 0, 256, 256);
+    ctx.fillStyle = '#111318';
+    ctx.fillRect(42, 0, 172, 108); // Matte black carbon hood
+    ctx.fillRect(0, 182, 256, 74); // Classic two-tone lower trim
+    ctx.fillStyle = accentHex === '#F8FAFC' ? '#EF4444' : accentHex;
+    ctx.fillRect(0, 172, 256, 10);
+    ctx.fillStyle = '#111318';
+    ctx.fillRect(18, 128, 220, 26);
+    ctx.fillStyle = '#F8FAFC';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('TOUGE // AE86', 128, 141);
+  } else if (chassisStyle === 'cyber_wedge') {
+    // Stealth faceted carbon triangle panels with glowing circuit traces
+    ctx.fillStyle = '#070b12';
+    ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = accentHex;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(128, 12);
+    ctx.lineTo(240, 240);
+    ctx.lineTo(16, 240);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(128, 48);
+    ctx.lineTo(208, 228);
+    ctx.moveTo(128, 48);
+    ctx.lineTo(48, 228);
+    ctx.stroke();
   } else {
     // Coupe GT-R asymmetric motorsport twin-stripe + carbon micro-weave
     ctx.fillStyle = accentHex;
@@ -575,6 +928,99 @@ export function getVehicleLiveryTexture(
 
   const tex = wrapTexture(canvas, { srgb: true, anisotropy: 4 });
   vehicleLiveryCache.set(key, tex);
+  return tex;
+}
+
+const boostPadCache = new Map<string, THREE.CanvasTexture>();
+export function getBoostPadTexture(accentHex: string): THREE.CanvasTexture {
+  const existing = boostPadCache.get(accentHex);
+  if (existing) return existing;
+
+  const w = 256;
+  const h = 512;
+  const [canvas, ctx] = makeCanvas(w, h);
+
+  ctx.fillStyle = '#070910';
+  ctx.fillRect(0, 0, w, h);
+
+  // Outer glowing energy frame rails
+  ctx.fillStyle = accentHex;
+  ctx.fillRect(0, 0, 18, h);
+  ctx.fillRect(w - 18, 0, 18, h);
+
+  // Stacked glowing velocity chevrons pointing forward along +V (up canvas)
+  const step = 128;
+  for (let y = 24; y < h; y += step) {
+    ctx.fillStyle = accentHex;
+    ctx.beginPath();
+    ctx.moveTo(32, y + 88);
+    ctx.lineTo(w * 0.5, y + 14);
+    ctx.lineTo(w - 32, y + 88);
+    ctx.lineTo(w - 32, y + 114);
+    ctx.lineTo(w * 0.5, y + 40);
+    ctx.lineTo(32, y + 114);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner bright white core chevron
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.moveTo(56, y + 86);
+    ctx.lineTo(w * 0.5, y + 26);
+    ctx.lineTo(w - 56, y + 86);
+    ctx.lineTo(w - 56, y + 98);
+    ctx.lineTo(w * 0.5, y + 38);
+    ctx.lineTo(56, y + 98);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  const tex = wrapTexture(canvas, { srgb: true, anisotropy: 8 });
+  boostPadCache.set(accentHex, tex);
+  return tex;
+}
+
+const rampSurfaceCache = new Map<string, THREE.CanvasTexture>();
+export function getRampSurfaceTexture(accentHex: string): THREE.CanvasTexture {
+  const existing = rampSurfaceCache.get(accentHex);
+  if (existing) return existing;
+
+  const w = 256;
+  const h = 512;
+  const [canvas, ctx] = makeCanvas(w, h);
+
+  ctx.fillStyle = '#11131c';
+  ctx.fillRect(0, 0, w, h);
+
+  // Brushed deck ribs
+  ctx.fillStyle = '#1d2233';
+  for (let y = 0; y < h; y += 32) {
+    ctx.fillRect(20, y, w - 40, 4);
+  }
+
+  // Hazard yellow & accent outer runway curbs
+  for (let y = 0; y < h; y += 64) {
+    ctx.fillStyle = (y / 64) % 2 === 0 ? accentHex : '#FDE047';
+    ctx.fillRect(0, y, 22, 64);
+    ctx.fillRect(w - 22, y, 22, 64);
+  }
+
+  // Upward takeoff neon chevrons
+  for (let y = 32; y < h; y += 128) {
+    ctx.fillStyle = accentHex;
+    ctx.beginPath();
+    ctx.moveTo(46, y + 72);
+    ctx.lineTo(w * 0.5, y + 10);
+    ctx.lineTo(w - 46, y + 72);
+    ctx.lineTo(w - 46, y + 96);
+    ctx.lineTo(w * 0.5, y + 34);
+    ctx.lineTo(46, y + 96);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  const tex = wrapTexture(canvas, { srgb: true, anisotropy: 8 });
+  rampSurfaceCache.set(accentHex, tex);
   return tex;
 }
 
@@ -608,14 +1054,24 @@ export function getTrackBillboardTexture(
   }
 
   const label =
-    trackId === 'redline-canyon'
+    trackId === 'apex-gp-circuit'
+      ? 'APEX GRAND PRIX // 09'
+      : trackId === 'redline-canyon'
       ? 'REDLINE DAM // 09'
       : trackId === 'cryo-sector'
       ? 'CRYO SECTOR // 09'
+      : trackId === 'hypernova-skyway'
+      ? 'HYPERNOVA SKYWAY // 09'
+      : trackId === 'volcano-citadel'
+      ? 'VOLCANO CALDERA // 09'
+      : trackId === 'tokyo-touge-downhill'
+      ? 'MT. HAKONE TOUGE // 09'
+      : trackId === 'fuji-grand-touge'
+      ? 'MT. FUJI GRAND TOUGE // 09'
       : 'VORTEX OVERPASS // 09';
 
   ctx.fillStyle = '#F8FAFC';
-  ctx.font = 'bold 30px monospace';
+  ctx.font = 'bold 28px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, w * 0.5, h * 0.5 + 1);

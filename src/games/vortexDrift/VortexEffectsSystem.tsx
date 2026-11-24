@@ -275,12 +275,12 @@ export const VortexEffectsSystem = forwardRef<
     p.color.set(colorHex);
   };
 
-  const laySkidQuad = (x: number, z: number, heading: number, isCryo: boolean) => {
+  const laySkidQuad = (x: number, y: number, z: number, heading: number, isCryo: boolean) => {
     const mesh = skidInstRef.current;
     if (!mesh) return;
     const idx = skidCursorRef.current;
     skidCursorRef.current = (idx + 1) % MAX_SKIDS;
-    dummy.position.set(x, 0.048, z);
+    dummy.position.set(x, y, z);
     dummy.rotation.set(0, heading, 0);
     dummy.scale.set(1, 1, 1);
     dummy.updateMatrix();
@@ -308,41 +308,71 @@ export const VortexEffectsSystem = forwardRef<
           for (const side of [-1.02, 1.02]) {
             const wx = car.pos.x - sinH * 1.35 + rightX * side;
             const wz = car.pos.z - cosH * 1.35 + rightZ * side;
-            laySkidQuad(wx, wz, car.heading - car.lateralVel * 0.018, isCryo);
+            laySkidQuad(
+              wx,
+              car.pos.y - 0.5,
+              wz,
+              car.heading - car.lateralVel * 0.018,
+              isCryo
+            );
           }
         }
 
         if (driftEmitAccumRef.current < 0.022) return;
         driftEmitAccumRef.current = 0;
 
-        const charged = car.driftCharge > 0.65;
-        const sparkHex = charged ? '#38BDF8' : '#F59E0B';
-        const smokeHex = isCryo ? '#BAE6FD' : charged ? '#7DD3FC' : '#CBD5E1';
+        const tier = car.driftTier;
+        const isTougeAny =
+          trackId === 'tokyo-touge-downhill' || trackId === 'fuji-grand-touge';
+        const sparkHex =
+          tier >= 3
+            ? '#E879F9'
+            : tier === 2
+            ? '#F97316'
+            : tier === 1
+            ? '#38BDF8'
+            : '#FDE68A';
+        const smokeHex =
+          tier >= 3
+            ? '#F0ABFC'
+            : tier === 2
+            ? '#FDBA74'
+            : tier === 1
+            ? '#7DD3FC'
+            : isCryo
+            ? '#BAE6FD'
+            : isTougeAny
+            ? '#FDE68A'
+            : '#CBD5E1';
+        const sparkSize = tier >= 3 ? 0.5 : tier === 2 ? 0.4 : tier === 1 ? 0.32 : 0.22;
+        const sparkCount = tier >= 2 ? 2 : 1;
 
         for (const side of [-1.02, 1.02]) {
           const wx = car.pos.x - sinH * 1.4 + rightX * side;
           const wz = car.pos.z - cosH * 1.4 + rightZ * side;
-          spawnSpark(
-            wx,
-            0.34 + car.verticalY,
-            wz,
-            -sinH * 12 + (Math.random() - 0.5) * 9,
-            3.5 + Math.random() * 5.0,
-            -cosH * 12 + (Math.random() - 0.5) * 9,
-            sparkHex,
-            charged ? 0.36 : 0.25,
-            0.22 + Math.random() * 0.14,
-            18
-          );
+          for (let sIdx = 0; sIdx < sparkCount; sIdx++) {
+            spawnSpark(
+              wx,
+              car.pos.y - 0.21,
+              wz,
+              -sinH * 12 + (Math.random() - 0.5) * (9 + tier * 2),
+              3.5 + Math.random() * (5.0 + tier * 1.2),
+              -cosH * 12 + (Math.random() - 0.5) * (9 + tier * 2),
+              sparkHex,
+              sparkSize,
+              0.22 + Math.random() * 0.14,
+              18
+            );
+          }
           spawnSmoke(
             wx,
-            0.34 + car.verticalY,
+            car.pos.y - 0.21,
             wz,
             (Math.random() - 0.5) * 2.2,
             1.4 + Math.random() * 1.4,
             (Math.random() - 0.5) * 2.2,
             smokeHex,
-            0.46,
+            0.46 + tier * 0.06,
             0.45 + Math.random() * 0.2
           );
         }
@@ -361,7 +391,7 @@ export const VortexEffectsSystem = forwardRef<
         for (let k = 0; k < 2; k++) {
           spawnSpark(
             ex + (Math.random() - 0.5) * 0.48,
-            0.56 + car.verticalY + (Math.random() - 0.5) * 0.2,
+            car.pos.y + 0.01 + (Math.random() - 0.5) * 0.2,
             ez + (Math.random() - 0.5) * 0.48,
             -sinH * 19 + (Math.random() - 0.5) * 4,
             0.6 + Math.random() * 1.6,
@@ -379,7 +409,7 @@ export const VortexEffectsSystem = forwardRef<
         if (slot) {
           slot.active = true;
           slot.x = car.pos.x;
-          slot.y = 0.85 + car.verticalY;
+          slot.y = car.pos.y + 0.3;
           slot.z = car.pos.z;
           slot.heading = car.heading;
           slot.life = 0.36;
@@ -393,7 +423,7 @@ export const VortexEffectsSystem = forwardRef<
           const rz = -sinH * Math.cos(ang);
           spawnSpark(
             car.pos.x - sinH * 1.8,
-            0.85 + car.verticalY,
+            car.pos.y + 0.3,
             car.pos.z - cosH * 1.8,
             rx * 14,
             Math.sin(ang) * 9 + 3,
@@ -416,7 +446,31 @@ export const VortexEffectsSystem = forwardRef<
         const pArr = posAttr.array as Float32Array;
         const cArr = colAttr.array as Float32Array;
 
-        for (let ci = 0; ci < Math.min(cars.length, TOTAL_CARS); ci++) {
+        for (let ci = 0; ci < TOTAL_CARS; ci++) {
+          if (ci >= cars.length) {
+            for (let sideIdx = 0; sideIdx < 2; sideIdx++) {
+              const rIdx = ci * 2 + sideIdx;
+              const baseV = rIdx * TRAIL_SEGS * 2;
+              for (let s = 0; s < TRAIL_SEGS; s++) {
+                const v0 = (baseV + s * 2) * 3;
+                const v1 = v0 + 3;
+                pArr[v0] = 0;
+                pArr[v0 + 1] = -100;
+                pArr[v0 + 2] = 0;
+                pArr[v1] = 0;
+                pArr[v1 + 1] = -100;
+                pArr[v1 + 2] = 0;
+                cArr[v0] = 0;
+                cArr[v0 + 1] = 0;
+                cArr[v0 + 2] = 0;
+                cArr[v1] = 0;
+                cArr[v1 + 1] = 0;
+                cArr[v1 + 2] = 0;
+              }
+            }
+            continue;
+          }
+
           const car = cars[ci];
           const yaw = car.heading - car.lateralVel * 0.018;
           const sinY = Math.sin(yaw);
@@ -454,7 +508,7 @@ export const VortexEffectsSystem = forwardRef<
             const ring = ribbonNodes[rIdx];
             const xOff = sideIdx === 0 ? -0.74 : 0.74;
             const wx = car.pos.x - sinY * 2.25 + rightX * xOff;
-            const wy = 0.42 + car.verticalY;
+            const wy = car.pos.y - 0.13;
             const wz = car.pos.z - cosY * 2.25 + rightZ * xOff;
 
             if (doShift) {
@@ -629,8 +683,11 @@ export const VortexEffectsSystem = forwardRef<
     [booms, dummy, ribbonNodes, smokes, sparks, trackId, trailGeo]
   );
 
-  // Ambient weather field around the track
-  const weatherCount = 210;
+  // Ambient weather field around the track (Sakura blossoms, Alpine Snow, Volcano Embers, Stardust)
+  const isGpWeather = trackId === 'apex-gp-circuit';
+  const isFujiWeather = trackId === 'fuji-grand-touge';
+  const isTougeWeather = trackId === 'tokyo-touge-downhill' || isFujiWeather;
+  const weatherCount = isFujiWeather ? 420 : isTougeWeather ? 320 : isGpWeather ? 120 : 210;
   const weatherGeo = useMemo(() => {
     const positions = new Float32Array(weatherCount * 3);
     let seed = 4049;
@@ -639,14 +696,18 @@ export const VortexEffectsSystem = forwardRef<
       return seed / 0xffffffff;
     };
     for (let i = 0; i < weatherCount; i++) {
-      positions[i * 3] = (rand() - 0.5) * 520;
-      positions[i * 3 + 1] = 2 + rand() * 52;
-      positions[i * 3 + 2] = (rand() - 0.5) * 400;
+      positions[i * 3] = (rand() - 0.5) * (isFujiWeather ? 600 : isTougeWeather ? 480 : 520);
+      positions[i * 3 + 1] = isFujiWeather
+        ? rand() * 290
+        : isTougeWeather
+        ? rand() * 175
+        : 2 + rand() * 52;
+      positions[i * 3 + 2] = (rand() - 0.5) * (isFujiWeather ? 2400 : isTougeWeather ? 1160 : 400);
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return geo;
-  }, []);
+  }, [isFujiWeather, isTougeWeather, weatherCount]);
 
   useEffect(() => {
     return () => {
@@ -683,8 +744,8 @@ export const VortexEffectsSystem = forwardRef<
         s.x += s.vx * dt;
         s.y += s.vy * dt;
         s.z += s.vz * dt;
-        if (s.y < 0.15 && s.vy < 0) {
-          s.y = 0.15;
+        if (s.y < -4 && s.vy < 0) {
+          s.y = -4;
           s.vy *= -0.35;
         }
 
@@ -769,32 +830,71 @@ export const VortexEffectsSystem = forwardRef<
     // Update Ambient Weather
     const posAttr = weatherGeo.getAttribute('position') as THREE.BufferAttribute;
     const arr = posAttr.array as Float32Array;
+    const isGp = trackId === 'apex-gp-circuit';
     const isCanyon = trackId === 'redline-canyon';
+    const isVolcano = trackId === 'volcano-citadel';
     const isCryo = trackId === 'cryo-sector';
-    const speedY = isCanyon ? 4.2 : isCryo ? -6.5 : -24.0;
-    const driftX = isCryo ? 4.5 : isCanyon ? 1.8 : 0.6;
+    const isHyper = trackId === 'hypernova-skyway';
+    const isTouge = trackId === 'tokyo-touge-downhill';
+    const isFuji = trackId === 'fuji-grand-touge';
+    const isTougeAny = isTouge || isFuji;
+    const speedY = isVolcano
+      ? 5.5
+      : isCanyon
+      ? 4.2
+      : isGp
+      ? -2.2
+      : isCryo
+      ? -6.5
+      : isTougeAny
+      ? -7.5
+      : isHyper
+      ? -5.5
+      : -24.0;
+    const driftX = isCryo ? 4.5 : isTougeAny ? 2.8 : isCanyon || isVolcano ? 1.8 : isGp ? 0.8 : 0.6;
+    const maxY = isFuji ? 290 : isTouge ? 175 : 52;
 
     for (let i = 0; i < weatherCount; i++) {
       const i3 = i * 3;
       arr[i3] += driftX * dt;
       arr[i3 + 1] += speedY * dt;
       if (arr[i3] > 260) arr[i3] -= 520;
-      if (isCanyon) {
-        if (arr[i3 + 1] > 54) arr[i3 + 1] = 2;
-      } else if (arr[i3 + 1] < 1) {
-        arr[i3 + 1] = 52;
+      if (isCanyon || isVolcano) {
+        if (arr[i3 + 1] > maxY + 2) arr[i3 + 1] = 2;
+      } else if (arr[i3 + 1] < 0) {
+        arr[i3 + 1] = maxY;
       }
     }
     posAttr.needsUpdate = true;
   }, 0);
 
   const weatherColor =
-    trackId === 'redline-canyon'
+    trackId === 'apex-gp-circuit'
+      ? '#FDE68A'
+      : trackId === 'redline-canyon'
       ? '#FF6B2B'
+      : trackId === 'volcano-citadel'
+      ? '#FF5500'
       : trackId === 'cryo-sector'
       ? '#E0F2FE'
+      : trackId === 'hypernova-skyway'
+      ? '#E879F9'
+      : trackId === 'tokyo-touge-downhill'
+      ? '#F9A8D4'
+      : trackId === 'fuji-grand-touge'
+      ? '#FBCFE8'
       : '#38BDF8';
-  const weatherSize = trackId === 'redline-canyon' ? 1.15 : trackId === 'cryo-sector' ? 1.05 : 0.75;
+  const weatherSize =
+    trackId === 'apex-gp-circuit'
+      ? 0.65
+      : trackId === 'redline-canyon' ||
+        trackId === 'volcano-citadel' ||
+        trackId === 'tokyo-touge-downhill' ||
+        trackId === 'fuji-grand-touge'
+      ? 1.25
+      : trackId === 'cryo-sector' || trackId === 'hypernova-skyway'
+      ? 1.05
+      : 0.75;
 
   return (
     <group>

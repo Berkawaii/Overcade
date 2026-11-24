@@ -2,7 +2,16 @@ import { useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-export type VortexEnvTheme = 'showroom' | 'neon-tokyo' | 'redline-canyon' | 'cryo-sector';
+export type VortexEnvTheme =
+  | 'showroom'
+  | 'apex-gp-circuit'
+  | 'neon-tokyo'
+  | 'redline-canyon'
+  | 'cryo-sector'
+  | 'hypernova-skyway'
+  | 'volcano-citadel'
+  | 'tokyo-touge-downhill'
+  | 'fuji-grand-touge';
 
 interface ThemePalette {
   bg: string;
@@ -19,6 +28,13 @@ const THEME_PALETTES: Record<VortexEnvTheme, ThemePalette> = {
     accentA: [2.8, 1.0, 0.25],
     accentB: [0.45, 2.1, 3.0],
     floorGlow: [0.14, 0.18, 0.28],
+  },
+  'apex-gp-circuit': {
+    bg: '#0c1222',
+    keyLight: [2.8, 2.7, 2.6],
+    accentA: [3.0, 0.55, 0.45],
+    accentB: [2.7, 2.8, 3.0],
+    floorGlow: [0.12, 0.2, 0.14],
   },
   'neon-tokyo': {
     bg: '#050611',
@@ -41,10 +57,48 @@ const THEME_PALETTES: Record<VortexEnvTheme, ThemePalette> = {
     accentB: [0.25, 2.6, 1.6],
     floorGlow: [0.1, 0.22, 0.3],
   },
+  'hypernova-skyway': {
+    bg: '#090316',
+    keyLight: [2.7, 2.4, 3.2],
+    accentA: [3.0, 0.65, 2.9],
+    accentB: [0.45, 2.3, 3.2],
+    floorGlow: [0.22, 0.1, 0.3],
+  },
+  'volcano-citadel': {
+    bg: '#1a0502',
+    keyLight: [3.0, 2.1, 1.5],
+    accentA: [3.4, 0.75, 0.15],
+    accentB: [3.1, 2.1, 0.3],
+    floorGlow: [0.35, 0.09, 0.02],
+  },
+  'tokyo-touge-downhill': {
+    bg: '#090714',
+    keyLight: [2.5, 2.2, 2.1],
+    accentA: [2.9, 1.65, 0.35],
+    accentB: [2.7, 0.9, 1.9],
+    floorGlow: [0.16, 0.12, 0.18],
+  },
+  'fuji-grand-touge': {
+    bg: '#070b18',
+    keyLight: [2.5, 2.6, 2.9],
+    accentA: [3.1, 0.65, 0.65],
+    accentB: [0.45, 2.2, 3.1],
+    floorGlow: [0.12, 0.16, 0.24],
+  },
 };
 
 function normalizeTheme(raw: string): VortexEnvTheme {
-  if (raw === 'showroom' || raw === 'neon-tokyo' || raw === 'redline-canyon' || raw === 'cryo-sector') {
+  if (
+    raw === 'showroom' ||
+    raw === 'apex-gp-circuit' ||
+    raw === 'neon-tokyo' ||
+    raw === 'redline-canyon' ||
+    raw === 'cryo-sector' ||
+    raw === 'hypernova-skyway' ||
+    raw === 'volcano-citadel' ||
+    raw === 'tokyo-touge-downhill' ||
+    raw === 'fuji-grand-touge'
+  ) {
     return raw;
   }
   return 'neon-tokyo';

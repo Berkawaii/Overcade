@@ -1,4 +1,4 @@
-export type GameStatus = 'playable_game' | 'playable_testbed' | 'ready_slot';
+export type GameStatus = 'playable_game' | 'early_development' | 'controller_test' | 'ready_slot';
 
 export interface CatalogGameItem {
   id: string;
@@ -23,27 +23,6 @@ export interface CatalogGameItem {
 
 export const GAMES_CATALOG: CatalogGameItem[] = [
   {
-    id: 'pico-protocol',
-    title: 'PICO PROTOCOL // CO-OP PARK',
-    subtitle: '1-4 Player Cooperative Puzzle Platformer: Human Ladders, Number Blocks, Tether Ropes & 8 Gimmick Stages',
-    genre: 'CO-OP ACTION PUZZLE // PARTY',
-    players: '1-4 Players (Co-op & Solo Squad)',
-    engineSpec: '2D Cooperative Stacking & Tether Physics @ 60 FPS',
-    status: 'playable_game',
-    statusLabel: 'NEW // PICO CO-OP EDITION',
-    coverImage: '/assets/arcade-pico-party.jpg',
-    bentoSpan: 'hero',
-    description:
-      'Inspired by Pico Park! Stack on teammates heads to form human ladders, push heavy numbered blocks together, survive elastic tether ropes, deflect lasers with the Riot Shield, relay ticking bomb keys, flip team gravity, and battle for the Golden Crown across 8 cooperative stages + Versus Mode.',
-    controlsMapping: {
-      leftStick: 'Move Left / Right & Cooperative Block Push',
-      rightStick: '[X] Callout Speech Bubble (JUMP! / PUSH! / WAIT!)',
-      buttonA: 'Jump & Stack on Teammates Heads',
-      buttonB: 'Pass Key to Teammate / Enter Goal Door',
-      triggers: 'L1 Toggle Squad Follow / R1 Instant Stage Retry',
-    },
-  },
-  {
     id: 'chrono-knights',
     title: 'CHRONO KNIGHTS // AETHELVALE',
     subtitle: '1-4 Player Shared-Screen Action RPG: 6 Hero Classes, Chrono Checkpoints & Sealed Boss Sanctums',
@@ -51,7 +30,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     players: '1-4 Players (Shared-Screen Co-op)',
     engineSpec: 'RPG-JS v5 Pixel Engine @ 60 FPS',
     status: 'playable_game',
-    statusLabel: 'FEATURED // COUCH CO-OP ARPG',
+    statusLabel: 'PLAYABLE // COUCH CO-OP ARPG',
     coverImage: '/assets/arcade-chrono-knights.jpg',
     bentoSpan: 'hero',
     description:
@@ -72,7 +51,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     players: '1-4 Players (Split-Screen PvP)',
     engineSpec: '2080m Terrain + 3D Missile Collision',
     status: 'playable_game',
-    statusLabel: 'PS2 RETRO EDITION',
+    statusLabel: 'PLAYABLE // 1-4P SPLIT-SCREEN',
     coverImage: '/assets/arcade-fired-up.jpg',
     bentoSpan: 'wide',
     description:
@@ -93,7 +72,7 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     players: '1-4 Players (Dynamic Split-Screen)',
     engineSpec: 'Three.js Multi-Camera + 3D Garage',
     status: 'playable_game',
-    statusLabel: 'PLAYABLE // 1-4 SPLIT-SCREEN',
+    statusLabel: 'PLAYABLE // COMBAT RACING',
     coverImage: '/assets/arcade-vortex-drift.jpg',
     bentoSpan: 'wide',
     description:
@@ -107,14 +86,35 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     },
   },
   {
+    id: 'pico-protocol',
+    title: 'PICO PROTOCOL // CO-OP PARK',
+    subtitle: '1-4 Player Cooperative Puzzle Platformer: Human Ladders, Number Blocks, Tether Ropes & 8 Gimmick Stages',
+    genre: 'CO-OP ACTION PUZZLE // PARTY',
+    players: '1-4 Players (Co-op & Solo Squad)',
+    engineSpec: '2D Cooperative Stacking & Tether Physics @ 60 FPS',
+    status: 'early_development',
+    statusLabel: 'EARLY DEVELOPMENT // CO-OP',
+    coverImage: '/assets/arcade-pico-party.jpg',
+    bentoSpan: 'hero',
+    description:
+      'Inspired by Pico Park! Stack on teammates heads to form human ladders, push heavy numbered blocks together, survive elastic tether ropes, deflect lasers with the Riot Shield, relay ticking bomb keys, flip team gravity, and battle for the Golden Crown across 8 cooperative stages + Versus Mode.',
+    controlsMapping: {
+      leftStick: 'Move Left / Right & Cooperative Block Push',
+      rightStick: '[X] Callout Speech Bubble (JUMP! / PUSH! / WAIT!)',
+      buttonA: 'Jump & Stack on Teammates Heads',
+      buttonB: 'Pass Key to Teammate / Enter Goal Door',
+      triggers: 'L1 Toggle Squad Follow / R1 Instant Stage Retry',
+    },
+  },
+  {
     id: 'ironclad-protocol',
     title: 'IRONCLAD PROTOCOL',
     subtitle: '1-4 Player Twin-Stick Armored Mech Tactical Arena Skirmish',
     genre: 'MECH ACTION // CO-OP & PVP',
     players: '1-4 Players (Multi-Phone WebRTC P2P)',
     engineSpec: 'Three.js R3F + 4-Channel 8-Byte UDP',
-    status: 'playable_game',
-    statusLabel: 'PLAYABLE // 1-4 PLAYERS',
+    status: 'controller_test',
+    statusLabel: 'CONTROLLER TEST // 3D MECH',
     coverImage: '/assets/arcade-ironclad-protocol.jpg',
     bentoSpan: 'standard',
     description:
@@ -134,8 +134,8 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     genre: 'HARDWARE TEST & SIMULATION',
     players: '1 Player (P2P Controller)',
     engineSpec: 'Three.js R3F + 8-Byte UDP',
-    status: 'playable_testbed',
-    statusLabel: 'ACTIVE SIMULATION',
+    status: 'controller_test',
+    statusLabel: 'CONTROLLER TEST // TELEMETRY',
     coverImage: '/assets/arcade-telemetry-arena.jpg',
     bentoSpan: 'standard',
     description:

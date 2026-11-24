@@ -37,10 +37,8 @@ import {
   ShockwaveRuntime,
   SplitMode,
   TOTAL_CARS,
-  TOTAL_LAPS,
   TRACK_HALF_WIDTH,
   TRACK_ROSTER,
-  TRACK_SAMPLES,
   TrackSpec,
   VEHICLE_ROSTER,
   VehicleSpec,
@@ -76,9 +74,14 @@ interface VortexDriftGameProps {
 }
 
 const TRACK_BGM_MAP: Record<string, VortexTrackId> = {
+  'apex-gp-circuit': 'neon_tokyo',
   'neon-tokyo': 'neon_tokyo',
   'redline-canyon': 'redline_canyon',
   'cryo-sector': 'cryo_sector',
+  'hypernova-skyway': 'neon_tokyo',
+  'volcano-citadel': 'redline_canyon',
+  'tokyo-touge-downhill': 'cryo_sector',
+  'fuji-grand-touge': 'cryo_sector',
 };
 
 const ARCHETYPE_LABELS: Record<VehicleSpec['chassisStyle'], string> = {
@@ -86,6 +89,10 @@ const ARCHETYPE_LABELS: Record<VehicleSpec['chassisStyle'], string> = {
   hyper: 'LMP1 HYPER-PROTO',
   muscle: 'ARMORED BRAWLER',
   tuner: 'WIDEBODY DRIFTER',
+  formula: 'CYBER OPEN-WHEEL',
+  rally: 'DAKAR RAID 4X4',
+  classic_jdm: 'TOUGE LEGEND AE-86',
+  cyber_wedge: 'STEALTH HYPERSONIC',
 };
 
 interface BlurRaceSceneProps {
@@ -93,6 +100,8 @@ interface BlurRaceSceneProps {
   playerVehicleIndices: number[];
   splitMode: SplitMode;
   autoThrottle: boolean;
+  botsEnabled: boolean;
+  targetLaps: number;
   resetToken: number;
   onHudSync: (
     snapshot: RaceHudSnapshot & { goBanner: boolean; finalLapBanner: boolean },
@@ -105,19 +114,26 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
   playerVehicleIndices,
   splitMode,
   autoThrottle,
+  botsEnabled,
+  targetLaps,
   resetToken,
   onHudSync,
 }) => {
-  const { samples, totalLength } = useMemo(
+  const { samples, totalLength, shortcuts, boostPads, ramps, loopRings } = useMemo(
     () => createTrackSamplesForSpec(trackSpec),
     [trackSpec]
   );
+
+  const sampleCount = samples.length;
+  const isPointToPoint = Boolean(trackSpec.isPointToPoint);
+  const weaponsEnabled = trackSpec.weaponsEnabled !== false;
+  const effectiveLaps = isPointToPoint ? 1 : Math.max(1, targetLaps);
 
   // 4 dedicated chase cameras for 1-4 player split-screen
   const camerasRef = useRef<THREE.PerspectiveCamera[]>([]);
   if (camerasRef.current.length === 0) {
     for (let i = 0; i < MAX_PLAYERS; i++) {
-      const cam = new THREE.PerspectiveCamera(62, 16 / 9, 0.5, 560);
+      const cam = new THREE.PerspectiveCamera(62, 16 / 9, 0.5, 960);
       camerasRef.current.push(cam);
     }
   }
@@ -134,19 +150,28 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
   const vfxRef = useRef<VortexVfxHandle | null>(null);
   const countdownTimerRef = useRef<number>(2.4);
 
-  // Rebuild 30 Power-up Pads whenever trackSpec changes
+  // Rebuild Power-up Pads when trackSpec or weaponsEnabled changes
   const powerupPads = useMemo(() => {
+    if (!weaponsEnabled) return [];
     const types: PowerupType[] = ['SHUNT', 'NITRO', 'BARGE', 'SHIELD', 'BOLT'];
     const list: PowerupPadRuntime[] = [];
     let padId = 0;
     for (let st = 0; st < 10; st++) {
-      const sIdx = Math.floor(((st + 0.5) / 10) * TRACK_SAMPLES) % TRACK_SAMPLES;
+      let sIdx = Math.floor(((st + 0.5) / 10) * sampleCount) % sampleCount;
+      let guard = 0;
+      while (samples[sIdx]?.isLoop && guard < 24) {
+        sIdx = (sIdx + 4) % sampleCount;
+        guard++;
+      }
       const sample = samples[sIdx];
+      if (!sample || sample.isLoop) continue;
       const laneOffsets = [-6.8, 0, 6.8];
       for (let lane = 0; lane < 3; lane++) {
         const pType = types[(st * 2 + lane) % types.length];
-        const pos = sample.pos.clone().addScaledVector(sample.right, laneOffsets[lane]);
-        pos.y = 1.25;
+        const pos = sample.pos
+          .clone()
+          .addScaledVector(sample.right, laneOffsets[lane])
+          .addScaledVector(sample.up, 1.25);
         list.push({
           id: padId++,
           type: pType,
@@ -156,7 +181,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       }
     }
     return list;
-  }, [samples]);
+  }, [samples, sampleCount, weaponsEnabled]);
 
   const carsRef = useRef<CarRuntime[]>([]);
   const projectilesRef = useRef<ProjectileRuntime[]>([]);
@@ -169,6 +194,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
     finalLapTriggered: false,
     finalLapBannerTimer: 0,
     winnerCallsign: null as string | null,
+    allHumansFinished: false,
     hudTimer: 0,
   });
 
@@ -204,29 +230,53 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
 
   const scratchVecA = useMemo(() => new THREE.Vector3(), []);
   const scratchVecB = useMemo(() => new THREE.Vector3(), []);
+  const scratchVecC = useMemo(() => new THREE.Vector3(), []);
+  const scratchMat4 = useMemo(() => new THREE.Matrix4(), []);
+  const scratchQuat = useMemo(() => new THREE.Quaternion(), []);
+  const worldUpVec = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   const scratchColor = useMemo(() => new THREE.Color(), []);
 
-  // Initialize Race Grid
+  // Initialize Race Grid (Respects Bots ON/OFF, Point-to-Point Touge & Weapon Flag)
   useEffect(() => {
+    const conn = useConsoleConnectionStore.getState();
+    const initHumans: number[] = [];
+    for (let s = 0; s < MAX_PLAYERS; s++) {
+      const inp = GameEngineBridge.playersInput[s];
+      const recent = inp && inp.sequence > 0 && performance.now() - inp.timestamp < 8000;
+      if (conn.connectedSlots[s] || recent || (s === 0 && conn.connectedCount === 0)) {
+        initHumans.push(s);
+      }
+    }
+    if (initHumans.length === 0) initHumans.push(0);
+
+    const spawnSlots = botsEnabled
+      ? Array.from({ length: TOTAL_CARS }, (_, idx) => idx)
+      : initHumans;
+
     const newCars: CarRuntime[] = [];
-    for (let i = 0; i < TOTAL_CARS; i++) {
+    for (let i = 0; i < spawnSlots.length; i++) {
+      const slotId = spawnSlots[i];
       const row = Math.floor(i / 2);
       const col = i % 2 === 0 ? -1 : 1;
-      const spawnSampleIdx = (8 - row * 3 + TRACK_SAMPLES) % TRACK_SAMPLES;
+      const spawnSampleIdx = isPointToPoint
+        ? Math.max(1, 7 - row * 2)
+        : (8 - row * 3 + sampleCount) % sampleCount;
       const sample = samples[spawnSampleIdx];
       const sampleHeading = Math.atan2(sample.tangent.x, sample.tangent.z);
-      const spawnPos = sample.pos.clone().addScaledVector(sample.right, col * 3.8);
-      spawnPos.y = 0.55;
+      const spawnPos = sample.pos
+        .clone()
+        .addScaledVector(sample.right, col * 3.6)
+        .addScaledVector(sample.up, 0.55);
 
       const vehIdx =
-        i < MAX_PLAYERS
-          ? playerVehicleIndices[i] % VEHICLE_ROSTER.length
-          : i % VEHICLE_ROSTER.length;
+        slotId < MAX_PLAYERS
+          ? playerVehicleIndices[slotId] % VEHICLE_ROSTER.length
+          : slotId % VEHICLE_ROSTER.length;
       const vSpec = VEHICLE_ROSTER[vehIdx];
 
       newCars.push({
-        id: i,
-        isHuman: i === 0,
+        id: slotId,
+        isHuman: slotId < MAX_PLAYERS && initHumans.includes(slotId),
         vehicleSpec: vSpec,
         pos: spawnPos,
         vel: new THREE.Vector3(),
@@ -237,6 +287,12 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         lateralVel: 0,
         driftFactor: 0,
         driftCharge: 0,
+        driftDir: 0,
+        driftTier: 0,
+        prevDriftBtn: false,
+        driftScore: 0,
+        driftCombo: 1,
+        driftComboTimer: 0,
         hp: vSpec.maxHp,
         maxHp: vSpec.maxHp,
         shieldTimer: 0,
@@ -247,22 +303,31 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         verticalY: 0,
         verticalVel: 0,
         wasAirborne: false,
+        inLoop: false,
+        loopLatOffset: 0,
+        activeShortcutId: null,
+        shortcutIndex: 0,
+        rampCooldown: 0,
+        boostPadCooldown: 0,
+        surfaceUp: sample.up.clone(),
+        surfaceForward: sample.tangent.clone(),
         trackIndex: spawnSampleIdx,
         lap: 1,
-        totalProgress: 1 + spawnSampleIdx / TRACK_SAMPLES,
+        totalProgress: 1 + spawnSampleIdx / sampleCount,
         rank: i + 1,
         finished: false,
         finishTime: 0,
-        slots: [i % 2 === 0 ? 'NITRO' : 'SHUNT', null, null],
+        slots: weaponsEnabled ? [i % 2 === 0 ? 'NITRO' : 'SHUNT', null, null] : [null, null, null],
         activeSlotIndex: 0,
         prevB: false,
         prevR1: false,
-        aiTargetOffset: col * 3.2,
+        aiTargetOffset: col * 3.0,
         aiFireCooldown: 3.0 + i * 0.6,
       });
     }
 
     carsRef.current = newCars;
+    camerasRef.current.forEach((cam) => cam.up.set(0, 1, 0));
     raceStateRef.current.raceTimeSec = 0;
     raceStateRef.current.countdownTimer = 2.4;
     raceStateRef.current.prevCountdownInt = 4;
@@ -270,6 +335,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
     raceStateRef.current.finalLapTriggered = false;
     raceStateRef.current.finalLapBannerTimer = 0;
     raceStateRef.current.winnerCallsign = null;
+    raceStateRef.current.allHumansFinished = false;
     countdownTimerRef.current = 2.4;
 
     projectilesRef.current.forEach((p) => {
@@ -283,9 +349,19 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       pad.respawnTimer = 0;
     });
     vfxRef.current?.resetAll();
-  }, [resetToken, samples, playerVehicleIndices, powerupPads]);
+  }, [
+    resetToken,
+    samples,
+    sampleCount,
+    playerVehicleIndices,
+    powerupPads,
+    botsEnabled,
+    isPointToPoint,
+    weaponsEnabled,
+  ]);
 
   const fireCarPowerup = (car: CarRuntime) => {
+    if (!weaponsEnabled) return;
     const pType = car.slots[car.activeSlotIndex];
     if (!pType) return;
 
@@ -381,9 +457,11 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         proj.kind = 'SHUNT';
         proj.ownerId = car.id;
         proj.targetCarId = targetId;
-        proj.trackIdx = (car.trackIndex + 3) % TRACK_SAMPLES;
+        proj.trackIdx = isPointToPoint
+          ? Math.min(sampleCount - 1, car.trackIndex + 3)
+          : (car.trackIndex + 3) % sampleCount;
         proj.pos.copy(car.pos);
-        proj.pos.y = 1.1;
+        proj.pos.y = car.pos.y + 0.55;
         proj.vel.set(Math.sin(car.heading) * 94, 0, Math.cos(car.heading) * 94);
         proj.life = 4.5;
         proj.color = POWERUP_COLORS.SHUNT;
@@ -408,7 +486,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         proj.targetCarId = -1;
         proj.trackIdx = car.trackIndex;
         proj.pos.copy(car.pos);
-        proj.pos.y = 0.95;
+        proj.pos.y = car.pos.y + 0.4;
         const angle = car.heading + sp;
         proj.vel.set(Math.sin(angle) * 108, 0, Math.cos(angle) * 108);
         proj.life = 1.8;
@@ -495,12 +573,18 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
     const cars = carsRef.current;
     for (let i = 0; i < cars.length; i++) {
       const car = cars[i];
-      car.isHuman = i < MAX_PLAYERS && humanSlots.includes(i);
+      car.isHuman = car.id < MAX_PLAYERS && humanSlots.includes(car.id);
 
       if (car.shieldTimer > 0) car.shieldTimer = Math.max(0, car.shieldTimer - dt);
       if (car.nitroTimer > 0) car.nitroTimer = Math.max(0, car.nitroTimer - dt);
       if (car.shakeTimer > 0) car.shakeTimer = Math.max(0, car.shakeTimer - dt);
       if (car.damageFlashTimer > 0) car.damageFlashTimer = Math.max(0, car.damageFlashTimer - dt);
+      if (car.rampCooldown > 0) car.rampCooldown = Math.max(0, car.rampCooldown - dt);
+      if (car.boostPadCooldown > 0) car.boostPadCooldown = Math.max(0, car.boostPadCooldown - dt);
+      if (car.driftComboTimer > 0) {
+        car.driftComboTimer = Math.max(0, car.driftComboTimer - dt);
+        if (car.driftComboTimer <= 0) car.driftCombo = 1;
+      }
 
       if (car.shuntHitTimer > 0) {
         car.shuntHitTimer = Math.max(0, car.shuntHitTimer - dt);
@@ -512,7 +596,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         car.wasAirborne = true;
       }
 
-      if (car.verticalY > 0 || car.verticalVel !== 0) {
+      if (!car.inLoop && (car.verticalY > 0 || car.verticalVel !== 0)) {
         car.verticalY += car.verticalVel * dt;
         car.verticalVel -= 38 * dt;
         if (car.verticalY <= 0) {
@@ -520,7 +604,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           car.verticalVel = 0;
           if (car.wasAirborne) {
             car.wasAirborne = false;
-            vfxRef.current?.emitCollisionSparks(car.pos.x, 0.25, car.pos.z);
+            vfxRef.current?.emitCollisionSparks(car.pos.x, car.pos.y - 0.3, car.pos.z);
             if (car.isHuman) {
               car.shakeTimer = Math.max(car.shakeTimer, 0.22);
               VortexSfx.play('car_airborne_land', () => SoundFX.playHeavySlam(), {
@@ -531,58 +615,178 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
         }
       }
 
-      // Find nearest track sample around current car.trackIndex
-      let bestSampleIdx = car.trackIndex;
-      let bestDistSq = Infinity;
-      for (let offset = -28; offset <= 36; offset++) {
-        const candidateIdx = (car.trackIndex + offset + TRACK_SAMPLES) % TRACK_SAMPLES;
-        const dSq = samples[candidateIdx].pos.distanceToSquared(car.pos);
-        if (dSq < bestDistSq) {
-          bestDistSq = dSq;
-          bestSampleIdx = candidateIdx;
+      // Resolve active track spline (either express Shortcut deck or main track spline)
+      let activeSampleList = samples;
+      let activeIdx = car.trackIndex;
+      let activeShortcut = car.activeShortcutId
+        ? shortcuts.find((sc) => sc.def.id === car.activeShortcutId) ?? null
+        : null;
+
+      if (activeShortcut) {
+        const scSamples = activeShortcut.samples;
+        const scN = scSamples.length;
+        let bestScIdx = car.shortcutIndex;
+        let bestScDist = Infinity;
+        const minI = Math.max(0, car.shortcutIndex - 6);
+        const maxI = Math.min(scN - 1, car.shortcutIndex + 12);
+        for (let k = minI; k <= maxI; k++) {
+          const dSq = scSamples[k].pos.distanceToSquared(car.pos);
+          if (dSq < bestScDist) {
+            bestScDist = dSq;
+            bestScIdx = k;
+          }
+        }
+        car.shortcutIndex = bestScIdx;
+        const u = bestScIdx / Math.max(1, scN - 1);
+        const span =
+          activeShortcut.exitIdx >= activeShortcut.entryIdx
+            ? activeShortcut.exitIdx - activeShortcut.entryIdx
+            : sampleCount - activeShortcut.entryIdx + activeShortcut.exitIdx;
+        car.trackIndex = Math.floor(activeShortcut.entryIdx + span * u) % sampleCount;
+        car.totalProgress =
+          car.lap +
+          ((activeShortcut.entryIdx + span * u) % sampleCount) /
+            Math.max(1, isPointToPoint ? sampleCount - 1 : sampleCount);
+
+        if (bestScIdx >= scN - 2) {
+          car.activeShortcutId = null;
+          car.trackIndex = activeShortcut.exitIdx;
+          activeShortcut = null;
+          activeSampleList = samples;
+          activeIdx = car.trackIndex;
+        } else {
+          activeSampleList = scSamples;
+          activeIdx = bestScIdx;
         }
       }
-      if (bestDistSq > 900) {
-        for (let sIdx = 0; sIdx < TRACK_SAMPLES; sIdx++) {
-          const dSq = samples[sIdx].pos.distanceToSquared(car.pos);
+
+      if (!activeShortcut && !car.inLoop) {
+        let bestSampleIdx = car.trackIndex;
+        let bestDistSq = Infinity;
+        const backLim = isPointToPoint ? -18 : -28;
+        const fwdLim = isPointToPoint ? 26 : 36;
+        for (let offset = backLim; offset <= fwdLim; offset++) {
+          const rawCand = car.trackIndex + offset;
+          if (isPointToPoint && (rawCand < 0 || rawCand >= sampleCount)) continue;
+          const candidateIdx = (rawCand + sampleCount) % sampleCount;
+          const dSq = samples[candidateIdx].pos.distanceToSquared(car.pos);
           if (dSq < bestDistSq) {
             bestDistSq = dSq;
-            bestSampleIdx = sIdx;
+            bestSampleIdx = candidateIdx;
           }
+        }
+        // Never allow full-track fallback scan on point-to-point Touge where switchbacks stack
+        if (!isPointToPoint && bestDistSq > 1100) {
+          for (let sIdx = 0; sIdx < sampleCount; sIdx++) {
+            const dSq = samples[sIdx].pos.distanceToSquared(car.pos);
+            if (dSq < bestDistSq) {
+              bestDistSq = dSq;
+              bestSampleIdx = sIdx;
+            }
+          }
+        }
+
+        if (!isPointToPoint) {
+          if (car.trackIndex > sampleCount * 0.82 && bestSampleIdx < sampleCount * 0.18) {
+            car.lap += 1;
+            if (car.isHuman && car.lap <= effectiveLaps) {
+              VortexSfx.play('race_lap_chime', () => SoundFX.playCoinInsert(), {
+                maxDurationSec: 1.8,
+              });
+              if (effectiveLaps > 1 && car.lap === effectiveLaps && !rs.finalLapTriggered) {
+                rs.finalLapTriggered = true;
+                rs.finalLapBannerTimer = 2.6;
+                VortexAudio.playTrack('final_lap');
+              }
+            }
+            if (car.lap > effectiveLaps && !car.finished) {
+              car.finished = true;
+              car.finishTime = rs.raceTimeSec;
+              if (!rs.winnerCallsign) {
+                rs.winnerCallsign = CAR_CALLSIGNS[car.id];
+              }
+              if (car.isHuman) {
+                VortexSfx.play('race_finish_fanfare', () => SoundFX.playFanfare(), {
+                  maxDurationSec: 3.5,
+                });
+              }
+            }
+          } else if (car.trackIndex < sampleCount * 0.18 && bestSampleIdx > sampleCount * 0.82) {
+            car.lap = Math.max(1, car.lap - 1);
+          }
+        } else {
+          car.lap = 1;
+          if (
+            rs.raceTimeSec > 8.0 &&
+            car.trackIndex >= sampleCount - 28 &&
+            bestSampleIdx >= sampleCount - 6 &&
+            !car.finished
+          ) {
+            car.finished = true;
+            car.finishTime = rs.raceTimeSec;
+            if (!rs.winnerCallsign) {
+              rs.winnerCallsign = CAR_CALLSIGNS[car.id];
+            }
+            if (car.isHuman) {
+              VortexSfx.play('race_finish_fanfare', () => SoundFX.playFanfare(), {
+                maxDurationSec: 3.5,
+              });
+            }
+          }
+        }
+
+        car.trackIndex = bestSampleIdx;
+        car.totalProgress =
+          car.lap + bestSampleIdx / Math.max(1, isPointToPoint ? sampleCount - 1 : sampleCount);
+        activeIdx = bestSampleIdx;
+
+        // Check Shortcut Portal Entry (wider capture window aligned with guardrail doorway)
+        if (!isCountdownLocked) {
+          const curMain = samples[bestSampleIdx];
+          for (let sci = 0; sci < shortcuts.length; sci++) {
+            const sc = shortcuts[sci];
+            const dEntry = Math.abs(bestSampleIdx - sc.entryIdx);
+            const wrapD = isPointToPoint ? dEntry : Math.min(dEntry, sampleCount - dEntry);
+            if (wrapD <= 10) {
+              const lat = scratchVecA.subVectors(car.pos, curMain.pos).dot(curMain.right);
+              if (lat * sc.def.side > curMain.halfWidth - 5.2) {
+                car.activeShortcutId = sc.def.id;
+                car.shortcutIndex = 2;
+                activeShortcut = sc;
+                activeSampleList = sc.samples;
+                activeIdx = 2;
+                if (car.isHuman) {
+                  VortexSfx.play('powerup_nitro', () => SoundFX.playDash(), {
+                    minIntervalMs: 300,
+                    maxDurationSec: 0.7,
+                  });
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        // Check 360-Degree Vertical Loop Entry
+        if (!activeShortcut && samples[bestSampleIdx]?.isLoop) {
+          car.inLoop = true;
+          car.verticalY = 0;
+          car.verticalVel = 0;
+          const enterS = samples[bestSampleIdx];
+          car.loopLatOffset = THREE.MathUtils.clamp(
+            scratchVecA.subVectors(car.pos, enterS.pos).dot(enterS.right),
+            -(enterS.halfWidth - 1.8),
+            enterS.halfWidth - 1.8
+          );
         }
       }
 
-      if (car.trackIndex > TRACK_SAMPLES * 0.82 && bestSampleIdx < TRACK_SAMPLES * 0.18) {
-        car.lap += 1;
-        if (car.isHuman && car.lap <= TOTAL_LAPS) {
-          VortexSfx.play('race_lap_chime', () => SoundFX.playCoinInsert(), {
-            maxDurationSec: 1.8,
-          });
-          if (car.lap === TOTAL_LAPS && !rs.finalLapTriggered) {
-            rs.finalLapTriggered = true;
-            rs.finalLapBannerTimer = 2.6;
-            VortexAudio.playTrack('final_lap');
-          }
-        }
-        if (car.lap > TOTAL_LAPS && !car.finished) {
-          car.finished = true;
-          car.finishTime = rs.raceTimeSec;
-          if (!rs.winnerCallsign) {
-            rs.winnerCallsign = CAR_CALLSIGNS[car.id];
-            VortexSfx.play('race_finish_fanfare', () => SoundFX.playFanfare(), {
-              maxDurationSec: 3.5,
-            });
-          }
-        }
-      } else if (car.trackIndex < TRACK_SAMPLES * 0.18 && bestSampleIdx > TRACK_SAMPLES * 0.82) {
-        car.lap = Math.max(1, car.lap - 1);
-      }
-
-      car.trackIndex = bestSampleIdx;
-      car.totalProgress = car.lap + bestSampleIdx / TRACK_SAMPLES;
-
-      const curSample = samples[bestSampleIdx];
-      const lookSample = samples[(bestSampleIdx + 10) % TRACK_SAMPLES];
+      const activeListLen = activeSampleList.length;
+      const curSample = activeSampleList[activeIdx];
+      const lookIdx = activeShortcut || isPointToPoint
+        ? Math.min(activeListLen - 1, activeIdx + (activeShortcut ? 6 : 10))
+        : (activeIdx + 10) % activeListLen;
+      const lookSample = activeSampleList[lookIdx];
 
       let steerInput = 0;
       let throttleInput = 0;
@@ -591,8 +795,8 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       let cycleSlotPressed = false;
 
       if (!isCountdownLocked) {
-        if (car.isHuman && i < MAX_PLAYERS && !car.finished) {
-          const inp = GameEngineBridge.playersInput[i];
+        if (car.isHuman && car.id < MAX_PLAYERS && !car.finished) {
+          const inp = GameEngineBridge.playersInput[car.id];
           steerInput = inp.axes.leftX;
           if (Math.abs(steerInput) < 0.08 && Math.abs(inp.axes.rightX) > 0.15) {
             steerInput = inp.axes.rightX;
@@ -606,14 +810,28 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           }
 
           brakeOrDrift = inp.buttons.L1 || inp.buttons.X;
-          firePressed = inp.buttons.B && !car.prevB;
-          cycleSlotPressed = inp.buttons.R1 && !car.prevR1;
+          if (weaponsEnabled) {
+            firePressed = inp.buttons.B && !car.prevB;
+            cycleSlotPressed = inp.buttons.R1 && !car.prevR1;
+          }
           car.prevB = inp.buttons.B;
           car.prevR1 = inp.buttons.R1;
         } else {
-          // AI Street Racer Logic
+          // AI Street Racer Logic (also steers into shortcuts selectively!)
           car.aiTargetOffset =
-            Math.sin(rs.raceTimeSec * 0.65 + car.id * 1.8) * (TRACK_HALF_WIDTH * 0.42);
+            Math.sin(rs.raceTimeSec * 0.65 + car.id * 1.8) * (curSample.halfWidth * 0.42);
+          if (!activeShortcut && !car.inLoop) {
+            for (let sci = 0; sci < shortcuts.length; sci++) {
+              const sc = shortcuts[sci];
+              const aheadDist = isPointToPoint
+                ? sc.entryIdx - activeIdx
+                : (sc.entryIdx - activeIdx + sampleCount) % sampleCount;
+              if (aheadDist >= 0 && aheadDist <= 18 && (car.id + car.lap) % 2 === 1) {
+                car.aiTargetOffset = sc.def.side * (curSample.halfWidth * 0.9);
+                break;
+              }
+            }
+          }
 
           const targetPos = scratchVecA
             .copy(lookSample.pos)
@@ -628,15 +846,17 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           throttleInput = 0.96 + (car.id % 3) * 0.03;
           brakeOrDrift = Math.abs(angleDiff) > 0.55 && car.speed > 42;
 
-          car.aiFireCooldown -= dt;
-          if (car.aiFireCooldown <= 0 && car.slots[car.activeSlotIndex] !== null) {
-            firePressed = true;
-            car.aiFireCooldown = 2.6 + (car.id % 3) * 0.8;
+          if (weaponsEnabled) {
+            car.aiFireCooldown -= dt;
+            if (car.aiFireCooldown <= 0 && car.slots[car.activeSlotIndex] !== null) {
+              firePressed = true;
+              car.aiFireCooldown = 2.6 + (car.id % 3) * 0.8;
+            }
           }
         }
       }
 
-      if (cycleSlotPressed) {
+      if (weaponsEnabled && cycleSlotPressed) {
         car.activeSlotIndex = (car.activeSlotIndex + 1) % 3;
         if (car.isHuman) {
           VortexSfx.play('hud_slot_cycle', () => SoundFX.playMenuClick(), {
@@ -645,151 +865,380 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           });
         }
       }
-      if (firePressed && car.shuntHitTimer <= 0) {
+      if (weaponsEnabled && firePressed && car.shuntHitTimer <= 0) {
         fireCarPowerup(car);
       }
+
+      const driftJustPressed = brakeOrDrift && !car.prevDriftBtn;
+      car.prevDriftBtn = brakeOrDrift;
 
       const vSpec = car.vehicleSpec;
       const topSpeed = (car.nitroTimer > 0 ? 78 : 55) * vSpec.topSpeedMul;
       const accelRate = (car.nitroTimer > 0 ? 64 : 36) * vSpec.accelMul;
 
-      if (throttleInput > 0) {
-        car.speed += accelRate * throttleInput * dt;
-      } else if (throttleInput < 0) {
-        car.speed += 28 * throttleInput * dt;
-      } else {
-        car.speed *= 1 - 1.4 * dt;
-      }
+      if (car.inLoop) {
+        // Magnetic 360-Degree Vertical Loop Traversal!
+        car.speed = Math.max(64 * vSpec.topSpeedMul, Math.min(88, car.speed + 24 * dt));
+        car.driftFactor = THREE.MathUtils.lerp(car.driftFactor, 0, 12 * dt);
+        car.driftCharge = 0;
+        car.driftDir = 0;
+        car.driftTier = 0;
+        car.lateralVel = 0;
+        car.steerAngle = THREE.MathUtils.lerp(car.steerAngle, steerInput, 12 * dt);
+        car.wheelSpin += car.speed * dt * 2.1;
+        car.loopLatOffset = THREE.MathUtils.clamp(
+          car.loopLatOffset + steerInput * 16 * dt,
+          -(curSample.halfWidth - 1.8),
+          curSample.halfWidth - 1.8
+        );
 
-      if (brakeOrDrift && Math.abs(steerInput) > 0.2 && car.speed > 22) {
-        car.driftFactor = THREE.MathUtils.lerp(car.driftFactor, 1, 8 * dt);
-        car.driftCharge = Math.min(1.5, car.driftCharge + dt * vSpec.turnMul);
-        car.speed *= 1 - 0.32 * dt;
-      } else {
-        if (car.driftCharge > 0.6) {
-          car.speed = Math.min(topSpeed + 12, car.speed + 14);
-          car.nitroTimer = Math.max(car.nitroTimer, 0.65);
+        const advancePos = scratchVecA
+          .copy(car.pos)
+          .addScaledVector(curSample.tangent, car.speed * dt);
+        let bestL = car.trackIndex;
+        let bestLD = Infinity;
+        const maxSearch = Math.min(sampleCount - 1, car.trackIndex + 8);
+        for (let lIdx = car.trackIndex; lIdx <= maxSearch; lIdx++) {
+          const d = samples[lIdx].pos.distanceToSquared(advancePos);
+          if (d < bestLD) {
+            bestLD = d;
+            bestL = lIdx;
+          }
+        }
+        const nextL = Math.min(sampleCount - 1, bestL + 1);
+        const sA = samples[bestL];
+        const sB = samples[nextL];
+        const segVec = scratchVecB.subVectors(sB.pos, sA.pos);
+        const segLenSq = Math.max(0.01, segVec.lengthSq());
+        const tSeg = THREE.MathUtils.clamp(
+          scratchVecC.subVectors(advancePos, sA.pos).dot(segVec) / segLenSq,
+          0,
+          1
+        );
+
+        const interpPos = scratchVecA.lerpVectors(sA.pos, sB.pos, tSeg);
+        const interpRight = scratchVecB.lerpVectors(sA.right, sB.right, tSeg).normalize();
+        const interpUp = scratchVecC.lerpVectors(sA.up, sB.up, tSeg).normalize();
+        car.surfaceUp.copy(interpUp);
+        car.surfaceForward.lerpVectors(sA.tangent, sB.tangent, tSeg).normalize();
+        car.pos
+          .copy(interpPos)
+          .addScaledVector(interpRight, car.loopLatOffset)
+          .addScaledVector(interpUp, 0.55);
+        car.vel.copy(car.surfaceForward).multiplyScalar(car.speed);
+        car.heading = Math.atan2(car.surfaceForward.x, car.surfaceForward.z);
+        car.trackIndex = bestL;
+        car.totalProgress = car.lap + bestL / sampleCount;
+
+        if (!samples[bestL].isLoop) {
+          car.inLoop = false;
+          car.nitroTimer = Math.max(car.nitroTimer, 0.95);
           vfxRef.current?.emitNitroBoom(car);
           if (car.isHuman) {
-            VortexSfx.play('car_drift_boost', () => SoundFX.playDash(), {
-              minIntervalMs: 250,
-              maxDurationSec: 0.9,
+            VortexSfx.play('powerup_nitro', () => SoundFX.playNitroBoost(), {
+              maxDurationSec: 1.2,
             });
           }
         }
-        car.driftCharge = 0;
-        car.driftFactor = THREE.MathUtils.lerp(car.driftFactor, 0, 10 * dt);
-      }
-
-      car.speed = Math.max(-18, Math.min(topSpeed, car.speed));
-      car.steerAngle = THREE.MathUtils.lerp(car.steerAngle, steerInput, 14 * dt);
-      car.wheelSpin += car.speed * dt * 2.1;
-
-      const turnRate =
-        (2.25 + car.driftFactor * 1.15) *
-        vSpec.turnMul *
-        trackSpec.gripMul *
-        (car.speed >= 0 ? 1 : -1);
-      car.heading -= steerInput * turnRate * dt;
-
-      const fwdX = Math.sin(car.heading);
-      const fwdZ = Math.cos(car.heading);
-      const rightX = Math.cos(car.heading);
-      const rightZ = -Math.sin(car.heading);
-
-      const targetLateral =
-        -steerInput * car.driftFactor * (car.speed * (0.34 / trackSpec.gripMul));
-      car.lateralVel = THREE.MathUtils.lerp(car.lateralVel, targetLateral, 7 * dt);
-
-      car.vel.set(
-        fwdX * car.speed + rightX * car.lateralVel,
-        0,
-        fwdZ * car.speed + rightZ * car.lateralVel
-      );
-
-      car.pos.addScaledVector(car.vel, dt);
-
-      // Drift & Nitro Particle Emission + Drift Screech SFX
-      if (car.driftFactor > 0.3 && car.verticalY <= 0.1) {
-        vfxRef.current?.emitDriftEffects(car, dt);
-        if (car.isHuman && car.driftFactor > 0.48) {
-          VortexSfx.play('car_drift_screech', undefined, {
-            minIntervalMs: 420,
-            maxDurationSec: 0.9,
-            volume: 0.45,
-          });
+      } else {
+        // Slope gravitational boost / resistance
+        if (!isCountdownLocked) {
+          car.speed += -curSample.tangent.y * 16 * dt;
         }
-      }
-      if (car.nitroTimer > 0) {
-        vfxRef.current?.emitNitroTrail(car, dt);
-      }
-
-      // Guardrail Barrier Collision & Smooth Wall Redirection
-      const relVec = scratchVecA.subVectors(car.pos, curSample.pos);
-      const lateralOffset = relVec.dot(curSample.right);
-      const maxOffset = TRACK_HALF_WIDTH - 1.6;
-
-      if (Math.abs(lateralOffset) > maxOffset) {
-        const clampedOffset = Math.sign(lateralOffset) * (maxOffset - 0.2);
-        car.pos.addScaledVector(curSample.right, clampedOffset - lateralOffset);
-        car.speed *= Math.max(0.88, 1 - 0.85 * dt);
-        car.lateralVel *= 0.4;
-
-        vfxRef.current?.emitWallScrape(car.pos.x, car.pos.y, car.pos.z, car.vel.x, car.vel.z);
-        if (car.isHuman && Math.abs(car.speed) > 16) {
-          car.shakeTimer = Math.max(car.shakeTimer, 0.14);
-          VortexSfx.play('car_wall_scrape', () => SoundFX.playHit(false), {
-            minIntervalMs: 280,
-            maxDurationSec: 0.65,
-            volume: 0.48,
-          });
+        if (throttleInput > 0) {
+          if (car.speed < topSpeed) {
+            car.speed = Math.min(topSpeed, car.speed + accelRate * throttleInput * dt);
+          } else if (car.nitroTimer <= 0) {
+            car.speed = THREE.MathUtils.lerp(car.speed, topSpeed, 4 * dt);
+          }
+        } else if (throttleInput < 0) {
+          car.speed += 28 * throttleInput * dt;
+        } else {
+          car.speed *= 1 - 1.4 * dt;
         }
 
-        const tangentHeading = Math.atan2(curSample.tangent.x, curSample.tangent.z);
-        let diff = tangentHeading - car.heading;
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        car.heading += diff * Math.min(1, 9.5 * dt);
-      }
+        // Mario Kart Style Hop on Drift Press
+        if (driftJustPressed && car.verticalY <= 0.1 && car.speed > 18 && !isCountdownLocked) {
+          car.verticalVel = Math.max(car.verticalVel, 5.6);
+          car.verticalY = Math.max(car.verticalY, 0.08);
+        }
 
-      // Check Power-Up Hologram Pad Pickups
-      for (let p = 0; p < powerupPads.length; p++) {
-        const pad = powerupPads[p];
-        if (pad.respawnTimer > 0) continue;
-        const dx = car.pos.x - pad.pos.x;
-        const dz = car.pos.z - pad.pos.z;
-        if (dx * dx + dz * dz < 6.4) {
-          const emptySlot = car.slots.findIndex((s) => s === null);
-          if (emptySlot !== -1) {
-            car.slots[emptySlot] = pad.type;
-            if (car.slots[car.activeSlotIndex] === null) {
-              car.activeSlotIndex = emptySlot;
+        // Engage & Lock Drift Direction; sustain while Drift held even when counter-steering
+        if (car.driftDir === 0 && brakeOrDrift && car.speed > 20 && Math.abs(steerInput) > 0.14) {
+          car.driftDir = steerInput > 0 ? 1 : -1;
+        }
+
+        if (car.driftDir !== 0 && brakeOrDrift && car.speed > 16) {
+          car.driftFactor = THREE.MathUtils.lerp(car.driftFactor, 1, 9 * dt);
+          const sameDir = steerInput * car.driftDir;
+          const chargeRate =
+            (sameDir > 0.2 ? 1.45 : sameDir < -0.2 ? 0.65 : 1.0) * vSpec.turnMul;
+          car.driftCharge = Math.min(2.6, car.driftCharge + dt * chargeRate);
+          const prevTier = car.driftTier;
+          car.driftTier =
+            car.driftCharge >= 2.25
+              ? 3
+              : car.driftCharge >= 1.3
+              ? 2
+              : car.driftCharge >= 0.55
+              ? 1
+              : 0;
+          if (car.isHuman && car.driftTier > prevTier) {
+            VortexSfx.play('race_lap_chime', () => SoundFX.playPowerupPickup(), {
+              minIntervalMs: 140,
+              maxDurationSec: 0.45,
+              volume: 0.55 + car.driftTier * 0.1,
+            });
+          }
+          car.speed *= 1 - 0.18 * dt;
+          if (car.verticalY <= 0.18) {
+            car.driftScore += Math.round(
+              car.speed * car.driftFactor * dt * (2.2 + car.driftTier * 1.4) * car.driftCombo
+            );
+            car.driftComboTimer = 2.4;
+            car.driftCombo = Math.min(5, Math.max(car.driftCombo, 1 + car.driftTier));
+          }
+        } else {
+          if (car.driftTier > 0) {
+            const boostAdd = car.driftTier >= 3 ? 26 : car.driftTier === 2 ? 18 : 11;
+            const nitroDur = car.driftTier >= 3 ? 1.75 : car.driftTier === 2 ? 1.15 : 0.65;
+            const bonus = car.driftTier >= 3 ? 900 : car.driftTier === 2 ? 400 : 150;
+            const releaseMax = Math.max(topSpeed, 88 * vSpec.topSpeedMul);
+            car.speed = Math.min(releaseMax, car.speed + boostAdd);
+            car.nitroTimer = Math.max(car.nitroTimer, nitroDur);
+            car.driftScore += bonus;
+            if (car.driftTier >= 2) {
+              vfxRef.current?.emitNitroBoom(car);
             }
-          } else {
-            car.slots[car.activeSlotIndex] = pad.type;
+            if (car.driftTier >= 3) {
+              vfxRef.current?.emitExplosion(car.pos.x, car.pos.y, car.pos.z, '#E879F9', 14);
+              const sw = shockwavesRef.current.find((s) => !s.active);
+              if (sw) {
+                sw.active = true;
+                sw.pos.copy(car.pos);
+                sw.radius = 1.4;
+                sw.maxRadius = 11.5;
+                sw.life = 0.36;
+                sw.maxLife = 0.36;
+                sw.color = '#E879F9';
+              }
+            }
+            if (car.isHuman) {
+              VortexSfx.play('car_drift_boost', () => SoundFX.playDash(), {
+                minIntervalMs: 220,
+                maxDurationSec: 0.9,
+              });
+            }
           }
-          pad.respawnTimer = 4.5;
-          vfxRef.current?.emitExplosion(
-            pad.pos.x,
-            pad.pos.y,
-            pad.pos.z,
-            POWERUP_COLORS[pad.type],
-            10
-          );
-          if (car.isHuman) {
-            VortexSfx.play('powerup_pickup', () => SoundFX.playPowerupPickup(), {
+          car.driftDir = 0;
+          car.driftCharge = 0;
+          car.driftTier = 0;
+          car.driftFactor = THREE.MathUtils.lerp(car.driftFactor, 0, 10 * dt);
+        }
+
+        car.speed = Math.max(-18, Math.min(92 * vSpec.topSpeedMul, car.speed));
+        car.steerAngle = THREE.MathUtils.lerp(car.steerAngle, steerInput, 14 * dt);
+        car.wheelSpin += car.speed * dt * 2.1;
+
+        const effectiveSteer =
+          car.driftDir !== 0 ? car.driftDir * 0.55 + steerInput * 0.72 : steerInput;
+        const turnRate =
+          (2.25 + car.driftFactor * 1.15) *
+          vSpec.turnMul *
+          trackSpec.gripMul *
+          (car.speed >= 0 ? 1 : -1);
+        car.heading -= effectiveSteer * turnRate * dt;
+
+        const fwdX = Math.sin(car.heading);
+        const fwdZ = Math.cos(car.heading);
+        const rightX = Math.cos(car.heading);
+        const rightZ = -Math.sin(car.heading);
+
+        const targetLateral =
+          car.driftDir !== 0
+            ? -car.driftDir * car.driftFactor * (car.speed * (0.38 / trackSpec.gripMul))
+            : 0;
+        car.lateralVel = THREE.MathUtils.lerp(car.lateralVel, targetLateral, 7 * dt);
+
+        car.vel.set(
+          fwdX * car.speed + rightX * car.lateralVel,
+          0,
+          fwdZ * car.speed + rightZ * car.lateralVel
+        );
+
+        car.pos.x += car.vel.x * dt;
+        car.pos.z += car.vel.z * dt;
+
+        // Project onto local 2-sample segment for crisp 3D surface elevation & slope orientation
+        const nextSegI =
+          activeShortcut || isPointToPoint
+            ? Math.min(activeListLen - 1, activeIdx + 1)
+            : (activeIdx + 1) % activeListLen;
+        const sA = activeSampleList[activeIdx];
+        const sB = activeSampleList[nextSegI];
+        const segVec = scratchVecB.subVectors(sB.pos, sA.pos);
+        const segLenSq = Math.max(0.01, segVec.lengthSq());
+        const tSeg = THREE.MathUtils.clamp(
+          scratchVecC.subVectors(car.pos, sA.pos).dot(segVec) / segLenSq,
+          0,
+          1
+        );
+        const surfY = THREE.MathUtils.lerp(sA.pos.y, sB.pos.y, tSeg);
+        const surfUp = scratchVecA.lerpVectors(sA.up, sB.up, tSeg).normalize();
+        car.surfaceUp.lerp(surfUp, 12 * dt).normalize();
+        car.surfaceForward.lerpVectors(sA.tangent, sB.tangent, tSeg).normalize();
+        car.pos.y = surfY + 0.55 + car.verticalY;
+
+        // Drift & Nitro Particle Emission + Drift Screech SFX
+        if (car.driftFactor > 0.3 && car.verticalY <= 0.15) {
+          vfxRef.current?.emitDriftEffects(car, dt);
+          if (car.isHuman && car.driftFactor > 0.48) {
+            VortexSfx.play('car_drift_screech', undefined, {
+              minIntervalMs: 420,
               maxDurationSec: 0.9,
+              volume: 0.45,
             });
+          }
+        }
+        if (car.nitroTimer > 0) {
+          vfxRef.current?.emitNitroTrail(car, dt);
+        }
+
+        // Guardrail Barrier Collision (leaves opening near shortcut portals)
+        const relVec = scratchVecA.subVectors(car.pos, curSample.pos);
+        const lateralOffset = relVec.dot(curSample.right);
+        const latSide: -1 | 1 = lateralOffset >= 0 ? 1 : -1;
+        const nearShortcutGate =
+          !activeShortcut &&
+          shortcuts.some((sc) => {
+            if (sc.def.side !== latSide) return false;
+            const dE = Math.abs(activeIdx - sc.entryIdx);
+            const dX = Math.abs(activeIdx - sc.exitIdx);
+            const wE = isPointToPoint ? dE : Math.min(dE, sampleCount - dE);
+            const wX = isPointToPoint ? dX : Math.min(dX, sampleCount - dX);
+            return wE <= 10 || wX <= 10;
+          });
+        const maxOffset = nearShortcutGate
+          ? curSample.halfWidth + 5.5
+          : curSample.halfWidth - 1.6;
+
+        if (Math.abs(lateralOffset) > maxOffset) {
+          const clampedOffset = Math.sign(lateralOffset) * (maxOffset - 0.2);
+          car.pos.addScaledVector(curSample.right, clampedOffset - lateralOffset);
+          car.speed *= Math.max(0.88, 1 - 0.85 * dt);
+          car.lateralVel *= 0.4;
+          if (Math.abs(car.speed) > 22) car.driftCombo = 1;
+
+          vfxRef.current?.emitWallScrape(car.pos.x, car.pos.y, car.pos.z, car.vel.x, car.vel.z);
+          if (car.isHuman && Math.abs(car.speed) > 16) {
+            car.shakeTimer = Math.max(car.shakeTimer, 0.14);
+            VortexSfx.play('car_wall_scrape', () => SoundFX.playHit(false), {
+              minIntervalMs: 280,
+              maxDurationSec: 0.65,
+              volume: 0.48,
+            });
+          }
+
+          const tangentHeading = Math.atan2(curSample.tangent.x, curSample.tangent.z);
+          let diff = tangentHeading - car.heading;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          car.heading += diff * Math.min(1, 9.5 * dt);
+        }
+
+        // Check Neon Turbo Boost Pads
+        if (car.boostPadCooldown <= 0) {
+          for (let b = 0; b < boostPads.length; b++) {
+            const bp = boostPads[b];
+            if (bp.shortcutId && car.activeShortcutId !== bp.shortcutId) continue;
+            if (!bp.shortcutId && car.activeShortcutId) continue;
+            const dSq = car.pos.distanceToSquared(bp.pos);
+            if (dSq < bp.width * bp.width * 0.34 + 6.0) {
+              car.boostPadCooldown = 0.65;
+              car.nitroTimer = Math.max(car.nitroTimer, 1.15);
+              car.speed = Math.max(car.speed + 24, bp.boostSpeed * vSpec.topSpeedMul);
+              car.shakeTimer = Math.max(car.shakeTimer, 0.16);
+              vfxRef.current?.emitNitroBoom(car);
+              if (car.isHuman) {
+                VortexSfx.play('powerup_nitro', () => SoundFX.playNitroBoost(), {
+                  minIntervalMs: 220,
+                  maxDurationSec: 1.1,
+                });
+              }
+              break;
+            }
+          }
+        }
+
+        // Check Mega 3D Stunt Jump Ramps
+        if (car.rampCooldown <= 0) {
+          for (let r = 0; r < ramps.length; r++) {
+            const rm = ramps[r];
+            if (rm.shortcutId && car.activeShortcutId !== rm.shortcutId) continue;
+            if (!rm.shortcutId && car.activeShortcutId) continue;
+            const dSq = car.pos.distanceToSquared(rm.pos);
+            if (dSq < rm.width * rm.width * 0.34 + 8.5) {
+              car.rampCooldown = 0.85;
+              car.verticalVel = rm.launchVy;
+              car.verticalY = Math.max(car.verticalY, 0.45);
+              car.nitroTimer = Math.max(car.nitroTimer, 1.25);
+              car.speed = Math.max(car.speed + 16, rm.boostSpeed * vSpec.topSpeedMul);
+              car.shakeTimer = Math.max(car.shakeTimer, 0.22);
+              vfxRef.current?.emitNitroBoom(car);
+              if (car.isHuman) {
+                VortexSfx.play('car_drift_boost', () => SoundFX.playDash(), {
+                  minIntervalMs: 280,
+                  maxDurationSec: 1.0,
+                });
+              }
+              break;
+            }
+          }
+        }
+
+        // Check Power-Up Hologram Pad Pickups
+        if (weaponsEnabled) {
+          for (let p = 0; p < powerupPads.length; p++) {
+            const pad = powerupPads[p];
+            if (pad.respawnTimer > 0) continue;
+            const dx = car.pos.x - pad.pos.x;
+            const dy = car.pos.y - pad.pos.y;
+            const dz = car.pos.z - pad.pos.z;
+            if (dx * dx + dz * dz < 6.4 && Math.abs(dy) < 4.5) {
+              const emptySlot = car.slots.findIndex((s) => s === null);
+              if (emptySlot !== -1) {
+                car.slots[emptySlot] = pad.type;
+                if (car.slots[car.activeSlotIndex] === null) {
+                  car.activeSlotIndex = emptySlot;
+                }
+              } else {
+                car.slots[car.activeSlotIndex] = pad.type;
+              }
+              pad.respawnTimer = 4.5;
+              vfxRef.current?.emitExplosion(
+                pad.pos.x,
+                pad.pos.y,
+                pad.pos.z,
+                POWERUP_COLORS[pad.type],
+                10
+              );
+              if (car.isHuman) {
+                VortexSfx.play('powerup_pickup', () => SoundFX.playPowerupPickup(), {
+                  maxDurationSec: 0.9,
+                });
+              }
+            }
           }
         }
       }
     }
 
-    // Car-to-Car Collisions
+    // Car-to-Car Collisions (skipping vertical separation across bridges/loops)
     for (let i = 0; i < cars.length; i++) {
       for (let j = i + 1; j < cars.length; j++) {
         const a = cars[i];
         const b = cars[j];
+        if (Math.abs(a.pos.y - b.pos.y) > 3.2) continue;
         const dx = b.pos.x - a.pos.x;
         const dz = b.pos.z - a.pos.z;
         const distSq = dx * dx + dz * dz;
@@ -807,7 +1256,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           if (overlap > 0.08) {
             vfxRef.current?.emitCollisionSparks(
               (a.pos.x + b.pos.x) * 0.5,
-              0.4,
+              (a.pos.y + b.pos.y) * 0.5,
               (a.pos.z + b.pos.z) * 0.5
             );
             if (a.isHuman || b.isHuman) {
@@ -858,7 +1307,8 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       }
 
       if (proj.kind === 'SHUNT') {
-        const targetCar = proj.targetCarId >= 0 ? cars[proj.targetCarId] : null;
+        const targetCar =
+          proj.targetCarId >= 0 ? cars.find((c) => c.id === proj.targetCarId) ?? null : null;
         if (targetCar && targetCar.pos.distanceToSquared(proj.pos) < 3400) {
           const distSqToTarget = targetCar.pos.distanceToSquared(proj.pos);
           if (targetCar.isHuman && distSqToTarget < 1800) {
@@ -877,7 +1327,9 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           let bestIdx = proj.trackIdx;
           let minD = Infinity;
           for (let k = -4; k <= 12; k++) {
-            const idx = (proj.trackIdx + k + TRACK_SAMPLES) % TRACK_SAMPLES;
+            const rawK = proj.trackIdx + k;
+            if (isPointToPoint && (rawK < 0 || rawK >= sampleCount)) continue;
+            const idx = (rawK + sampleCount) % sampleCount;
             const d = samples[idx].pos.distanceToSquared(proj.pos);
             if (d < minD) {
               minD = d;
@@ -885,23 +1337,41 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
             }
           }
           proj.trackIdx = bestIdx;
-          const look = samples[(bestIdx + 5) % TRACK_SAMPLES].pos;
+          const lookI = isPointToPoint
+            ? Math.min(sampleCount - 1, bestIdx + 5)
+            : (bestIdx + 5) % sampleCount;
+          const look = samples[lookI].pos;
           const desired = scratchVecA
             .subVectors(look, proj.pos)
             .normalize()
             .multiplyScalar(96);
-          desired.y = 0;
           proj.vel.lerp(desired, 8 * dt);
         }
       }
 
       proj.pos.addScaledVector(proj.vel, dt);
-      proj.pos.y = 1.05;
+      if (proj.kind === 'BOLT') {
+        let bestIdx = proj.trackIdx;
+        let minD = Infinity;
+        for (let k = -4; k <= 10; k++) {
+          const rawK = proj.trackIdx + k;
+          if (isPointToPoint && (rawK < 0 || rawK >= sampleCount)) continue;
+          const idx = (rawK + sampleCount) % sampleCount;
+          const d = samples[idx].pos.distanceToSquared(proj.pos);
+          if (d < minD) {
+            minD = d;
+            bestIdx = idx;
+          }
+        }
+        proj.trackIdx = bestIdx;
+        proj.pos.y = samples[bestIdx].pos.y + 0.95;
+      }
       vfxRef.current?.emitProjectileTrail(proj, dt);
 
       for (let c = 0; c < cars.length; c++) {
         const car = cars[c];
         if (car.id === proj.ownerId) continue;
+        if (Math.abs(car.pos.y - proj.pos.y) > 4.5) continue;
         const dx = car.pos.x - proj.pos.x;
         const dz = car.pos.z - proj.pos.z;
         const hitRadius = proj.kind === 'SHUNT' ? 2.6 : 2.0;
@@ -988,20 +1458,25 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
     const lockedCarIds = new Array<boolean>(TOTAL_CARS).fill(false);
     for (let i = 0; i < MAX_PROJECTILES; i++) {
       const proj = projectilesRef.current[i];
-      if (proj.active && proj.kind === 'SHUNT' && proj.targetCarId >= 0 && proj.targetCarId < TOTAL_CARS) {
+      if (
+        proj.active &&
+        proj.kind === 'SHUNT' &&
+        proj.targetCarId >= 0 &&
+        proj.targetCarId < TOTAL_CARS
+      ) {
         lockedCarIds[proj.targetCarId] = true;
       }
     }
-    for (let ci = 0; ci < cars.length; ci++) {
+    for (let ci = 0; ci < TOTAL_CARS; ci++) {
       const bracket = lockReticleRefs.current[ci];
       if (!bracket) continue;
-      if (!lockedCarIds[ci]) {
+      const targetCar = cars.find((c) => c.id === ci);
+      if (!lockedCarIds[ci] || !targetCar) {
         bracket.visible = false;
         continue;
       }
-      const targetCar = cars[ci];
       bracket.visible = true;
-      bracket.position.set(targetCar.pos.x, targetCar.verticalY, targetCar.pos.z);
+      bracket.position.set(targetCar.pos.x, targetCar.pos.y - 0.55, targetCar.pos.z);
       bracket.rotation.y += 4.2 * dt;
     }
 
@@ -1023,7 +1498,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       sw.radius = 1 + p * sw.maxRadius;
       if (swEntry?.group) {
         swEntry.group.visible = true;
-        swEntry.group.position.set(sw.pos.x, 0.35, sw.pos.z);
+        swEntry.group.position.set(sw.pos.x, sw.pos.y - 0.2, sw.pos.z);
         swEntry.group.scale.set(sw.radius, sw.radius * 0.72, sw.radius);
         const fadeOp = Math.max(0, 1 - p);
         if (swEntry.outerMat) {
@@ -1040,17 +1515,47 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       }
     }
 
-    // Sync 3D Car Meshes, Active Aero, Wheels & Lighting
+    // Hide inactive car slots (e.g. when Bots are toggled OFF)
+    for (let ci = 0; ci < TOTAL_CARS; ci++) {
+      const g = carGroupRefs.current[ci];
+      if (g) g.visible = false;
+    }
+
+    // Sync 3D Car Meshes, Full 3D Orientation (Hills, 360 Loops, Jumps), Wheels & Lighting
     for (let i = 0; i < cars.length; i++) {
       const car = cars[i];
-      const grp = carGroupRefs.current[i];
-      const body = carBodyRefs.current[i];
-      const shield = carShieldRefs.current[i];
-      const vis = carVisualsRef.current[i];
+      const slotIdx = car.id;
+      const grp = carGroupRefs.current[slotIdx];
+      const body = carBodyRefs.current[slotIdx];
+      const shield = carShieldRefs.current[slotIdx];
+      const vis = carVisualsRef.current[slotIdx];
 
       if (grp) {
-        grp.position.set(car.pos.x, 0.55 + car.verticalY, car.pos.z);
-        grp.rotation.y = car.heading - car.lateralVel * 0.018;
+        grp.visible = true;
+        grp.position.copy(car.pos);
+
+        if (car.inLoop) {
+          scratchVecA.copy(car.surfaceForward).normalize();
+          scratchVecB.copy(car.surfaceUp).normalize();
+        } else {
+          const yaw = car.heading - car.driftDir * 0.3 * car.driftFactor - car.lateralVel * 0.014;
+          scratchVecC.set(Math.sin(yaw), 0, Math.cos(yaw));
+          scratchVecB.copy(car.surfaceUp).normalize();
+          scratchVecA
+            .copy(scratchVecC)
+            .addScaledVector(scratchVecB, -scratchVecC.dot(scratchVecB));
+          if (scratchVecA.lengthSq() < 0.0001) {
+            scratchVecA.copy(car.surfaceForward);
+          }
+          scratchVecA.normalize();
+        }
+
+        // Right-handed basis: (+X = left = up x fwd, +Y = up, +Z = forward) -> det = +1
+        const leftAxis = scratchVecC.crossVectors(scratchVecB, scratchVecA).normalize();
+        const orthUp = scratchVecB.crossVectors(scratchVecA, leftAxis).normalize();
+        scratchMat4.makeBasis(leftAxis, orthUp, scratchVecA);
+        scratchQuat.setFromRotationMatrix(scratchMat4);
+        grp.quaternion.copy(scratchQuat);
       }
       if (body) {
         body.rotation.z = THREE.MathUtils.lerp(
@@ -1058,11 +1563,15 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           -car.lateralVel * 0.012,
           10 * dt
         );
-        body.rotation.x = THREE.MathUtils.lerp(
-          body.rotation.x,
-          car.nitroTimer > 0 ? -0.055 : car.speed < -2 ? 0.04 : 0,
-          8 * dt
-        );
+        const airPitch =
+          car.verticalY > 0.1
+            ? -THREE.MathUtils.clamp(Math.atan2(car.verticalVel, Math.max(20, car.speed)), -0.35, 0.35)
+            : car.nitroTimer > 0
+            ? -0.055
+            : car.speed < -2
+            ? 0.04
+            : 0;
+        body.rotation.x = THREE.MathUtils.lerp(body.rotation.x, airPitch, 8 * dt);
       }
       if (shield) {
         shield.visible = car.shieldTimer > 0;
@@ -1113,25 +1622,31 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           if (car.nitroTimer > 0) {
             vis.underglowMat.color.set('#38BDF8');
             vis.underglowMat.opacity = 0.8;
-          } else if (car.driftCharge > 0.65) {
-            vis.underglowMat.color.set('#F59E0B');
+          } else if (car.driftTier >= 3) {
+            vis.underglowMat.color.set('#E879F9');
+            vis.underglowMat.opacity = 0.85;
+          } else if (car.driftTier === 2) {
+            vis.underglowMat.color.set('#F97316');
+            vis.underglowMat.opacity = 0.78;
+          } else if (car.driftTier === 1) {
+            vis.underglowMat.color.set('#38BDF8');
             vis.underglowMat.opacity = 0.74;
           } else {
-            vis.underglowMat.color.set(CAR_COLORS[i]);
+            vis.underglowMat.color.set(CAR_COLORS[slotIdx]);
             vis.underglowMat.opacity = 0.5;
           }
         }
 
         if (vis.superchargerMesh) {
           vis.superchargerMesh.position.y =
-            0.68 + Math.sin(rs.raceTimeSec * 38 + i) * 0.014;
+            0.68 + Math.sin(rs.raceTimeSec * 38 + slotIdx) * 0.014;
         }
 
         for (let s = 0; s < 3; s++) {
           const sg = vis.slotGroups[s];
           if (!sg) continue;
           const pType = car.slots[s];
-          if (!pType) {
+          if (!pType || !weaponsEnabled) {
             sg.visible = false;
           } else {
             sg.visible = true;
@@ -1163,7 +1678,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
 
     for (let v = 0; v < numViews; v++) {
       const slotIdx = activeViewportSlots[v];
-      const car = cars[slotIdx] || cars[0];
+      const car = cars.find((c) => c.id === slotIdx) || cars[0];
       const cam = camerasRef.current[v];
 
       let vx = 0;
@@ -1192,26 +1707,41 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
       cam.updateProjectionMatrix();
 
       const camHeading = car.heading - car.lateralVel * 0.01;
-      const fwdX = Math.sin(camHeading);
-      const fwdZ = Math.cos(camHeading);
-
       const shakeAmp = car.shakeTimer > 0 ? Math.min(0.45, car.shakeTimer * 0.85) : 0;
       const jx = shakeAmp > 0 ? (Math.random() - 0.5) * shakeAmp : 0;
       const jy = shakeAmp > 0 ? (Math.random() - 0.5) * shakeAmp * 0.7 : 0;
 
-      const desiredCamX = car.pos.x - fwdX * 11.4 + jx;
-      const desiredCamZ = car.pos.z - fwdZ * 11.4;
-      const desiredCamY = 4.6 + car.verticalY * 0.4 + jy;
+      const camUpTarget = car.inLoop ? car.surfaceUp : worldUpVec;
+      cam.up.lerp(camUpTarget, 7.5 * dt).normalize();
+
+      if (car.inLoop) {
+        scratchVecC.copy(car.surfaceForward).normalize();
+      } else {
+        scratchVecC
+          .set(Math.sin(camHeading), car.surfaceForward.y * 0.55, Math.cos(camHeading))
+          .normalize();
+      }
+
+      const desiredCamX =
+        car.pos.x - scratchVecC.x * 11.4 + cam.up.x * 4.0 + jx;
+      const desiredCamY =
+        car.pos.y - scratchVecC.y * 11.4 + cam.up.y * 4.0 + jy;
+      const desiredCamZ =
+        car.pos.z - scratchVecC.z * 11.4 + cam.up.z * 4.0;
 
       if (rs.raceTimeSec < 0.05 && rs.countdownTimer > 2.1) {
         cam.position.set(desiredCamX, desiredCamY, desiredCamZ);
       } else {
         cam.position.x = THREE.MathUtils.lerp(cam.position.x, desiredCamX, 11 * dt);
-        cam.position.z = THREE.MathUtils.lerp(cam.position.z, desiredCamZ, 11 * dt);
         cam.position.y = THREE.MathUtils.lerp(cam.position.y, desiredCamY, 11 * dt);
+        cam.position.z = THREE.MathUtils.lerp(cam.position.z, desiredCamZ, 11 * dt);
       }
 
-      cam.lookAt(car.pos.x + fwdX * 14, car.pos.y + 1.1, car.pos.z + fwdZ * 14);
+      cam.lookAt(
+        car.pos.x + scratchVecC.x * 14,
+        car.pos.y + scratchVecC.y * 14 + cam.up.y * 0.55,
+        car.pos.z + scratchVecC.z * 14
+      );
 
       gl.setViewport(vx, vy, vw, vh);
       gl.setScissor(vx, vy, vw, vh);
@@ -1225,7 +1755,11 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
     if (rs.hudTimer >= 0.1) {
       rs.hudTimer = 0;
       const viewports: ViewportHudSnapshot[] = activeViewportSlots.map((slotIdx) => {
-        const c = cars[slotIdx] || cars[0];
+        const c = cars.find((carItem) => carItem.id === slotIdx) || cars[0];
+        const progressPct = Math.min(
+          100,
+          Math.max(0, Math.round((c.trackIndex / Math.max(1, sampleCount - 1)) * 100))
+        );
         return {
           slotIdx,
           callsign: CAR_CALLSIGNS[slotIdx],
@@ -1234,19 +1768,37 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           isHuman: c.isHuman,
           speedKmh: Math.round(Math.abs(c.speed) * 4.2),
           rank: c.rank,
-          lap: Math.min(TOTAL_LAPS, c.lap),
+          totalCars: cars.length,
+          lap: Math.min(effectiveLaps, c.lap),
+          totalLaps: effectiveLaps,
+          progressPct,
+          altitudeM: Math.max(0, Math.round(c.pos.y - 0.55)),
+          driftScore: c.driftScore,
+          driftCombo: c.driftCombo,
+          inLoop: c.inLoop,
+          onShortcut: Boolean(c.activeShortcutId),
+          weaponsEnabled,
+          isPointToPoint,
           hp: Math.round(c.hp),
           maxHp: c.maxHp,
           slots: [...c.slots],
           activeSlotIndex: c.activeSlotIndex,
           drifting: c.driftFactor > 0.35,
-          driftChargePct: Math.min(100, Math.round((c.driftCharge / 0.65) * 100)),
+          driftTier: c.driftTier,
+          driftChargePct: Math.min(100, Math.round((c.driftCharge / 2.25) * 100)),
           nitroActive: c.nitroTimer > 0,
           shieldActive: c.shieldTimer > 0,
           damageFlash: c.damageFlashTimer > 0,
           finished: c.finished,
         };
       });
+
+      const humanCars = cars.filter((c) => c.isHuman);
+      const allHumansFinished =
+        humanCars.length > 0
+          ? humanCars.every((c) => c.finished)
+          : Boolean(rs.winnerCallsign);
+      rs.allHumansFinished = allHumansFinished;
 
       const minimapCars = cars.map((c) => ({
         id: c.id,
@@ -1260,6 +1812,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
           viewports,
           minimapCars,
           winnerCallsign: rs.winnerCallsign,
+          allHumansFinished,
           raceTimeSec: rs.raceTimeSec,
           countdownValue: rs.countdownTimer > 0 ? Math.ceil(rs.countdownTimer) : 0,
           goBanner: rs.goFlashTimer > 0,
@@ -1272,11 +1825,15 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
 
   return (
     <group>
-      {/* Dynamic Track Geometry, Scrolling Neon Walls & Track-Specific Scenery */}
+      {/* Dynamic Track Geometry, 360 Loops, Shortcuts, Boost Pads, Ramps & Scenery */}
       <VortexTrackEnvironment
         trackSpec={trackSpec}
         samples={samples}
         totalLength={totalLength}
+        shortcuts={shortcuts}
+        boostPads={boostPads}
+        ramps={ramps}
+        loopRings={loopRings}
         powerupPads={powerupPads}
         padGroupRefs={padGroupRefs}
         countdownTimerRef={countdownTimerRef}
@@ -1336,6 +1893,7 @@ const BlurRaceScene: React.FC<BlurRaceSceneProps> = ({
 const SpeedTachometerCard: React.FC<{
   speedKmh: number;
   drifting: boolean;
+  driftTier: number;
   driftChargePct: number;
   nitroActive: boolean;
   shieldActive: boolean;
@@ -1343,6 +1901,7 @@ const SpeedTachometerCard: React.FC<{
 }> = ({
   speedKmh,
   drifting,
+  driftTier,
   driftChargePct,
   nitroActive,
   shieldActive,
@@ -1365,10 +1924,26 @@ const SpeedTachometerCard: React.FC<{
 
   const arcTotal = 148;
   const arcOffset = arcTotal * (1 - speedRatio);
+  const tierColor =
+    driftTier >= 3
+      ? '#E879F9'
+      : driftTier === 2
+      ? '#F97316'
+      : driftTier === 1
+      ? '#38BDF8'
+      : '#F59E0B';
+  const tierLabel =
+    driftTier >= 3
+      ? 'ULTRA TURBO'
+      : driftTier === 2
+      ? 'SUPER TURBO'
+      : driftTier === 1
+      ? 'MINI TURBO'
+      : 'DRIFT';
   const strokeCol = nitroActive
     ? '#38BDF8'
     : drifting
-    ? '#F59E0B'
+    ? tierColor
     : speedRatio > 0.78
     ? '#FF5500'
     : '#E2E8F0';
@@ -1378,8 +1953,11 @@ const SpeedTachometerCard: React.FC<{
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-1">
           {drifting && (
-            <span className="rounded bg-[#FF5500] px-1.5 py-0.5 text-[9px] font-black text-[#09090B]">
-              DRIFT
+            <span
+              className="rounded px-1.5 py-0.5 text-[9px] font-black text-[#09090B]"
+              style={{ backgroundColor: tierColor }}
+            >
+              {tierLabel}
             </span>
           )}
           {nitroActive && (
@@ -1442,7 +2020,7 @@ const SpeedTachometerCard: React.FC<{
             className="h-full transition-all duration-100"
             style={{
               width: `${driftChargePct}%`,
-              backgroundColor: driftChargePct >= 100 ? '#38BDF8' : '#F59E0B',
+              backgroundColor: tierColor,
             }}
           />
         </div>
@@ -1481,6 +2059,8 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
 
   const [splitMode, setSplitMode] = useState<SplitMode>('auto');
   const [autoThrottle, setAutoThrottle] = useState<boolean>(true);
+  const [botsEnabled, setBotsEnabled] = useState<boolean>(true);
+  const [selectedLaps, setSelectedLaps] = useState<number>(3);
   const [resetToken, setResetToken] = useState<number>(0);
   const [muted, setMuted] = useState<boolean>(SoundFX.muted);
 
@@ -1496,12 +2076,23 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
         isHuman: true,
         speedKmh: 0,
         rank: 1,
+        totalCars: TOTAL_CARS,
         lap: 1,
+        totalLaps: 3,
+        progressPct: 0,
+        altitudeM: 0,
+        driftScore: 0,
+        driftCombo: 1,
+        inLoop: false,
+        onShortcut: false,
+        weaponsEnabled: true,
+        isPointToPoint: false,
         hp: 100,
         maxHp: 100,
         slots: ['NITRO', null, null],
         activeSlotIndex: 0,
         drifting: false,
+        driftTier: 0,
         driftChargePct: 0,
         nitroActive: false,
         shieldActive: false,
@@ -1511,6 +2102,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
     ],
     minimapCars: [],
     winnerCallsign: null,
+    allHumansFinished: false,
     raceTimeSec: 0,
     countdownValue: 3,
     goBanner: false,
@@ -1533,13 +2125,13 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
   useEffect(() => {
     if (phase === 'lobby_garage' || phase === 'lobby_map_vote') {
       VortexAudio.playTrack('garage_lobby');
-    } else if (hud.winnerCallsign) {
+    } else if (hud.allHumansFinished) {
       VortexAudio.playTrack('victory');
     } else {
       const trackBgm = TRACK_BGM_MAP[currentTrackSpec.id] ?? 'neon_tokyo';
       VortexAudio.playTrack(trackBgm);
     }
-  }, [phase, currentTrackSpec.id, hud.winnerCallsign]);
+  }, [phase, currentTrackSpec.id, hud.allHumansFinished]);
 
   const getActiveHumanSlots = (): number[] => {
     const slots: number[] = [];
@@ -1644,7 +2236,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
       if (phase === 'lobby_map_vote' && !voteResultBanner) {
         const allVoted = activeSlots.every((slotIdx) => playerVoteLocked[slotIdx]);
         if (allVoted && activeSlots.length > 0) {
-          const counts = [0, 0, 0];
+          const counts = new Array<number>(TRACK_ROSTER.length).fill(0);
           activeSlots.forEach((slotIdx) => {
             const votedTrack = playerMapVotes[slotIdx] % TRACK_ROSTER.length;
             counts[votedTrack] += 1;
@@ -1691,13 +2283,13 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
     return GameEngineBridge.onButtonPress((btn) => {
       if (btn === 'Y') {
         setAutoThrottle((prev) => !prev);
-      } else if (btn === 'START' && hud.winnerCallsign) {
+      } else if (btn === 'START' && hud.allHumansFinished) {
         setPlayerGarageReady([false, false, false, false]);
         setPlayerVoteLocked([false, false, false, false]);
         setPhase('lobby_garage');
       }
     });
-  }, [phase, hud.winnerCallsign]);
+  }, [phase, hud.allHumansFinished]);
 
   const toggleMute = () => {
     const nextMuted = !SoundFX.muted;
@@ -1960,18 +2552,19 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
   }
 
   // ============================================================================
-  // RENDER 2: MAP SELECTION & MULTIPLAYER MAP VOTING SCREEN
+  // RENDER 2: MAP SELECTION, RACE CONFIG (BOTS / LAPS) & MULTIPLAYER VOTE
   // ============================================================================
   if (phase === 'lobby_map_vote') {
-    const voteCounts = [0, 0, 0];
+    const voteCounts = new Array<number>(TRACK_ROSTER.length).fill(0);
     activeHumanSlots.forEach((slotIdx) => {
       const tIdx = playerMapVotes[slotIdx] % TRACK_ROSTER.length;
       voteCounts[tIdx] += 1;
     });
+    const highlightedTrack = TRACK_ROSTER[playerMapVotes[0] % TRACK_ROSTER.length] || TRACK_ROSTER[0];
 
     return (
-      <div className="relative min-h-[100dvh] w-full bg-[#06060A] text-[#F4F4F5] flex flex-col justify-between p-4 sm:p-8 select-none">
-        <header className="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-4">
+      <div className="relative h-[100dvh] w-full overflow-y-auto bg-[#06060A] text-[#F4F4F5] flex flex-col justify-between p-4 sm:p-6 lg:p-8 select-none">
+        <header className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -1996,7 +2589,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={toggleMute}
@@ -2021,14 +2614,76 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
           </div>
         </header>
 
-        <main className="mx-auto my-auto w-full max-w-[1400px] py-6 space-y-6">
+        <main className="mx-auto my-auto w-full max-w-[1440px] py-4 space-y-5">
+          {/* Race Config Controls: AI Bots ON/OFF & Lap Count Selector */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0D0E14] px-4 py-3 font-mono text-xs">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[#A1A1AA] font-bold uppercase tracking-wider">AI BOTS:</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setBotsEnabled(true)}
+                  className={`rounded-full px-3.5 py-1 font-bold transition-colors ${
+                    botsEnabled
+                      ? 'bg-[#FF5500] text-[#09090B]'
+                      : 'border border-white/15 bg-white/5 text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  ON ({TOTAL_CARS} CARS)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBotsEnabled(false)}
+                  className={`rounded-full px-3.5 py-1 font-bold transition-colors ${
+                    !botsEnabled
+                      ? 'bg-emerald-400 text-[#09090B]'
+                      : 'border border-white/15 bg-white/5 text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  OFF (HUMANS ONLY)
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[#A1A1AA] font-bold uppercase tracking-wider">
+                CIRCUIT LAPS:
+              </span>
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 5].map((lapOpt) => {
+                  const activeLap =
+                    !highlightedTrack.isPointToPoint && selectedLaps === lapOpt;
+                  return (
+                    <button
+                      key={lapOpt}
+                      type="button"
+                      onClick={() => setSelectedLaps(lapOpt)}
+                      className={`rounded-full px-3 py-1 font-bold transition-colors ${
+                        activeLap
+                          ? 'bg-[#38BDF8] text-[#09090B]'
+                          : 'border border-white/15 bg-white/5 text-[#A1A1AA] hover:text-white'
+                      }`}
+                    >
+                      {lapOpt} {lapOpt === 1 ? 'LAP' : 'LAPS'}
+                    </button>
+                  );
+                })}
+              </div>
+              {highlightedTrack.isPointToPoint && (
+                <span className="rounded-full border border-amber-400/50 bg-amber-500/15 px-3 py-1 text-[10px] font-bold text-amber-300">
+                  TOUGE FIXED: 1-RUN DOWNHILL
+                </span>
+              )}
+            </div>
+          </div>
+
           {voteResultBanner && (
             <div className="rounded-2xl border border-emerald-500/50 bg-emerald-500/20 px-6 py-4 text-center font-mono text-base font-black text-emerald-300">
               {voteResultBanner}
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {TRACK_ROSTER.map((track, tIdx) => {
               const votersOnThisTrack = activeHumanSlots.filter(
                 (slotIdx) => playerMapVotes[slotIdx] % TRACK_ROSTER.length === tIdx
@@ -2051,7 +2706,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                       setResetToken((t) => t + 1);
                       setPhase('racing');
                     }}
-                    className="double-bezel-inner cursor-pointer p-6 flex flex-col justify-between min-h-[360px] transition-transform hover:scale-[1.01]"
+                    className="double-bezel-inner cursor-pointer p-5 flex flex-col justify-between min-h-[345px] transition-transform hover:scale-[1.01]"
                     style={{
                       borderColor:
                         votersOnThisTrack.length > 0
@@ -2074,7 +2729,9 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                           {track.difficulty}
                         </span>
                         <span className="rounded-full border border-white/15 bg-black/60 px-3 py-1 text-[#F4F4F5]">
-                          {track.lengthLabel}
+                          {track.isPointToPoint
+                            ? track.lengthLabel
+                            : `${track.lengthLabel.split('//')[0].trim()} // ${selectedLaps}L`}
                         </span>
                       </div>
 
@@ -2087,23 +2744,35 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                       </div>
 
                       <div className="flex items-center justify-between font-mono text-[10px] text-[#A1A1AA]">
-                        <span>SURFACE GRIP: {Math.round(track.gripMul * 100)}%</span>
+                        <span>GRIP: {Math.round(track.gripMul * 100)}%</span>
                         <span>VOTES: {voteCount}</span>
                       </div>
                     </div>
 
-                    <div className="my-4">
-                      <h2 className="text-2xl font-black tracking-tight text-[#F4F4F5]">
+                    <div className="my-3">
+                      <h2 className="text-xl font-black tracking-tight text-[#F4F4F5]">
                         {track.name}
                       </h2>
-                      <p className="mt-1 text-xs sm:text-sm text-[#A1A1AA]">{track.subtitle}</p>
+                      <p className="mt-1 text-xs text-[#A1A1AA]">{track.subtitle}</p>
+                      {track.featureBadges && track.featureBadges.length > 0 && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                          {track.featureBadges.map((badge) => (
+                            <span
+                              key={badge}
+                              className="rounded-md border border-white/15 bg-white/5 px-2 py-0.5 font-mono text-[9px] font-bold text-[#E2E8F0]"
+                            >
+                              {badge}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2 min-h-[34px]">
+                      <div className="flex flex-wrap items-center gap-2 min-h-[30px]">
                         {votersOnThisTrack.length === 0 ? (
                           <span className="font-mono text-[11px] text-[#71717A]">
-                            Move cursor here and press [A] to vote
+                            Move stick or click card to launch
                           </span>
                         ) : (
                           votersOnThisTrack.map((slotIdx) => {
@@ -2134,16 +2803,26 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
           </div>
         </main>
 
-        <footer className="mx-auto w-full max-w-[1400px] flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 font-mono text-xs text-[#A1A1AA]">
+        <footer className="mx-auto w-full max-w-[1440px] flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 font-mono text-xs text-[#A1A1AA]">
           <div className="flex items-center gap-2">
             <Users size={16} className="text-[#FF5500]" />
             <span>
               {isMultiplayerVote
                 ? 'Once all connected drivers lock their vote with [A], the winning circuit launches automatically!'
-                : 'Select a circuit with Left Stick and press [A] to launch the race.'}
+                : 'Configure AI Bots & Lap Count above, then click or press [A] on any circuit.'}
             </span>
           </div>
-          <span>3 LAPS // 6 CARS // BLUR POWER-UP MATRIX ACTIVE</span>
+          <span>
+            {highlightedTrack.isPointToPoint
+              ? `1-RUN DOWNHILL // ${botsEnabled ? `${TOTAL_CARS} CARS` : 'HUMANS ONLY'} // WEAPONS OFF`
+              : `${selectedLaps} ${selectedLaps === 1 ? 'LAP' : 'LAPS'} // ${
+                  botsEnabled ? `${TOTAL_CARS} CARS` : 'HUMANS ONLY'
+                } // ${
+                  (highlightedTrack.loops?.length ?? 0) > 0
+                    ? '360 SKY-LOOPS & TURBO PADS'
+                    : 'PURE RACING & MARIO DRIFT TURBO'
+                }`}
+          </span>
         </footer>
       </div>
     );
@@ -2163,6 +2842,8 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
           playerVehicleIndices={playerVehicles}
           splitMode={splitMode}
           autoThrottle={autoThrottle}
+          botsEnabled={botsEnabled}
+          targetLaps={currentTrackSpec.isPointToPoint ? 1 : selectedLaps}
           resetToken={resetToken}
           onHudSync={(snapshot) => setHud(snapshot)}
         />
@@ -2211,10 +2892,19 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
       )}
 
       {/* Final Lap Urgency Banner */}
-      {hud.finalLapBanner && !hud.winnerCallsign && (
+      {hud.finalLapBanner && !hud.allHumansFinished && (
         <div className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center">
           <div className="rounded-full border border-[#FF5500] bg-[#09090B]/90 px-8 py-2.5 font-mono text-lg sm:text-xl font-black tracking-[0.25em] text-[#FF5500] shadow-[0_0_25px_rgba(255,85,0,0.5)] animate-pulse">
             FINAL LAP // MAXIMUM OVERDRIVE
+          </div>
+        </div>
+      )}
+
+      {/* Non-Blocking Alert when AI or Another Racer Finishes First */}
+      {hud.winnerCallsign && !hud.allHumansFinished && !hud.finalLapBanner && (
+        <div className="pointer-events-none absolute inset-x-0 top-20 z-30 flex justify-center">
+          <div className="rounded-full border border-amber-400/60 bg-[#09090B]/90 px-6 py-2 font-mono text-xs sm:text-sm font-black tracking-[0.2em] text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.35)]">
+            {hud.winnerCallsign} CROSSED THE LINE // FINISH YOUR RUN!
           </div>
         </div>
       )}
@@ -2269,6 +2959,22 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
             }`}
           >
             <span>AUTO-THROTTLE [Y]: {autoThrottle ? 'ON' : 'OFF'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setBotsEnabled((b) => !b);
+              setResetToken((t) => t + 1);
+            }}
+            className={`hidden lg:inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-mono text-xs font-bold backdrop-blur-xl ${
+              botsEnabled
+                ? 'border-[#FF5500]/45 bg-[#FF5500]/15 text-[#FDBA74]'
+                : 'border-white/15 bg-[#09090B]/85 text-[#A1A1AA]'
+            }`}
+            title="Toggle AI Bots and restart race"
+          >
+            <span>BOTS: {botsEnabled ? 'ON' : 'OFF'}</span>
           </button>
         </div>
 
@@ -2364,6 +3070,16 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                     <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-[#FF5500]">
                       {vp.vehicleName}
                     </span>
+                    {vp.inLoop && (
+                      <span className="rounded bg-sky-400 px-1.5 py-0.5 font-mono text-[9px] font-black text-[#09090B] animate-pulse">
+                        360 ANTI-GRAV
+                      </span>
+                    )}
+                    {vp.onShortcut && (
+                      <span className="rounded bg-amber-400 px-1.5 py-0.5 font-mono text-[9px] font-black text-[#09090B]">
+                        SHORTCUT!
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1.5 flex items-center gap-2">
                     <div className="h-1.5 w-28 overflow-hidden rounded-full bg-white/10">
@@ -2376,12 +3092,12 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                       />
                     </div>
                     <span className="font-mono text-[10px] font-bold text-[#A1A1AA]">
-                      ARMOR {hpPercent}%
+                      {vp.weaponsEnabled ? `ARMOR ${hpPercent}%` : `ALT ${vp.altitudeM}M`}
                     </span>
                   </div>
                 </div>
 
-                {/* Rank & Lap Badge */}
+                {/* Rank & Lap / Touge Progress Badge */}
                 <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#09090B]/85 px-4 py-2 backdrop-blur-md font-mono">
                   <div className="text-right pr-2 border-r border-white/10">
                     <div className="text-[10px] text-[#A1A1AA]">POS</div>
@@ -2389,55 +3105,90 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                       className="text-lg sm:text-xl font-black leading-none"
                       style={{ color: vp.rank === 1 ? '#FF5500' : '#F4F4F5' }}
                     >
-                      {vp.rank} / {TOTAL_CARS}
+                      {vp.totalCars > 1 ? `${vp.rank} / ${vp.totalCars}` : 'SOLO'}
                     </div>
                   </div>
                   <div className="pl-1">
-                    <div className="text-[10px] text-[#A1A1AA]">LAP</div>
+                    <div className="text-[10px] text-[#A1A1AA]">
+                      {vp.isPointToPoint ? 'DESCENT' : 'LAP'}
+                    </div>
                     <div className="text-lg sm:text-xl font-black leading-none text-[#F4F4F5]">
-                      {vp.lap} / {TOTAL_LAPS}
+                      {vp.isPointToPoint
+                        ? `${vp.progressPct}%`
+                        : `${vp.lap} / ${vp.totalLaps}`}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Bottom Bar of Viewport: 3-Slot Power-up Matrix, Minimap & Speedometer */}
+              {/* Bottom Bar of Viewport: Power-up Matrix OR Pure Touge Drift Panel + Minimap + Speedometer */}
               <div className="relative flex items-end justify-between gap-3">
-                <div className="rounded-2xl border border-white/15 bg-[#09090B]/85 p-2.5 backdrop-blur-xl">
-                  <div className="mb-1.5 flex items-center justify-between gap-3 font-mono text-[10px]">
-                    <span className="font-bold text-[#FF5500]">
-                      [B] FIRE: {activePowerup ? POWERUP_LABELS[activePowerup] : 'EMPTY SLOT'}
-                    </span>
-                    <span className="text-[#A1A1AA]">[R1] CYCLE SLOT</span>
+                {vp.weaponsEnabled ? (
+                  <div className="rounded-2xl border border-white/15 bg-[#09090B]/85 p-2.5 backdrop-blur-xl">
+                    <div className="mb-1.5 flex items-center justify-between gap-3 font-mono text-[10px]">
+                      <span className="font-bold text-[#FF5500]">
+                        [B] FIRE: {activePowerup ? POWERUP_LABELS[activePowerup] : 'EMPTY SLOT'}
+                      </span>
+                      <span className="text-[#A1A1AA]">[R1] CYCLE SLOT</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {[0, 1, 2].map((sIdx) => {
+                        const pType = vp.slots[sIdx];
+                        const isCurrent = vp.activeSlotIndex === sIdx;
+                        const pColor = pType ? POWERUP_COLORS[pType] : '#27272A';
+                        return (
+                          <div
+                            key={sIdx}
+                            className={`flex h-11 w-16 flex-col items-center justify-center rounded-xl border font-mono text-[10px] font-bold transition-transform ${
+                              isCurrent ? 'scale-105' : 'opacity-75'
+                            }`}
+                            style={{
+                              borderColor: isCurrent ? '#FF5500' : 'rgba(255,255,255,0.12)',
+                              backgroundColor: pType ? `${pColor}25` : '#121215',
+                              color: pType ? pColor : '#71717A',
+                            }}
+                          >
+                            {pType === 'SHUNT' && <Crosshair size={16} weight="bold" />}
+                            {pType === 'BARGE' && <Lightning size={16} weight="fill" />}
+                            {pType === 'NITRO' && <Fire size={16} weight="fill" />}
+                            {pType === 'SHIELD' && <ShieldCheck size={16} weight="fill" />}
+                            {pType === 'BOLT' && <Lightning size={16} weight="bold" />}
+                            <span>{pType || '---'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {[0, 1, 2].map((sIdx) => {
-                      const pType = vp.slots[sIdx];
-                      const isCurrent = vp.activeSlotIndex === sIdx;
-                      const pColor = pType ? POWERUP_COLORS[pType] : '#27272A';
-                      return (
-                        <div
-                          key={sIdx}
-                          className={`flex h-11 w-16 flex-col items-center justify-center rounded-xl border font-mono text-[10px] font-bold transition-transform ${
-                            isCurrent ? 'scale-105' : 'opacity-75'
-                          }`}
-                          style={{
-                            borderColor: isCurrent ? '#FF5500' : 'rgba(255,255,255,0.12)',
-                            backgroundColor: pType ? `${pColor}25` : '#121215',
-                            color: pType ? pColor : '#71717A',
-                          }}
-                        >
-                          {pType === 'SHUNT' && <Crosshair size={16} weight="bold" />}
-                          {pType === 'BARGE' && <Lightning size={16} weight="fill" />}
-                          {pType === 'NITRO' && <Fire size={16} weight="fill" />}
-                          {pType === 'SHIELD' && <ShieldCheck size={16} weight="fill" />}
-                          {pType === 'BOLT' && <Lightning size={16} weight="bold" />}
-                          <span>{pType || '---'}</span>
+                ) : (
+                  <div className="rounded-2xl border border-amber-400/35 bg-[#09090B]/85 px-4 py-2.5 backdrop-blur-xl font-mono">
+                    <div className="mb-1 flex items-center justify-between gap-4 text-[10px]">
+                      <span className="font-bold text-amber-400">PURE TOUGE DRIFT</span>
+                      <span className="rounded bg-pink-500/20 px-1.5 py-0.5 text-[9px] font-bold text-pink-300">
+                        NO WEAPONS
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-4">
+                      <div>
+                        <div className="text-[9px] text-[#A1A1AA]">DRIFT SCORE</div>
+                        <div className="text-xl font-black text-[#F4F4F5] tabular-nums">
+                          {vp.driftScore.toLocaleString()}
                         </div>
-                      );
-                    })}
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-[#A1A1AA]">COMBO</div>
+                        <div className="text-lg font-black text-amber-300 tabular-nums">
+                          x{vp.driftCombo}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-[#A1A1AA]">ELEVATION</div>
+                        <div className="text-lg font-black text-sky-300 tabular-nums">
+                          {vp.altitudeM}M
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex items-end gap-3">
                   {/* Live Circuit Minimap Radar */}
@@ -2456,6 +3207,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                   <SpeedTachometerCard
                     speedKmh={vp.speedKmh}
                     drifting={vp.drifting}
+                    driftTier={vp.driftTier}
                     driftChargePct={vp.driftChargePct}
                     nitroActive={vp.nitroActive}
                     shieldActive={vp.shieldActive}
@@ -2469,7 +3221,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
       </div>
 
       {/* Race Finish / Winner Modal Overlay */}
-      {hud.winnerCallsign && (
+      {hud.allHumansFinished && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
           <div className="double-bezel-outer max-w-md w-full">
             <div className="double-bezel-inner p-6 text-center space-y-4">
@@ -2480,7 +3232,7 @@ export const VortexDriftGame: React.FC<VortexDriftGameProps> = ({
                 {currentTrackSpec.name} COMPLETED
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-[#F4F4F5]">
-                WINNER: {hud.winnerCallsign}
+                WINNER: {hud.winnerCallsign || 'P1'}
               </h2>
               <p className="font-mono text-xs text-[#A1A1AA]">
                 Press <strong className="text-[#FF5500]">[START]</strong> on your mobile controller

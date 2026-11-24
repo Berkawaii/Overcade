@@ -133,6 +133,44 @@ function buildSculptedBodyGeometry(
     s.lineTo(-halfLen * 0.2, 0.52);
     s.lineTo(-halfLen * 0.85, 0.48);
     s.lineTo(-halfLen, 0.36);
+  } else if (style === 'formula') {
+    // Slim open-wheel cyber-formula cigar nose + tall airbox intake
+    s.moveTo(-halfLen, 0.14);
+    s.lineTo(halfLen + 0.25, 0.12);
+    s.lineTo(halfLen + 0.25, 0.24);
+    s.lineTo(halfLen * 0.32, 0.4);
+    s.lineTo(halfLen * 0.05, 0.52);
+    s.lineTo(-halfLen * 0.16, 0.84);
+    s.lineTo(-halfLen * 0.68, 0.72);
+    s.lineTo(-halfLen, 0.44);
+  } else if (style === 'rally') {
+    // Lifted rugged Dakar raid SUV profile with chopped fastback spare hatch
+    s.moveTo(-halfLen, 0.26);
+    s.lineTo(halfLen + 0.06, 0.28);
+    s.lineTo(halfLen + 0.08, 0.64);
+    s.lineTo(halfLen * 0.42, 0.72);
+    s.lineTo(halfLen * 0.14, 1.08);
+    s.lineTo(-halfLen * 0.52, 1.08);
+    s.lineTo(-halfLen * 0.96, 0.72);
+    s.lineTo(-halfLen, 0.38);
+  } else if (style === 'classic_jdm') {
+    // Angular 80s AE-86 hatchback coupe silhouette with pop-up nose & ducktail
+    s.moveTo(-halfLen, 0.14);
+    s.lineTo(halfLen + 0.05, 0.14);
+    s.lineTo(halfLen + 0.04, 0.42);
+    s.lineTo(halfLen * 0.38, 0.48);
+    s.lineTo(halfLen * 0.04, 0.78);
+    s.lineTo(-halfLen * 0.44, 0.77);
+    s.lineTo(-halfLen * 0.96, 0.52);
+    s.lineTo(-halfLen, 0.22);
+  } else if (style === 'cyber_wedge') {
+    // Flat razor-sharp stealth wedge interceptor profile
+    s.moveTo(-halfLen, 0.1);
+    s.lineTo(halfLen + 0.2, 0.09);
+    s.lineTo(halfLen + 0.16, 0.22);
+    s.lineTo(halfLen * 0.18, 0.48);
+    s.lineTo(-halfLen * 0.36, 0.52);
+    s.lineTo(-halfLen, 0.36);
   } else if (style === 'muscle') {
     // Tall, broad-shouldered combat brawler silhouette
     s.moveTo(-halfLen, 0.2);
@@ -251,9 +289,41 @@ export const DetailedCarModel: React.FC<{
   const isMuscle = chassisStyle === 'muscle';
   const isTuner = chassisStyle === 'tuner';
   const isCoupe = chassisStyle === 'coupe';
+  const isFormula = chassisStyle === 'formula';
+  const isRally = chassisStyle === 'rally';
+  const isClassicJdm = chassisStyle === 'classic_jdm';
+  const isCyberWedge = chassisStyle === 'cyber_wedge';
 
-  const bodyWidth = isHyper ? 1.24 : isMuscle ? 2.34 : isTuner ? 2.12 : 2.08;
-  const bodyLength = isHyper ? 4.88 : isMuscle ? 4.58 : isTuner ? 4.24 : 4.44;
+  const bodyWidth = isFormula
+    ? 0.86
+    : isHyper
+    ? 1.24
+    : isMuscle
+    ? 2.34
+    : isRally
+    ? 2.28
+    : isCyberWedge
+    ? 2.18
+    : isClassicJdm
+    ? 2.0
+    : isTuner
+    ? 2.12
+    : 2.08;
+  const bodyLength = isFormula
+    ? 5.05
+    : isHyper
+    ? 4.88
+    : isCyberWedge
+    ? 4.76
+    : isMuscle
+    ? 4.58
+    : isRally
+    ? 4.52
+    : isClassicJdm
+    ? 4.28
+    : isTuner
+    ? 4.24
+    : 4.44;
   const halfL = bodyLength * 0.5;
 
   const chassisGeo = useMemo(
@@ -303,23 +373,23 @@ export const DetailedCarModel: React.FC<{
   };
 
   // Distinct Stances, Staggered Wheel Diameters & Negative Tuner Camber
-  const frontR = isMuscle ? 0.45 : isHyper ? 0.41 : 0.4;
-  const rearR = isMuscle ? 0.51 : isHyper ? 0.43 : 0.4;
-  const wheelSpanX = isHyper ? 1.06 : isMuscle ? 1.18 : 1.06;
-  const camber = isTuner ? 0.1 : 0;
+  const frontR = isRally ? 0.49 : isMuscle ? 0.45 : isFormula ? 0.42 : isHyper ? 0.41 : 0.4;
+  const rearR = isRally ? 0.52 : isMuscle ? 0.51 : isFormula ? 0.46 : isHyper ? 0.43 : 0.4;
+  const wheelSpanX = isFormula ? 1.12 : isRally ? 1.2 : isMuscle ? 1.18 : 1.06;
+  const camber = isTuner ? 0.1 : isClassicJdm ? 0.06 : 0;
 
   const wheelDefs = [
-    { pos: [-wheelSpanX, frontR - 0.28, halfL * 0.62] as [number, number, number], r: frontR, w: 0.34, isFront: true, isLeft: true },
-    { pos: [wheelSpanX, frontR - 0.28, halfL * 0.62] as [number, number, number], r: frontR, w: 0.34, isFront: true, isLeft: false },
-    { pos: [-wheelSpanX, rearR - 0.28, -halfL * 0.6] as [number, number, number], r: rearR, w: isMuscle ? 0.46 : 0.38, isFront: false, isLeft: true },
-    { pos: [wheelSpanX, rearR - 0.28, -halfL * 0.6] as [number, number, number], r: rearR, w: isMuscle ? 0.46 : 0.38, isFront: false, isLeft: false },
+    { pos: [-wheelSpanX, frontR - 0.28, halfL * 0.62] as [number, number, number], r: frontR, w: isFormula ? 0.36 : isRally ? 0.4 : 0.34, isFront: true, isLeft: true },
+    { pos: [wheelSpanX, frontR - 0.28, halfL * 0.62] as [number, number, number], r: frontR, w: isFormula ? 0.36 : isRally ? 0.4 : 0.34, isFront: true, isLeft: false },
+    { pos: [-wheelSpanX, rearR - 0.28, -halfL * 0.6] as [number, number, number], r: rearR, w: isMuscle || isFormula || isRally ? 0.48 : 0.38, isFront: false, isLeft: true },
+    { pos: [wheelSpanX, rearR - 0.28, -halfL * 0.6] as [number, number, number], r: rearR, w: isMuscle || isFormula || isRally ? 0.48 : 0.38, isFront: false, isLeft: false },
   ];
 
   return (
     <group>
       {/* Radial Soft Neon Underglow Spill */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.22, 0]}>
-        <planeGeometry args={[isHyper ? 3.8 : 4.2, bodyLength + 2.2]} />
+        <planeGeometry args={[isHyper || isFormula ? 3.8 : 4.2, bodyLength + 2.2]} />
         <meshBasicMaterial
           ref={(mat) => {
             const slot = ensureSlot();
@@ -351,13 +421,13 @@ export const DetailedCarModel: React.FC<{
 
       {/* Carbon Undertray Floorpan & Glowing Side Sill Skirts */}
       <mesh position={[0, 0.1, 0]}>
-        <boxGeometry args={[isHyper ? 2.15 : bodyWidth + 0.16, 0.1, bodyLength + 0.1]} />
+        <boxGeometry args={[isHyper || isFormula ? 2.15 : bodyWidth + 0.16, 0.1, bodyLength + 0.1]} />
         <meshStandardMaterial color="#0b0c12" metalness={0.85} roughness={0.25} />
       </mesh>
       {[-1, 1].map((side) => (
         <mesh
           key={`sill-${side}`}
-          position={[side * ((isHyper ? 1.08 : bodyWidth * 0.54) + 0.02), 0.12, 0]}
+          position={[side * ((isHyper || isFormula ? 1.08 : bodyWidth * 0.54) + 0.02), 0.12, 0]}
         >
           <boxGeometry args={[0.07, 0.07, bodyLength * 0.66]} />
           <meshBasicMaterial color={color} />
@@ -827,6 +897,216 @@ export const DetailedCarModel: React.FC<{
               </mesh>
             ))}
           </group>
+        </group>
+      )}
+
+      {/* =====================================================================
+          CHASSIS 5: PHANTOM F-ZERO (OPEN-WHEEL CYBER FORMULA)
+          Suspension wishbones, wide twin-element wings, F1 Halo, radiator sidepods
+         ===================================================================== */}
+      {isFormula && (
+        <group>
+          {/* Exposed Suspension Wishbones */}
+          {[-0.65, 0.65].map((wx, wi) => (
+            <React.Fragment key={wi}>
+              <mesh position={[wx, 0.24, halfL * 0.62]} rotation={[0, 0, wx > 0 ? -0.08 : 0.08]}>
+                <boxGeometry args={[0.85, 0.05, 0.18]} />
+                <meshStandardMaterial color="#18181b" metalness={0.9} />
+              </mesh>
+              <mesh position={[wx, 0.26, -halfL * 0.6]}>
+                <boxGeometry args={[0.85, 0.06, 0.22]} />
+                <meshStandardMaterial color="#18181b" metalness={0.9} />
+              </mesh>
+            </React.Fragment>
+          ))}
+          {/* Sidepod Radiator Intakes */}
+          {[-0.68, 0.68].map((sx, si) => (
+            <mesh key={si} position={[sx, 0.26, -0.35]}>
+              <boxGeometry args={[0.46, 0.26, 1.55]} />
+              <meshPhysicalMaterial color={color} metalness={0.78} roughness={0.18} clearcoat={1} />
+            </mesh>
+          ))}
+          {/* Cockpit Halo Titanium Bar */}
+          <mesh position={[0, 0.64, 0.22]} rotation={[Math.PI * 0.4, 0, 0]}>
+            <torusGeometry args={[0.38, 0.045, 8, 16, Math.PI]} />
+            <meshStandardMaterial color="#e4e4e7" metalness={0.95} roughness={0.12} />
+          </mesh>
+          {/* Wide Dual-Tier Front F1 Wing */}
+          <mesh position={[0, 0.14, halfL + 0.26]}>
+            <boxGeometry args={[2.38, 0.06, 0.56]} />
+            <meshPhysicalMaterial color="#0b0c12" clearcoat={1} />
+          </mesh>
+          <mesh position={[0, 0.18, halfL + 0.44]}>
+            <boxGeometry args={[2.42, 0.03, 0.1]} />
+            <meshBasicMaterial color={color} />
+          </mesh>
+          {/* High Twin-Plane Rear F1 Wing + Endplates */}
+          <group
+            ref={(g) => {
+              const slot = ensureSlot();
+              if (slot) slot.activeWingMesh = g;
+            }}
+            position={[0, 0.96, -halfL + 0.18]}
+          >
+            <mesh position={[0, -0.26, 0]}>
+              <boxGeometry args={[0.1, 0.5, 0.28]} />
+              <meshStandardMaterial color="#18181b" />
+            </mesh>
+            <mesh>
+              <boxGeometry args={[2.32, 0.07, 0.46]} />
+              <meshPhysicalMaterial color="#11131c" clearcoat={1} />
+            </mesh>
+            <mesh position={[0, 0.05, -0.18]}>
+              <boxGeometry args={[2.34, 0.03, 0.09]} />
+              <meshBasicMaterial color={color} />
+            </mesh>
+          </group>
+          {/* Central F1 Rain LED Brake Beacon */}
+          <mesh position={[0, 0.34, -halfL - 0.04]}>
+            <boxGeometry args={[0.24, 0.22, 0.08]} />
+            <meshBasicMaterial ref={(m) => registerBrakeMat(0, m)} color="#EF4444" />
+          </mesh>
+        </group>
+      )}
+
+      {/* =====================================================================
+          CHASSIS 6: VALKYRIE RAID-X (ALL-TERRAIN DAKAR BRAWLER)
+          Roof spotlights, spare rear wheel, front steel bashplate, flared arches
+         ===================================================================== */}
+      {isRally && (
+        <group>
+          {/* Matte Armored Windshield */}
+          <mesh position={[0, 0.9, -0.25]}>
+            <boxGeometry args={[1.76, 0.36, 1.85]} />
+            <meshPhysicalMaterial color="#06080c" roughness={0.08} clearcoat={0.9} />
+          </mesh>
+          {/* Heavy Front Aluminum Skid Plate & Bull Bumper */}
+          <mesh position={[0, 0.22, halfL + 0.18]} rotation={[0.35, 0, 0]}>
+            <boxGeometry args={[2.18, 0.09, 0.56]} />
+            <meshStandardMaterial color="#cbd5e1" metalness={0.92} roughness={0.25} />
+          </mesh>
+          {/* 4 Roof-Mounted Raid Spotlights */}
+          <mesh position={[0, 1.15, 0.24]}>
+            <boxGeometry args={[1.56, 0.1, 0.22]} />
+            <meshStandardMaterial color="#18181b" />
+          </mesh>
+          {[-0.54, -0.18, 0.18, 0.54].map((rx, ri) => (
+            <mesh key={ri} position={[rx, 1.22, 0.32]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.1, 0.1, 0.1, 12]} />
+              <meshBasicMaterial color="#FEF08A" />
+            </mesh>
+          ))}
+          {/* Angled Rear Hatch Spare Off-Road Wheel */}
+          <mesh position={[0, 0.8, -halfL + 0.14]} rotation={[Math.PI / 2 - 0.52, 0, 0]}>
+            <cylinderGeometry args={[0.46, 0.46, 0.32, 16]} />
+            <meshStandardMaterial color="#090a0e" roughness={0.85} />
+          </mesh>
+          <mesh position={[0, 0.83, -halfL + 0.1]} rotation={[-0.52, 0, 0]}>
+            <torusGeometry args={[0.28, 0.04, 6, 14]} />
+            <meshBasicMaterial color={color} />
+          </mesh>
+          {/* Wide Rugged Bumper Headlights & Tall Side Tail Columns */}
+          {[-0.74, 0.74].map((hx, hi) => (
+            <mesh key={hi} position={[hx, 0.52, halfL + 0.06]}>
+              <boxGeometry args={[0.44, 0.16, 0.08]} />
+              <meshBasicMaterial color="#FEF3C7" />
+            </mesh>
+          ))}
+          {[-0.9, 0.9].map((tx, ti) => (
+            <mesh key={ti} position={[tx, 0.58, -halfL - 0.04]}>
+              <boxGeometry args={[0.18, 0.44, 0.08]} />
+              <meshBasicMaterial ref={(m) => registerBrakeMat(ti, m)} color="#EF4444" />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {/* =====================================================================
+          CHASSIS 7: TAKUMI AE-86 TOUGE (PANDA 80S DRIFT LEGEND)
+          Pop-up headlights, fog lamps, retro brick taillight strip, ducktail
+         ===================================================================== */}
+      {isClassicJdm && (
+        <group>
+          {/* Classic Greenhouse Liftback Canopy */}
+          <mesh position={[0, 0.62, -0.2]}>
+            <boxGeometry args={[1.56, 0.34, 1.85]} />
+            <meshPhysicalMaterial color="#06080f" roughness={0.06} clearcoat={1.0} />
+          </mesh>
+          {/* Dual Raised Pop-Up Square Headlight Pods */}
+          {[-0.66, 0.66].map((hx, hi) => (
+            <group key={hi} position={[hx, 0.47, halfL - 0.14]}>
+              <mesh>
+                <boxGeometry args={[0.38, 0.16, 0.34]} />
+                <meshStandardMaterial color="#18181b" roughness={0.4} />
+              </mesh>
+              <mesh position={[0, 0, 0.17]}>
+                <boxGeometry args={[0.32, 0.11, 0.04]} />
+                <meshBasicMaterial color="#FEF3C7" />
+              </mesh>
+            </group>
+          ))}
+          {/* Amber Touge Bumper Foglights */}
+          {[-0.45, 0.45].map((fx, fi) => (
+            <mesh key={fi} position={[fx, 0.22, halfL + 0.05]}>
+              <boxGeometry args={[0.24, 0.1, 0.06]} />
+              <meshBasicMaterial color="#FACC15" />
+            </mesh>
+          ))}
+          {/* Matte Black Urethane Ducktail Spoiler */}
+          <mesh position={[0, 0.62, -halfL + 0.12]} rotation={[-0.32, 0, 0]}>
+            <boxGeometry args={[1.94, 0.16, 0.24]} />
+            <meshStandardMaterial color="#111318" roughness={0.45} />
+          </mesh>
+          {/* Iconic Red-Amber-Red Retro Sprinter Taillight Bar */}
+          <mesh position={[0, 0.38, -halfL - 0.03]}>
+            <boxGeometry args={[1.76, 0.14, 0.06]} />
+            <meshBasicMaterial ref={(m) => registerBrakeMat(0, m)} color="#EF4444" />
+          </mesh>
+        </group>
+      )}
+
+      {/* =====================================================================
+          CHASSIS 8: SOLARIS GT-CONCEPT (STEALTH CYBER WEDGE)
+          Laser blade DRL, twin canted shark fins, low stealth glass, triple vents
+         ===================================================================== */}
+      {isCyberWedge && (
+        <group>
+          {/* Angular Stealth Windshield Wedge */}
+          <mesh position={[0, 0.46, -0.15]} scale={[1.48, 0.26, 2.15]}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshPhysicalMaterial color="#030712" metalness={0.2} roughness={0.04} clearcoat={1} />
+          </mesh>
+          {/* Full-Width Blade Headlight Bar */}
+          <mesh position={[0, 0.21, halfL + 0.14]}>
+            <boxGeometry args={[1.96, 0.05, 0.08]} />
+            <meshBasicMaterial color="#22D3EE" />
+          </mesh>
+          {/* Twin Canted Vertical Rear Shark-Fin Stabilizers */}
+          {[-0.86, 0.86].map((fx, fi) => (
+            <mesh
+              key={fi}
+              position={[fx, 0.68, -halfL + 0.48]}
+              rotation={[0.18, 0, fi === 0 ? 0.22 : -0.22]}
+            >
+              <boxGeometry args={[0.07, 0.62, 1.15]} />
+              <meshPhysicalMaterial color="#0b0f18" clearcoat={1} metalness={0.8} />
+            </mesh>
+          ))}
+          {[-0.86, 0.86].map((fx, fi) => (
+            <mesh
+              key={`fin-glow-${fi}`}
+              position={[fx * 1.06, 0.96, -halfL + 0.45]}
+              rotation={[0.18, 0, fi === 0 ? 0.22 : -0.22]}
+            >
+              <boxGeometry args={[0.04, 0.05, 1.1]} />
+              <meshBasicMaterial color={color} />
+            </mesh>
+          ))}
+          {/* Full-Width Cyber Blade Taillight */}
+          <mesh position={[0, 0.34, -halfL - 0.04]}>
+            <boxGeometry args={[1.92, 0.07, 0.07]} />
+            <meshBasicMaterial ref={(m) => registerBrakeMat(0, m)} color="#EF4444" />
+          </mesh>
         </group>
       )}
 

@@ -1,9 +1,10 @@
 import { GameEngineBridge, useConsoleConnectionStore } from '../../lib/gameEngineBridge';
-import { MAX_PLAYERS, PLAYER_COLORS } from '../../lib/binaryProtocol';
+import { MAX_PLAYERS } from '../../lib/binaryProtocol';
 import { SoundFX } from '../../lib/soundEffects';
 import { PICO_STAGES, PICO_STAGE_HEIGHT, PICO_STAGE_WIDTH } from './levels';
 import { PicoPixelRenderer } from './PicoPixelRenderer';
 import type {
+  PicoAnimalId,
   PicoCalloutText,
   PicoDoor,
   PicoHazard,
@@ -20,6 +21,38 @@ import type {
 } from './types';
 
 const CALLOUT_CYCLE: PicoCalloutText[] = ['JUMP!', 'PUSH!', 'WAIT!', 'NICE!'];
+
+const ANIMAL_ROSTER: {
+  label: string;
+  animal: PicoAnimalId;
+  color: string;
+  portraitPath: string;
+}[] = [
+  {
+    label: 'MOCHI',
+    animal: 'fox',
+    color: '#F97316',
+    portraitPath: '/assets/pico/animals/portrait_fox.png',
+  },
+  {
+    label: 'PIPPIN',
+    animal: 'penguin',
+    color: '#38BDF8',
+    portraitPath: '/assets/pico/animals/portrait_penguin.png',
+  },
+  {
+    label: 'KERO',
+    animal: 'frog',
+    color: '#22C55E',
+    portraitPath: '/assets/pico/animals/portrait_frog.png',
+  },
+  {
+    label: 'BINKY',
+    animal: 'bunny',
+    color: '#FACC15',
+    portraitPath: '/assets/pico/animals/portrait_bunny.png',
+  },
+];
 
 export class PicoParkEngine {
   public canvas: HTMLCanvasElement | null = null;
@@ -154,15 +187,20 @@ export class PicoParkEngine {
     activeSlotIndices.forEach((slotIdx, idx) => {
       const spawnX = def.isBattleMode
         ? 300 + idx * 280
-        : def.spawnPos.x + idx * 44;
+        : def.spawnPos.x + idx * 48;
       const spawnY = def.spawnPos.y;
+      const roster = ANIMAL_ROSTER[slotIdx % ANIMAL_ROSTER.length];
       this.players.push({
         slotIndex: slotIdx,
         id: `pico-p-${slotIdx}`,
-        label: `P${slotIdx + 1}`,
-        color: PLAYER_COLORS[slotIdx] || '#3B82F6',
+        label: roster.label,
+        animal: roster.animal,
+        portraitPath: roster.portraitPath,
+        color: roster.color,
         x: spawnX,
         y: spawnY,
+        lastSafeX: spawnX,
+        lastSafeY: spawnY,
         vx: 0,
         vy: 0,
         width: 36,
@@ -171,6 +209,7 @@ export class PicoParkEngine {
         coyoteTimer: 0,
         facing: 'right',
         animTimer: 0,
+        isPushing: false,
         ridingOnPlayerId: null,
         ridingOnPlatformId: null,
         ridingOnBlockId: null,
@@ -386,7 +425,7 @@ export class PicoParkEngine {
 
     // 5. Elastic Rope Tether (Stage 2)
     if (def.tetherEnabled) {
-      this.updateTetherConstraint(def.tetherLength || 195, dt);
+      this.updateTetherConstraint(def.tetherLength || 145, dt);
     }
 
     // 6. Switches, Springs, Lasers, Jump Rope, Key & Door
@@ -523,6 +562,26 @@ export class PicoParkEngine {
     const leaderUnit =
       this.players.find((p) => p.slotIndex === this.activeControlledSlot) || this.players[0];
 
+    // Check if leader is actively pushing into an adjacent NumberBlock
+    let leaderBlockPushDir: -1 | 0 | 1 = 0;
+    if (soloMode && leaderUnit && Math.abs(leaderInput.axes.leftX) > 0.25) {
+      const wantDir: -1 | 1 = leaderInput.axes.leftX > 0 ? 1 : -1;
+      const touchingBlock = this.numberBlocks.some((blk) => {
+        const yOverlap =
+          leaderUnit.y + leaderUnit.height > blk.y + 6 &&
+          leaderUnit.y < blk.y + blk.height - 6;
+        if (!yOverlap) return false;
+        if (wantDir === 1) {
+          return Math.abs(leaderUnit.x + leaderUnit.width - blk.x) <= 18;
+        }
+        return Math.abs(leaderUnit.x - (blk.x + blk.width)) <= 18;
+      });
+      if (touchingBlock) {
+        leaderBlockPushDir = wantDir;
+      }
+    }
+
+    let followerSeq = 0;
     for (let i = 0; i < this.players.length; i++) {
       const p = this.players[i];
       if (p.enteredDoor || p.isDead) continue;
@@ -566,9 +625,9 @@ export class PicoParkEngine {
           }
         }
       } else if (soloMode && this.squadFollowMode && leaderUnit) {
+        followerSeq += 1;
         // AI / Squad Follow Behavior for non-active units in Solo Mode
         if (isBattleMode) {
-          // In Battle Mode, AI bots chase the Crown or the Crown holder!
           const targetX =
             this.key.carrierSlot !== null && this.key.carrierSlot !== p.slotIndex
               ? this.players.find((pl) => pl.slotIndex === this.key.carrierSlot)?.x ?? this.key.x
@@ -581,47 +640,67 @@ export class PicoParkEngine {
           if (Math.abs(dx) > 18) axisX = dx > 0 ? 0.88 : -0.88;
           if (p.isGrounded && Math.random() < 0.035) wantJump = true;
         } else {
-          // Cooperative Squad Follow: follow leader or help push nearby number blocks!
           const stageDef = PICO_STAGES[this.currentStageIdx];
           const isLeaderDanglingInChasm =
+            stageDef.id === 'stage-2-tether' &&
             Boolean(stageDef.tetherEnabled) &&
             leaderUnit.y > 445 &&
             leaderUnit.x > 575 &&
             leaderUnit.x < 705;
 
           if (isLeaderDanglingInChasm) {
-            // In Tethered Fate, squadmates brace as firm anchors on the left center ledge while leader dangles!
-            const anchorTargetX = 560 - i * 24;
+            const anchorTargetX = 560 - followerSeq * 26;
             const anchorDx = anchorTargetX - p.x;
-            if (Math.abs(anchorDx) > 8) {
-              axisX = anchorDx > 0 ? 0.75 : -0.75;
-            } else {
-              axisX = 0;
+            if (Math.abs(anchorDx) > 10) {
+              axisX = anchorDx > 0 ? 0.72 : -0.72;
             }
+          } else if (leaderBlockPushDir !== 0 && Math.abs(leaderUnit.x - p.x) < 175) {
+            // Leader is pushing an adjacent NumberBlock -> rally in the same push direction!
+            axisX = leaderBlockPushDir;
           } else {
-            const orderOffset = (i - 1) * -36;
-            const targetX = leaderUnit.x + orderOffset;
-            const dx = targetX - p.x;
+            const distToLeaderX = leaderUnit.x - p.x;
+            const absDistX = Math.abs(distToLeaderX);
+            const sameElev = Math.abs(leaderUnit.y - p.y) < 40;
+            const preferredSpot =
+              p.x >= leaderUnit.x
+                ? Math.min(PICO_STAGE_WIDTH - 56, leaderUnit.x + followerSeq * 54)
+                : Math.max(24, leaderUnit.x - followerSeq * 54);
+            const dxToSpot = preferredSpot - p.x;
 
-            // If leader is pushing a number block, help line up and push in the same direction!
-            const leaderPushingRight = leaderInput.axes.leftX > 0.25;
-            const leaderPushingLeft = leaderInput.axes.leftX < -0.25;
-            if (leaderPushingRight && Math.abs(leaderUnit.x - p.x) < 160) {
-              axisX = 1;
-            } else if (leaderPushingLeft && Math.abs(leaderUnit.x - p.x) < 160) {
-              axisX = -1;
-            } else if (Math.abs(dx) > 18) {
-              axisX = dx > 0 ? 1 : -1;
+            // Stay put peacefully near stationary leader; trail cleanly when leader moves or is far away
+            if (absDistX > 140 || Math.abs(leaderUnit.vx) > 20) {
+              if (Math.abs(dxToSpot) > 18) {
+                const walkDir = dxToSpot > 0 ? 1 : -1;
+                const walkingIntoLeader =
+                  sameElev && absDistX < 54 && Math.sign(distToLeaderX) === walkDir;
+                if (!walkingIntoLeader) {
+                  axisX = walkDir;
+                }
+              }
             }
 
-            // Jump when leader jumps or when blocked by a step
-            if (
-              leaderInput.buttons.A &&
-              !leaderPrev.A &&
-              p.isGrounded &&
-              p.ridingOnPlayerId === null
-            ) {
-              wantJump = true;
+            // Mirror jumps only when close or in jump rope; otherwise stop at cliffs or jump only across reachable gaps toward leader
+            if (p.isGrounded && p.ridingOnPlayerId === null) {
+              const syncJump =
+                (this.jumpRope && !this.jumpRope.completed) ||
+                (absDistX < 48 && sameElev);
+              if (syncJump && leaderInput.buttons.A && !leaderPrev.A) {
+                wantJump = true;
+              } else if (axisX !== 0 && this.gravityDir === 1) {
+                const probeX = p.x + p.width / 2 + (axisX > 0 ? 22 : -22);
+                const probeY = p.y + p.height + 14;
+                if (!this.hasSolidFootingAt(probeX, probeY)) {
+                  const dir: -1 | 1 = axisX > 0 ? 1 : -1;
+                  const canJumpGap =
+                    this.hasLandingAcrossGap(p.x + p.width / 2, p.y + p.height, dir) &&
+                    Math.sign(distToLeaderX) === Math.sign(axisX);
+                  if (canJumpGap) {
+                    wantJump = true;
+                  } else {
+                    axisX = 0;
+                  }
+                }
+              }
             }
           }
         }
@@ -651,7 +730,7 @@ export class PicoParkEngine {
             !other.isDead &&
             other.isGrounded &&
             p.y > other.y + 45 &&
-            Math.hypot(other.x - p.x, other.y - p.y) >= (stageDef.tetherLength || 210) * 0.72
+            Math.hypot(other.x - p.x, other.y - p.y) >= (stageDef.tetherLength || 145) * 0.72
         );
 
       if (wantJump && (p.coyoteTimer > 0 || canRopeHoist)) {
@@ -677,6 +756,60 @@ export class PicoParkEngine {
     if (soloMode) {
       Object.assign(leaderPrev, leaderInput.buttons);
     }
+  }
+
+  private hasSolidFootingAt(probeX: number, probeY: number): boolean {
+    for (const plat of this.platforms) {
+      if (plat.type === 'bridge' && !plat.isOpen) continue;
+      if (
+        probeX >= plat.x &&
+        probeX <= plat.x + plat.width &&
+        probeY >= plat.y - 4 &&
+        probeY <= plat.y + plat.height + 16
+      ) {
+        return true;
+      }
+    }
+    for (const blk of this.numberBlocks) {
+      if (
+        probeX >= blk.x &&
+        probeX <= blk.x + blk.width &&
+        probeY >= blk.y - 4 &&
+        probeY <= blk.y + blk.height + 16
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private hasLandingAcrossGap(fromX: number, fromY: number, dir: -1 | 1): boolean {
+    const checkOffsets = [52, 90, 128, 165];
+    for (const offset of checkOffsets) {
+      const testX = fromX + dir * offset;
+      for (const plat of this.platforms) {
+        if (plat.type === 'bridge' && !plat.isOpen) continue;
+        if (
+          testX >= plat.x + 4 &&
+          testX <= plat.x + plat.width - 4 &&
+          plat.y >= fromY - 95 &&
+          plat.y <= fromY + 185
+        ) {
+          return true;
+        }
+      }
+      for (const blk of this.numberBlocks) {
+        if (
+          testX >= blk.x + 4 &&
+          testX <= blk.x + blk.width - 4 &&
+          blk.y >= fromY - 95 &&
+          blk.y <= fromY + 185
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private tryPlayerAction(player: PicoPlayer): void {
@@ -803,6 +936,10 @@ export class PicoParkEngine {
               p.vy = 0;
               p.isGrounded = true;
               p.ridingOnPlatformId = plat.id;
+              if (plat.type === 'solid' || plat.type === 'bridge') {
+                p.lastSafeX = p.x;
+                p.lastSafeY = p.y;
+              }
             } else if (p.vy < 0 && prevY >= plat.y + plat.height - 18) {
               p.y = plat.y + plat.height;
               p.vy = 0;
@@ -814,6 +951,10 @@ export class PicoParkEngine {
               p.vy = 0;
               p.isGrounded = true;
               p.ridingOnPlatformId = plat.id;
+              if (plat.type === 'solid' || plat.type === 'bridge') {
+                p.lastSafeX = p.x;
+                p.lastSafeY = p.y;
+              }
             } else if (p.vy > 0 && prevY + p.height <= plat.y + 18) {
               p.y = plat.y - p.height;
               p.vy = 0;
@@ -830,6 +971,8 @@ export class PicoParkEngine {
             p.vy = 0;
             p.isGrounded = true;
             p.ridingOnBlockId = blk.id;
+            p.lastSafeX = p.x;
+            p.lastSafeY = p.y;
           }
         }
       }
@@ -901,13 +1044,23 @@ export class PicoParkEngine {
               } else if (aAgainstBlockRight && b.x < a.x) {
                 b.x = a.x - b.width;
               } else {
-                const push = overlapX / 2;
-                if (a.x < b.x) {
-                  a.x -= push;
-                  b.x += push;
+                const soloActive = this.isSoloSquadMode();
+                const aIsLeader = soloActive && a.slotIndex === this.activeControlledSlot;
+                const bIsLeader = soloActive && b.slotIndex === this.activeControlledSlot;
+
+                if (aIsLeader && Math.abs(a.vx) < 12) {
+                  b.x += a.x < b.x ? overlapX : -overlapX;
+                } else if (bIsLeader && Math.abs(b.vx) < 12) {
+                  a.x += a.x < b.x ? -overlapX : overlapX;
                 } else {
-                  a.x += push;
-                  b.x -= push;
+                  const push = overlapX / 2;
+                  if (a.x < b.x) {
+                    a.x -= push;
+                    b.x += push;
+                  } else {
+                    a.x += push;
+                    b.x -= push;
+                  }
                 }
               }
             }
@@ -918,6 +1071,10 @@ export class PicoParkEngine {
   }
 
   private updateNumberBlocks(dt: number): void {
+    for (const p of this.players) {
+      p.isPushing = false;
+    }
+
     for (const blk of this.numberBlocks) {
       // Gravity on Number Block
       blk.vy += 1200 * dt;
@@ -1011,9 +1168,15 @@ export class PicoParkEngine {
       if (rightPushers >= leftPushers && rightPushers > 0) {
         blk.currentPushers = rightPushers;
         blk.pushDirection = 1;
+        for (const p of this.players) {
+          if (rightPusherSlots.has(p.slotIndex)) p.isPushing = true;
+        }
       } else if (leftPushers > 0) {
         blk.currentPushers = leftPushers;
         blk.pushDirection = -1;
+        for (const p of this.players) {
+          if (leftPusherSlots.has(p.slotIndex)) p.isPushing = true;
+        }
       } else {
         blk.currentPushers = 0;
         blk.pushDirection = 0;
@@ -1102,8 +1265,8 @@ export class PicoParkEngine {
     const active = this.players.filter((p) => !p.enteredDoor && !p.isDead);
     if (active.length < 2) return;
 
-    // 2-pass Position-Based Rope Constraint + Radial Velocity Projection
-    for (let iter = 0; iter < 2; iter++) {
+    // 6-pass Position-Based Rope Constraint + Radial Velocity Projection
+    for (let iter = 0; iter < 6; iter++) {
       for (let i = 0; i < active.length - 1; i++) {
         const a = active[i];
         const b = active[i + 1];
@@ -1153,12 +1316,12 @@ export class PicoParkEngine {
           const relVy = b.vy - a.vy;
           const radialVel = relVx * nx + relVy * ny;
           if (radialVel > 0) {
+            a.vx += nx * radialVel * weightA;
+            b.vx -= nx * radialVel * weightB;
             if (!a.isGrounded) {
-              a.vx += nx * radialVel * weightA;
               a.vy += ny * radialVel * weightA;
             }
             if (!b.isGrounded) {
-              b.vx -= nx * radialVel * weightB;
               b.vy -= ny * radialVel * weightB;
               // Gentle pendulum horizontal swing damping while dangling
               b.vx *= 0.98;
@@ -1206,7 +1369,7 @@ export class PicoParkEngine {
     // Update Switches
     for (const sw of this.switches) {
       sw.wasPressedLastFrame = sw.isPressed;
-      const touching = this.players.some(
+      const playerTouching = this.players.some(
         (p) =>
           !p.enteredDoor &&
           !p.isDead &&
@@ -1221,6 +1384,21 @@ export class PicoParkEngine {
             sw.height + 12
           )
       );
+      const blockTouching =
+        sw.type === 'hold' &&
+        this.numberBlocks.some((blk) =>
+          this.aabbOverlap(
+            blk.x,
+            blk.y,
+            blk.width,
+            blk.height,
+            sw.x - 4,
+            sw.y - 6,
+            sw.width + 8,
+            sw.height + 12
+          )
+        );
+      const touching = playerTouching || blockTouching;
 
       if (sw.type === 'hold') {
         sw.isPressed = touching;
@@ -1247,15 +1425,19 @@ export class PicoParkEngine {
       }
     }
 
-    // Update Linked Bridges
-    const toggleLocked = this.switches.some((s) => s.type === 'toggle' && s.isPressed);
+    // Update Linked Bridges (respects primary linkedSwitchId OR secondarySwitchId)
     for (const plat of this.platforms) {
       if (plat.type === 'bridge' && plat.linkedSwitchId) {
         if (plat.linkedSwitchId === 'jumprope_done') {
           plat.isOpen = Boolean(this.jumpRope && this.jumpRope.completed);
         } else {
           const linked = this.switches.find((s) => s.id === plat.linkedSwitchId);
-          plat.isOpen = Boolean((linked && linked.isPressed) || toggleLocked);
+          const secondary = plat.secondarySwitchId
+            ? this.switches.find((s) => s.id === plat.secondarySwitchId)
+            : undefined;
+          plat.isOpen = Boolean(
+            (linked && linked.isPressed) || (secondary && secondary.isPressed)
+          );
         }
       }
     }
@@ -1491,16 +1673,55 @@ export class PicoParkEngine {
     }
   }
 
+  private rescueSoloFollower(p: PicoPlayer): void {
+    const def = PICO_STAGES[this.currentStageIdx];
+    const hasOwnSafe = this.hasSolidFootingAt(
+      p.lastSafeX + p.width / 2,
+      p.lastSafeY + p.height + 12
+    );
+    if (hasOwnSafe) {
+      p.x = p.lastSafeX;
+      p.y = p.lastSafeY - 4;
+    } else {
+      const leader =
+        this.players.find((pl) => pl.slotIndex === this.activeControlledSlot) ||
+        this.players[0];
+      if (leader && leader.slotIndex !== p.slotIndex) {
+        p.x = leader.lastSafeX;
+        p.y = leader.lastSafeY - 4;
+      } else {
+        p.x = def.spawnPos.x;
+        p.y = def.spawnPos.y;
+      }
+    }
+    p.vx = 0;
+    p.vy = 0;
+    p.isGrounded = false;
+    p.ridingOnPlayerId = null;
+    p.ridingOnPlatformId = null;
+    p.ridingOnBlockId = null;
+    this.spawnBurst(p.x + 18, p.y + 18, p.color, 12);
+  }
+
   private checkHazards(): void {
     const isBattle = Boolean(PICO_STAGES[this.currentStageIdx].isBattleMode);
+    const soloMode = this.isSoloSquadMode();
 
     for (const p of this.players) {
       if (p.enteredDoor || p.isDead) continue;
 
-      // Falling off bottom or top of screen
-      if (p.y > PICO_STAGE_HEIGHT + 40 || p.y < -80) {
+      // Falling off bottom (normal gravity) or top (inverted gravity) of stage
+      const fellAbyss =
+        (this.gravityDir === 1 && p.y > PICO_STAGE_HEIGHT + 40) ||
+        (this.gravityDir === -1 && p.y < -80);
+
+      if (fellAbyss) {
         if (isBattle) {
           this.respawnBattlePlayer(p);
+          continue;
+        }
+        if (soloMode && p.slotIndex !== this.activeControlledSlot) {
+          this.rescueSoloFollower(p);
           continue;
         }
         p.isDead = true;
@@ -1523,6 +1744,10 @@ export class PicoParkEngine {
         ) {
           if (isBattle) {
             this.respawnBattlePlayer(p);
+            break;
+          }
+          if (soloMode && p.slotIndex !== this.activeControlledSlot) {
+            this.rescueSoloFollower(p);
             break;
           }
           p.isDead = true;
@@ -1593,6 +1818,7 @@ export class PicoParkEngine {
       subtitle: def.subtitle,
       gimmickBadge: def.gimmickBadge,
       hintText: def.hintText,
+      theme: def.theme,
       activeUnitCount: this.players.length,
       activeControlledSlot: this.activeControlledSlot,
       squadFollowMode: this.squadFollowMode,
@@ -1635,7 +1861,14 @@ export class PicoParkEngine {
     ctx.scale(scale, scale);
 
     // 1. Background & Stage Watermark
-    PicoPixelRenderer.drawBackground(ctx, def.stageNumber, def.title, this.gravityDir);
+    PicoPixelRenderer.drawBackground(
+      ctx,
+      def.stageNumber,
+      def.title,
+      this.gravityDir,
+      def.theme || 'meadow',
+      now
+    );
 
     // 2. Pulley Cables & Platforms
     PicoPixelRenderer.drawPulleyCables(ctx, this.platforms);
@@ -1665,16 +1898,17 @@ export class PicoParkEngine {
 
     // 7. Elastic Tether Rope (Stage 2)
     if (def.tetherEnabled) {
-      PicoPixelRenderer.drawTetherRope(ctx, this.players, def.tetherLength || 195);
+      PicoPixelRenderer.drawTetherRope(ctx, this.players, def.tetherLength || 145);
     }
 
-    // 8. Pico Cat-Bot Players
+    // 8. Pico Animal Characters
     PicoPixelRenderer.drawPlayers(
       ctx,
       this.players,
       this.activeControlledSlot,
       this.gravityDir,
-      this.isSoloSquadMode()
+      this.isSoloSquadMode(),
+      now
     );
 
     // 9. Lasers & Jump Rope Foreground Pass

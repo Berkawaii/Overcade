@@ -1,12 +1,28 @@
 export type PicoCalloutText = 'JUMP!' | 'PUSH!' | 'WAIT!' | 'NICE!';
 
+export type PicoAnimalId = 'fox' | 'penguin' | 'frog' | 'bunny';
+
+export type PicoStageTheme =
+  | 'meadow'
+  | 'sunset'
+  | 'factory'
+  | 'glacier'
+  | 'neon_lab'
+  | 'volcano'
+  | 'sky_temple'
+  | 'arcade_arena';
+
 export interface PicoPlayer {
   slotIndex: number;
   id: string;
   label: string;
+  animal: PicoAnimalId;
+  portraitPath: string;
   color: string;
   x: number;
   y: number;
+  lastSafeX: number;
+  lastSafeY: number;
   vx: number;
   vy: number;
   width: number;
@@ -15,6 +31,7 @@ export interface PicoPlayer {
   coyoteTimer: number;
   facing: 'left' | 'right';
   animTimer: number;
+  isPushing: boolean;
   ridingOnPlayerId: number | null;
   ridingOnPlatformId: string | null;
   ridingOnBlockId: string | null;
@@ -43,6 +60,7 @@ export interface PicoPlatform {
   moveRange?: number;
   moveSpeed?: number;
   linkedSwitchId?: string;
+  secondarySwitchId?: string;
   activeWhenPressed?: boolean;
   isOpen?: boolean;
   currentWeight?: number;
@@ -170,6 +188,7 @@ export interface PicoStageDefinition {
   subtitle: string;
   gimmickBadge: string;
   hintText: string;
+  theme?: PicoStageTheme;
   tetherEnabled?: boolean;
   tetherLength?: number;
   shieldAvailable?: boolean;
@@ -200,6 +219,7 @@ export interface PicoStageTelemetry {
   subtitle: string;
   gimmickBadge: string;
   hintText: string;
+  theme?: PicoStageTheme;
   activeUnitCount: number;
   activeControlledSlot: number;
   squadFollowMode: boolean;

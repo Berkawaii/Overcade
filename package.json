@@ -11,6 +11,10 @@
     "audit:chrono-art": "node tools/pixel-pipeline/chrono/build-chrono-assets.mjs --audit-only",
     "build:firedup-art": "node tools/pixel-pipeline/firedup/build-firedup-assets.mjs",
     "audit:firedup-art": "node tools/pixel-pipeline/firedup/build-firedup-assets.mjs --audit-only",
+    "build:ui-art": "node tools/pixel-pipeline/ui/build-ui-assets.mjs",
+    "audit:ui-art": "node tools/pixel-pipeline/ui/build-ui-assets.mjs --audit-only",
+    "build:pico-art": "node tools/pixel-pipeline/pico/build-pico-assets.mjs",
+    "audit:pico-art": "node tools/pixel-pipeline/pico/build-pico-assets.mjs --audit-only",
     "deploy": "npm run build && npx -y firebase-tools@latest deploy"
   },
   "dependencies": {

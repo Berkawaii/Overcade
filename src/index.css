@@ -118,7 +118,76 @@
 }
 
 .arcade-btn-primary:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
+}
+
+/* 16-Bit Pixel-Art Console OS Panels & Tactile Controls */
+.pixel-panel {
+  background-color: #0e1018;
+  border: 2px solid #2d3348;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.7),
+    4px 4px 0 #05060a;
+}
+
+.pixel-panel-amber {
+  background-color: #121016;
+  border: 2px solid #f59e0b;
+  box-shadow:
+    inset 0 2px 0 rgba(254, 240, 138, 0.16),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.75),
+    4px 4px 0 #05060a;
+}
+
+.pixel-btn-primary {
+  background: linear-gradient(180deg, #ff6b1a 0%, #ea4600 100%);
+  color: #07070a;
+  border: 2px solid #ffb37e;
+  box-shadow:
+    inset 0 -3px 0 #9a2a00,
+    4px 4px 0 #05060a;
+  transition: transform 60ms steps(2), filter 80ms ease;
+}
+
+.pixel-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.pixel-btn-primary:active {
+  transform: translate(2px, 2px);
+  box-shadow:
+    inset 0 -1px 0 #9a2a00,
+    2px 2px 0 #05060a;
+}
+
+.pixel-btn-ghost {
+  background-color: #141824;
+  color: #f4f4f5;
+  border: 2px solid #333b52;
+  box-shadow: 3px 3px 0 #05060a;
+  transition: transform 60ms steps(2), border-color 80ms ease;
+}
+
+.pixel-btn-ghost:hover {
+  border-color: #f59e0b;
+}
+
+.pixel-btn-ghost:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #05060a;
+}
+
+.pixel-input {
+  background-color: #07080d;
+  border: 2px solid #2d3348;
+  color: #f4f4f5;
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+.pixel-input:focus {
+  border-color: #ff5500;
+  outline: none;
 }
 
 .arcade-btn-primary:active {
