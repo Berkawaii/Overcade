@@ -23,6 +23,7 @@ export const PACKET_TYPE_HEARTBEAT = 0x02;
 export const PACKET_TYPE_HOST_FEEDBACK = 0x03;
 
 export const MAX_PLAYERS = 4;
+export const GAME_MODE_STRIKE_BREAKER = 5;
 
 export const PLAYER_COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B'] as const;
 export const PLAYER_CALLSIGNS = ['HERO-01 // P1', 'HERO-02 // P2', 'HERO-03 // P3', 'HERO-04 // P4'] as const;
@@ -218,8 +219,8 @@ export function encodeHostFeedbackPacket(
   heroClassIndex = 0,
   playerLevel = 1
 ): ArrayBuffer {
-  const normHp = hpPercent <= 1 && hpPercent > 0 ? hpPercent * 100 : hpPercent;
-  const normMp = mpPercent <= 1 && mpPercent > 0 ? mpPercent * 100 : mpPercent;
+  const normHp = hpPercent > 0 && hpPercent < 1 ? hpPercent * 100 : hpPercent;
+  const normMp = mpPercent > 0 && mpPercent < 1 ? mpPercent * 100 : mpPercent;
   const buf = new ArrayBuffer(8);
   const view = new DataView(buf);
   view.setUint8(0, PACKET_TYPE_HOST_FEEDBACK);

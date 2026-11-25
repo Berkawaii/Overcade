@@ -4,6 +4,12 @@ Overcade is a browser-based local multiplayer arcade console for 1 to 4 players.
 
 ## Games
 
+### Strike Breaker '98: Neon Fist
+- **1998 CPS-2 / Neo-Geo Style 60 Hz 2D Fighter:** Pure fixed-step fighting engine (`src/games/strikeBreaker/StrikeBreakerEngine.ts`) with responsive motion inputs (`QCF`, `DP`, `QCB`), hitstop freeze frames, super flashes, dash afterimages, ground shadows, and custom 2D combat VFX (`StrikeBreakerVfx.ts`).
+- **10 Playable Challengers (`6x4` 24-Frame Sprites & `192x192` Arcade Portraits):** `Renji Kagura`, `Kaede Shinonome`, `Sosruko Batraz`, `Zara Al-Mansour`, `Valentina Rouge`, `Hakuro Zero-Blade`, `Rex Volkov`, `Jin Kane`, `Freya Lindqvist`, and boss `Malakor`, each with tuned hurtboxes/pushboxes, distinct weapon silhouettes, special moves, and Super Arts (`src/games/strikeBreaker/fighters.ts`, `SpriteSheetLoader.ts`).
+- **10 Character-Lore Stages & Random Stage Select:** `Shibuya Rooftop Dojo`, `Bayside Harbor Alley`, `Mount Elbrus Fortress`, `Hokkaido Frost Shrine`, `Neo-Siberia Iron Foundry`, `Rio-Bronx Street Block`, `Petra Sun Citadel`, `Oslo Iron Shipyard`, `Palais Rouge Grand Stage`, and `Obsidian Abyss Throne` with data-driven atmospheric particles (`rain`, `snow`, `petals`, `sand`, `embers`, `sparks`), reflective floor surfaces, lightning flashes, and `RANDOM STAGE` shuffling (`StageRenderer.ts`).
+- **Modes, Fightpad & Auto-Discovered Audio:** `Arcade Ladder` (3-stage lore progression with Shadow Boss finale), `1v1 Local Versus`, and `Training Dojo` (live hurtbox/pushbox/hitbox overlay, input history, full super meter toggle), dedicated 6-button mobile Fightpad skin (`GAME_MODE_STRIKE_BREAKER` in `StrikeBreakerControllerView.tsx`), plus 12 BGM tracks and 56 combat/announcer SFX loaded dynamically via `virtual:strikebreaker-audio` (`vite.config.ts`).
+
 ### Fired Up: Overdrive Combat Arena
 - **3D Split-Screen Vehicular Combat:** Supports 1P, 2P, and 4P split-screen viewports (`Auto`, `1P`, `2P`, `4P`) across three 2080x2080m warfront sectors (`Scorched Badlands`, `Siberia Radar Valley`, `Republic Slag Quarry`).
 - **5 Distinct Military Vehicles:** `Buggy Armature` (Isabel), `Charger Osono` (Addo), `Paris-Dakar 4x4` (Erik), `Peacekeeper APC` (Viktoria), and `Barbarian Tank` (Tim), each with distinct 3D silhouettes, steering/spinning wheels, UV-scrolling treads, rotating radar dish, barrel recoil, muzzle flashes, and grounded contact physics.

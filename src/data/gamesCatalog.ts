@@ -86,6 +86,27 @@ export const GAMES_CATALOG: CatalogGameItem[] = [
     },
   },
   {
+    id: 'strike-breaker-98',
+    title: "STRIKE BREAKER '98 // NEON FIST",
+    subtitle: '90s CPS-2 / Neo-Geo 2D Fighter: 7 Fighters, Super Armor, Super Freeze Cut-Ins & Living Stages',
+    genre: '2D ARCADE FIGHTING // 1V1',
+    players: '1-2 Players (Arcade, Local PvP & Training)',
+    engineSpec: 'CPS-2 Hybrid Pixel Sprite + 60Hz Hitbox Engine',
+    status: 'early_development',
+    statusLabel: 'EARLY DEVELOPMENT // 90S FIGHTER',
+    coverImage: '/assets/strikebreaker/cover_strikebreaker.png',
+    bentoSpan: 'hero',
+    description:
+      "Clash in 1998 Tokyo arcade style across a 7-fighter roster! Pick Renji Kagura, Kaede Shinonome, Circassian warrior Sosruko Batraz, Frost Samurai Hakuro, Cyber-Grappler Rex Volkov, Striker Jin Kane, or Dark Overlord Malakor across Rainy Shibuya Dojo & Bayside Harbor with QCF/DP/L1 Specials, Super Armor, fullscreen Super Arts, and Dramatic Slow-Mo K.O.s.",
+    controlsMapping: {
+      leftStick: 'Move / Crouch / Jump / Hold Back to Guard',
+      rightStick: 'P2 Versus Move (Arrows) | U/I Punch, J/K Kick',
+      buttonA: 'Light Kick [Space / J] | [B / Shift] Heavy Kick',
+      buttonB: 'Light Punch [E / U] | [Y / R / I] Heavy Punch',
+      triggers: 'L1 Quick Special [Q / O] / R1 Super Art [F / P]',
+    },
+  },
+  {
     id: 'pico-protocol',
     title: 'PICO PROTOCOL // CO-OP PARK',
     subtitle: '1-4 Player Cooperative Puzzle Platformer: Human Ladders, Number Blocks, Tether Ropes & 8 Gimmick Stages',

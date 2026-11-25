@@ -23,6 +23,7 @@ import {
   ArrowsOutCardinal,
 } from '@phosphor-icons/react';
 import {
+  GAME_MODE_STRIKE_BREAKER,
   GamepadPacketEncoder,
   PLAYER_CALLSIGNS,
   PLAYER_COLORS,
@@ -31,7 +32,9 @@ import {
 } from '../lib/binaryProtocol';
 import { ControllerSignalingClient } from '../lib/webrtcSignaling';
 import { CLASS_LIST, HERO_CLASSES } from '../games/chronoKnights/constants';
+import { FIGHTER_LIST } from '../games/strikeBreaker/fighters';
 import { QrScannerModal } from './QrScannerModal';
+import { StrikeBreakerControllerView } from './StrikeBreakerControllerView';
 import {
   ControllerCustomizerModal,
   loadLayoutConfig,
@@ -47,7 +50,16 @@ interface TouchStickState {
 const BASE_STICK_MAX_RADIUS = 56;
 
 export const ControllerApp: React.FC = () => {
-  const initialRoom = new URLSearchParams(window.location.search).get('room') || '';
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialRoom = searchParams.get('room') || '';
+  const isStrikeBreakerPreview = searchParams.get('mode') === 'strikebreaker';
+  const previewFighterParam = searchParams.get('fighter');
+  const previewSuperParam = searchParams.get('super');
+  const previewHpParam = searchParams.get('hp');
+  const previewFighterIdx = previewFighterParam
+    ? Math.max(0, FIGHTER_LIST.findIndex((f) => f.id === previewFighterParam))
+    : 0;
+
   const [roomInput, setRoomInput] = useState(initialRoom.toUpperCase());
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'>(
     initialRoom ? 'connecting' : 'idle'
@@ -59,10 +71,18 @@ export const ControllerApp: React.FC = () => {
   );
 
   const [assignedSlot, setAssignedSlot] = useState<number>(0);
-  const [gameModeId, setGameModeId] = useState<number>(1);
-  const [hpPercent, setHpPercent] = useState<number>(100);
-  const [mpPercent, setMpPercent] = useState<number>(100);
-  const [heroClassIdx, setHeroClassIdx] = useState<number>(0);
+  const [gameModeId, setGameModeId] = useState<number>(
+    isStrikeBreakerPreview ? GAME_MODE_STRIKE_BREAKER : 1
+  );
+  const [hpPercent, setHpPercent] = useState<number>(
+    previewHpParam !== null ? Math.max(0, Math.min(100, Number(previewHpParam) || 100)) : 100
+  );
+  const [mpPercent, setMpPercent] = useState<number>(
+    previewSuperParam !== null ? Math.max(0, Math.min(100, Number(previewSuperParam) || 0)) : 100
+  );
+  const [heroClassIdx, setHeroClassIdx] = useState<number>(
+    isStrikeBreakerPreview ? previewFighterIdx : 0
+  );
   const [playerLevel, setPlayerLevel] = useState<number>(1);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -126,6 +146,7 @@ export const ControllerApp: React.FC = () => {
   const activeClassId = CLASS_LIST[heroClassIdx] || 'knight';
   const activeHeroClass = HERO_CLASSES[activeClassId];
   const isPicoMode = gameModeId === 2;
+  const isStrikeBreakerMode = gameModeId === GAME_MODE_STRIKE_BREAKER;
 
   const triggerHaptic = useCallback((ms = 14) => {
     try {
@@ -213,7 +234,7 @@ export const ControllerApp: React.FC = () => {
           if (feedback.gameModeId !== undefined) {
             setGameModeId(feedback.gameModeId);
           }
-          if (feedback.heroClassIndex !== undefined && feedback.heroClassIndex < CLASS_LIST.length) {
+          if (feedback.heroClassIndex !== undefined && feedback.heroClassIndex >= 0 && feedback.heroClassIndex < 16) {
             setHeroClassIdx(feedback.heroClassIndex);
           }
           if (feedback.playerLevel !== undefined && feedback.playerLevel >= 1) {
@@ -427,16 +448,7 @@ export const ControllerApp: React.FC = () => {
   };
 
   return (
-    <div className="controller-viewport relative flex flex-col justify-between bg-[#08080C] text-[#F4F4F5] p-2 sm:p-3 select-none overflow-hidden">
-      {/* Subtle Retro-Arcade Scanline & Grid Background */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-20"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 50% 0%, rgba(59,130,246,0.18), transparent 65%), repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 4px)',
-        }}
-      />
-
+    <div className="controller-viewport relative flex flex-col bg-[#08080C] text-[#F4F4F5] select-none overflow-hidden">
       {/* Landscape Orientation Recommendation */}
       {isPortrait && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#08080C]/95 p-6 text-center backdrop-blur-xl">
@@ -474,10 +486,50 @@ export const ControllerApp: React.FC = () => {
         onChange={setLayoutConfig}
       />
 
-      {/* ======================================================== */}
-      {/* TOP CONTROLLER HEADER BAR */}
-      {/* ======================================================== */}
-      <div className="relative z-20 flex flex-col gap-1 border-b border-white/10 pb-1.5">
+      {isStrikeBreakerMode ? (
+        <StrikeBreakerControllerView
+          status={status}
+          statusDetail={statusDetail}
+          isPreviewMode={isStrikeBreakerPreview}
+          roomInput={roomInput}
+          setRoomInput={setRoomInput}
+          connectToRoom={connectToRoom}
+          assignedSlot={assignedSlot}
+          playerAccentColor={playerAccentColor}
+          hpPercent={hpPercent}
+          mpPercent={mpPercent}
+          fighterIndex={heroClassIdx}
+          playerLevel={playerLevel}
+          wakeLockActive={wakeLockActive}
+          isFullscreen={isFullscreen}
+          toggleFullscreen={toggleFullscreen}
+          onOpenQrScanner={() => setIsQrScannerOpen(true)}
+          onOpenCustomizer={() => setIsCustomizerOpen(true)}
+          layoutConfig={layoutConfig}
+          floatingStickPos={floatingStickPos}
+          leftKnobRef={leftKnobRef}
+          stickZoneRef={stickZoneRef}
+          handleStickStart={handleStickStart}
+          handleStickMove={handleStickMove}
+          handleStickEnd={handleStickEnd}
+          setDpadKey={setDpadKey}
+          setButtonState={setButtonState}
+        />
+      ) : (
+        <div className="relative flex flex-1 min-h-0 flex-col justify-between p-2 sm:p-3 overflow-hidden">
+          {/* Subtle Retro-Arcade Scanline & Grid Background */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-20"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 50% 0%, rgba(59,130,246,0.18), transparent 65%), repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 4px)',
+            }}
+          />
+
+          {/* ======================================================== */}
+          {/* TOP CONTROLLER HEADER BAR */}
+          {/* ======================================================== */}
+          <div className="relative z-20 flex flex-col gap-1 border-b border-white/10 pb-1.5">
         <div className="grid grid-cols-12 items-center gap-1 sm:gap-2">
           {/* L1 Shoulder Trigger */}
           <button
@@ -1150,20 +1202,22 @@ export const ControllerApp: React.FC = () => {
               : 'CHRONO KNIGHTS // 60HZ WEBRTC GAMEPAD LINK'}
           </span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsCustomizerOpen(true)}
-            className="text-amber-400 underline font-bold"
-          >
-            EDIT LAYOUT
-          </button>
-          <div className="flex items-center gap-1">
-            <Vibrate size={11} className="text-emerald-400" />
-            <span className="uppercase">{layoutConfig.hapticIntensity}</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsCustomizerOpen(true)}
+              className="text-amber-400 underline font-bold"
+            >
+              EDIT LAYOUT
+            </button>
+            <div className="flex items-center gap-1">
+              <Vibrate size={11} className="text-emerald-400" />
+              <span className="uppercase">{layoutConfig.hapticIntensity}</span>
+            </div>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

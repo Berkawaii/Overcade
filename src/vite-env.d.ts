@@ -9,3 +9,8 @@ declare module 'virtual:vortex-audio' {
   export const AVAILABLE_VORTEX_TRACKS: Record<string, string>;
   export const AVAILABLE_VORTEX_SFX: Record<string, string>;
 }
+
+declare module 'virtual:strikebreaker-audio' {
+  export const AVAILABLE_STRIKEBREAKER_TRACKS: Record<string, string>;
+  export const AVAILABLE_STRIKEBREAKER_SFX: Record<string, string>;
+}

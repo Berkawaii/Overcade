@@ -31,6 +31,10 @@ const PicoParkGame = lazy(() =>
   import('./components/PicoParkGame').then((m) => ({ default: m.PicoParkGame }))
 );
 
+const StrikeBreakerGame = lazy(() =>
+  import('./components/StrikeBreakerGame').then((m) => ({ default: m.StrikeBreakerGame }))
+);
+
 function isControllerRoute(): boolean {
   const rootEl = document.getElementById('root');
   if (rootEl?.getAttribute('data-mode') === 'controller') return true;
@@ -47,7 +51,14 @@ export const App: React.FC = () => {
   const [authReady, setAuthReady] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
   const [activeView, setActiveView] = useState<
-    'catalog' | 'picopark' | 'chronoknights' | 'firedup' | 'vortex' | 'ironclad' | 'arena'
+    | 'catalog'
+    | 'strikebreaker'
+    | 'picopark'
+    | 'chronoknights'
+    | 'firedup'
+    | 'vortex'
+    | 'ironclad'
+    | 'arena'
   >('catalog');
   const [isPairingOpen, setIsPairingOpen] = useState(false);
 
@@ -137,7 +148,8 @@ export const App: React.FC = () => {
         setActiveView('catalog');
       } else if (
         btn === 'SELECT' &&
-        (activeView === 'picopark' ||
+        (activeView === 'strikebreaker' ||
+          activeView === 'picopark' ||
           activeView === 'chronoknights' ||
           activeView === 'firedup' ||
           activeView === 'vortex' ||
@@ -166,7 +178,9 @@ export const App: React.FC = () => {
   };
 
   const handleLaunchGame = (gameId: string) => {
-    if (gameId === 'pico-protocol') {
+    if (gameId === 'strike-breaker-98') {
+      setActiveView('strikebreaker');
+    } else if (gameId === 'pico-protocol') {
       setActiveView('picopark');
     } else if (gameId === 'chrono-knights') {
       setActiveView('chronoknights');
@@ -200,6 +214,19 @@ export const App: React.FC = () => {
           onGuestContinue={() => setGuestMode(true)}
           onOpenPairing={() => setIsPairingOpen(true)}
         />
+      ) : activeView === 'strikebreaker' ? (
+        <Suspense
+          fallback={
+            <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#07070D] font-mono text-xs uppercase tracking-[0.2em] text-[#FF5500]">
+              STRIKE BREAKER &apos;98 // CPS-2 FIGHT ENGINE LOADING...
+            </div>
+          }
+        >
+          <StrikeBreakerGame
+            onExitGame={() => setActiveView('catalog')}
+            onOpenPairing={() => setIsPairingOpen(true)}
+          />
+        </Suspense>
       ) : activeView === 'picopark' ? (
         <Suspense
           fallback={

@@ -8,6 +8,8 @@ const CHRONO_AUDIO_VIRTUAL_ID = 'virtual:chrono-audio';
 const RESOLVED_CHRONO_AUDIO_ID = `\0${CHRONO_AUDIO_VIRTUAL_ID}`;
 const VORTEX_AUDIO_VIRTUAL_ID = 'virtual:vortex-audio';
 const RESOLVED_VORTEX_AUDIO_ID = `\0${VORTEX_AUDIO_VIRTUAL_ID}`;
+const STRIKEBREAKER_AUDIO_VIRTUAL_ID = 'virtual:strikebreaker-audio';
+const RESOLVED_STRIKEBREAKER_AUDIO_ID = `\0${STRIKEBREAKER_AUDIO_VIRTUAL_ID}`;
 
 function scanAudioDir(audioDir: string, urlPrefix: string): Record<string, string> {
   if (!existsSync(audioDir)) return {};
@@ -30,12 +32,15 @@ function gameAudioManifestPlugin(): Plugin {
   const chronoSfxDir = resolve(__dirname, 'public/assets/chrono/sfx');
   const vortexAudioDir = resolve(__dirname, 'public/assets/vortex/audio');
   const vortexSfxDir = resolve(__dirname, 'public/assets/vortex/sfx');
+  const strikeAudioDir = resolve(__dirname, 'public/assets/strikebreaker/audio');
+  const strikeSfxDir = resolve(__dirname, 'public/assets/strikebreaker/sfx');
 
   return {
     name: 'game-audio-manifest',
     resolveId(id) {
       if (id === CHRONO_AUDIO_VIRTUAL_ID) return RESOLVED_CHRONO_AUDIO_ID;
       if (id === VORTEX_AUDIO_VIRTUAL_ID) return RESOLVED_VORTEX_AUDIO_ID;
+      if (id === STRIKEBREAKER_AUDIO_VIRTUAL_ID) return RESOLVED_STRIKEBREAKER_AUDIO_ID;
     },
     load(id) {
       if (id === RESOLVED_CHRONO_AUDIO_ID) {
@@ -54,12 +59,22 @@ function gameAudioManifestPlugin(): Plugin {
           `export const AVAILABLE_VORTEX_SFX = ${JSON.stringify(sfx)};`,
         ].join('\n');
       }
+      if (id === RESOLVED_STRIKEBREAKER_AUDIO_ID) {
+        const tracks = scanAudioDir(strikeAudioDir, '/assets/strikebreaker/audio/');
+        const sfx = scanAudioDir(strikeSfxDir, '/assets/strikebreaker/sfx/');
+        return [
+          `export const AVAILABLE_STRIKEBREAKER_TRACKS = ${JSON.stringify(tracks)};`,
+          `export const AVAILABLE_STRIKEBREAKER_SFX = ${JSON.stringify(sfx)};`,
+        ].join('\n');
+      }
     },
     configureServer(server) {
       server.watcher.add(chronoAudioDir);
       server.watcher.add(chronoSfxDir);
       server.watcher.add(vortexAudioDir);
       server.watcher.add(vortexSfxDir);
+      server.watcher.add(strikeAudioDir);
+      server.watcher.add(strikeSfxDir);
 
       const invalidate = (file: string) => {
         if (file.startsWith(chronoAudioDir) || file.startsWith(chronoSfxDir)) {
@@ -68,6 +83,10 @@ function gameAudioManifestPlugin(): Plugin {
         }
         if (file.startsWith(vortexAudioDir) || file.startsWith(vortexSfxDir)) {
           const mod = server.moduleGraph.getModuleById(RESOLVED_VORTEX_AUDIO_ID);
+          if (mod) server.moduleGraph.invalidateModule(mod);
+        }
+        if (file.startsWith(strikeAudioDir) || file.startsWith(strikeSfxDir)) {
+          const mod = server.moduleGraph.getModuleById(RESOLVED_STRIKEBREAKER_AUDIO_ID);
           if (mod) server.moduleGraph.invalidateModule(mod);
         }
       };

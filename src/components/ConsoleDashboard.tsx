@@ -32,6 +32,7 @@ interface ConsoleDashboardProps {
 }
 
 const GAME_MASCOT_SPRITE: Record<string, string> = {
+  'strike-breaker-98': '/assets/strikebreaker/portrait_renji.png',
   'pico-protocol': '/assets/ui/mascot_pico.png',
   'chrono-knights': '/assets/ui/mascot_chrono.png',
   'fired-up-overdrive': '/assets/ui/mascot_firedup.png',

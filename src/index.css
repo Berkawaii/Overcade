@@ -75,6 +75,42 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* 1998 Arcade Pixel Chrome Utilities */
+.pixel-art {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.arcade-cut {
+  clip-path: polygon(
+    8px 0,
+    100% 0,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    0 100%,
+    0 8px
+  );
+}
+
+.arcade-cut-sm {
+  clip-path: polygon(
+    5px 0,
+    100% 0,
+    100% calc(100% - 5px),
+    calc(100% - 5px) 100%,
+    0 100%,
+    0 5px
+  );
+}
+
+.arcade-text-shadow {
+  text-shadow:
+    2px 2px 0 #000000,
+    -1px -1px 0 #000000,
+    1px -1px 0 #000000,
+    -1px 1px 0 #000000;
+}
+
 /* Double-Bezel Retro-Arcade Cabinet & Cartridge Enclosure */
 .double-bezel-outer {
   background: linear-gradient(180deg, rgba(255, 85, 0, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
